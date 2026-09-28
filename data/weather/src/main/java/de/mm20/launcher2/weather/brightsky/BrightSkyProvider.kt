@@ -9,6 +9,7 @@ import de.mm20.launcher2.preferences.weather.WeatherLocation
 import de.mm20.launcher2.weather.Forecast
 import de.mm20.launcher2.weather.GeocoderWeatherProvider
 import de.mm20.launcher2.weather.R
+import java.util.Locale
 import kotlin.math.roundToInt
 
 internal class BrightSkyProvider(
@@ -37,7 +38,9 @@ internal class BrightSkyProvider(
         locationName: String
     ): List<Forecast>? {
         val result = runCatching {
-            val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
+            // Locale.ROOT: the default locale can use other digits or another calendar (e.g. the
+            // Buddhist calendar in Thai), which the API doesn't understand
+            val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.ROOT)
             val date = Calendar.getInstance()
             date.timeInMillis -= 1000 * 60 * 30
             val startDate = format.format(date.timeInMillis)
@@ -53,7 +56,7 @@ internal class BrightSkyProvider(
             CrashReporter.logException(Exception(it))
             return null
         }
-        val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
+        val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.ROOT)
         val forecasts = mutableListOf<Forecast>()
         val updateTime = System.currentTimeMillis()
         for (weather in result.weather) {

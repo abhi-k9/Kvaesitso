@@ -252,10 +252,11 @@ class WeatherUpdateWorker(
         }
     }
 
-    @OptIn(FlowPreview::class)
-    private suspend fun getLastKnownLocation(): LatLon? = locationProvider.getLocation(skipCache = true)
-        .timeout(10.minutes)
-        .firstOrNull()
+    // Flow.timeout would throw instead of falling back to the cached location. Also stay well
+    // below WorkManager's 10 minute execution limit, so that there is time left for the update.
+    private suspend fun getLastKnownLocation(): LatLon? = withTimeoutOrNull(5.minutes) {
+        locationProvider.getLocation(skipCache = true).firstOrNull()
+    }
         .or { locationProvider.lastCachedLocation }
         ?.let { LatLon(it.latitude, it.longitude) }
 }

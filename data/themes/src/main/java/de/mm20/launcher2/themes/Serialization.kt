@@ -71,8 +71,9 @@ internal object FontWeightSerializer : KSerializer<FontWeight?> {
         if (value is FontWeight.Absolute) {
             encoder.encodeString(value.weight.toString())
         } else if (value is FontWeight.Relative) {
+            // Negative numbers already have a "-" sign
             encoder.encodeString(
-                (if (value.relativeWeight >= 0) "+" else "-") + value.relativeWeight.toString()
+                (if (value.relativeWeight >= 0) "+" else "") + value.relativeWeight.toString()
             )
         }
     }
@@ -84,6 +85,8 @@ internal object FontWeightSerializer : KSerializer<FontWeight?> {
 
         return when {
             str.startsWith("+") -> FontWeight.Relative(str.substring(1).toInt())
+            // Negative weights used to be serialized with a double "-" sign
+            str.startsWith("--") -> FontWeight.Relative(-str.substring(2).toInt())
             str.startsWith("-") -> FontWeight.Relative(-str.substring(1).toInt())
             else -> FontWeight.Absolute(str.toInt())
         }

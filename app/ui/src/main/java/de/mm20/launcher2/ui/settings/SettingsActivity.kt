@@ -168,8 +168,11 @@ class SettingsActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.enableEdgeToEdge(window)
 
-        val newRoute = getStartRoute(intent)
-        initialRoute = newRoute
+        // Only on the first start, when the activity is recreated (e.g. after a configuration
+        // change), the restored back stack must not be replaced again.
+        if (savedInstanceState == null) {
+            initialRoute = getStartRoute(intent)
+        }
 
         val entryProvider = entryProvider {
             entry<MainRoute> {

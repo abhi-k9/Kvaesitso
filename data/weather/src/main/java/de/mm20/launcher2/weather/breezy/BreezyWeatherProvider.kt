@@ -109,8 +109,9 @@ class BreezyWeatherProvider(
             771 -> WeatherIcon.Wind
             741 -> WeatherIcon.Fog
             721, 751 -> WeatherIcon.Haze
-            611, 616 -> WeatherIcon.Sleet
-            511 -> WeatherIcon.Hail
+            616 -> WeatherIcon.Sleet
+            // Breezy Weather uses 611 for hail (and used 511 in older versions)
+            511, 611 -> WeatherIcon.Hail
             210 -> WeatherIcon.Thunderstorm
             211 -> WeatherIcon.Thunderstorm
             else -> WeatherIcon.Unknown

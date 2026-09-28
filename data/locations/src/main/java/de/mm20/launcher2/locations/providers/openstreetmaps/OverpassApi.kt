@@ -45,7 +45,7 @@ internal data class OverpassFuzzyRadiusQuery(
                 separator = ".*",
                 prefix = "\"",
                 postfix = "\""
-            ) { Regex.escapeReplacement(it) }
+            ) { it.escapeOverpassRegex() }
 
         val overpassQlBuilder = StringBuilder()
         val latDegreeChange = radius * 0.00001 / 1.11
@@ -72,6 +72,16 @@ internal data class OverpassFuzzyRadiusQuery(
 
         return overpassQlBuilder.toString()
     }
+}
+
+/**
+ * Escapes this string for a regex inside an Overpass QL string literal: regex meta characters are
+ * escaped so that they match literally, then backslashes and quotes are escaped for the literal.
+ */
+private fun String.escapeOverpassRegex(): String {
+    return replace(Regex("""[\\^$.|?*+()\[\]{}]"""), """\\$0""")
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
 }
 
 internal data class OverpassIdQuery(

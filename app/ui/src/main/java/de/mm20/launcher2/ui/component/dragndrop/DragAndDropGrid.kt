@@ -223,7 +223,7 @@ fun Modifier.dragAndDrop(
     state: LazyDragAndDropGridState,
     hapticFeedback: HapticFeedback
 ) =
-    this then pointerInput(null) {
+    this then Modifier.pointerInput(null) {
         val scope = CoroutineScope(coroutineContext)
         val scrollEdgeSize = 32.dp.toPx()
         val scrollDelta = 128.dp.toPx()
