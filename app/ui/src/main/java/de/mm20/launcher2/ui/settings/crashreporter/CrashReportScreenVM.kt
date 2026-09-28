@@ -7,6 +7,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import de.mm20.launcher2.crashreporter.CrashReport
 import de.mm20.launcher2.crashreporter.CrashReporter
+import de.mm20.launcher2.ktx.tryStartActivity
 import kotlinx.coroutines.flow.flow
 import java.io.File
 import java.net.URLEncoder
@@ -35,13 +36,14 @@ class CrashReportScreenVM : ViewModel() {
                     "```\n\n" +
                     "## Device info\n" +
                     "${getDeviceInformation(context).replace("\n", "<br>")}\n"
-        val url = "https://github.com/MM2-0/Kvaesitso/issues/new?labels=crash+report&body=${
+        // Fork builds report to the fork's issue tracker, not to upstream
+        val url = "https://github.com/abhi-k9/Kvaesitso/issues/new?labels=crash+report&body=${
             URLEncoder.encode(
                 body,
                 "utf8"
             )
         }"
-        context.startActivity(Intent(Intent.ACTION_VIEW).apply {
+        context.tryStartActivity(Intent(Intent.ACTION_VIEW).apply {
             data = Uri.parse(url)
         })
     }

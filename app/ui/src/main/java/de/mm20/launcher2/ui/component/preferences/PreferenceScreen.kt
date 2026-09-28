@@ -34,6 +34,7 @@ import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.component.dragndrop.LazyDragAndDropColumn
 import de.mm20.launcher2.ui.component.dragndrop.LazyDragAndDropListState
 import de.mm20.launcher2.ui.component.dragndrop.rememberLazyDragAndDropListState
+import de.mm20.launcher2.ui.ktx.tryLaunchUrl
 import de.mm20.launcher2.ui.locals.LocalBackStack
 
 
@@ -187,7 +188,7 @@ private fun PreferenceScreenTopBar(
                                 .setSecondaryToolbarColor(colorScheme.secondaryContainer.toArgb())
                                 .build()
                         )
-                        .build().launchUrl(context, helpUrl.toUri())
+                        .build().tryLaunchUrl(context, helpUrl.toUri())
                 }) {
                     Icon(
                         painter = painterResource(R.drawable.help_24px),

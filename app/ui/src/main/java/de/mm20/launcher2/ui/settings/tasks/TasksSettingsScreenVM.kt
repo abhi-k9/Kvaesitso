@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.mm20.launcher2.applications.AppRepository
 import de.mm20.launcher2.icons.IconService
+import de.mm20.launcher2.ktx.tryStartActivity
 import de.mm20.launcher2.permissions.PermissionGroup
 import de.mm20.launcher2.permissions.PermissionsManager
 import de.mm20.launcher2.preferences.search.CalendarSearchSettings
@@ -42,7 +43,7 @@ class TasksSettingsScreenVM : ViewModel(), KoinComponent {
     }
 
     fun downloadTasksApp(activity: AppCompatActivity) {
-        activity.startActivity(
+        activity.tryStartActivity(
             Intent(Intent.ACTION_VIEW).apply {
                 data = "https://tasks.org/".toUri()
             }

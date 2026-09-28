@@ -61,6 +61,7 @@ import de.mm20.launcher2.ui.component.getSearchActionIconVector
 import de.mm20.launcher2.ui.component.preferences.Preference
 import de.mm20.launcher2.ui.component.preferences.SwitchPreference
 import de.mm20.launcher2.ui.ktx.animateShapeAsState
+import de.mm20.launcher2.ui.ktx.tryLaunchUrl
 import de.mm20.launcher2.ui.locals.LocalBackStack
 import kotlinx.serialization.Serializable
 
@@ -128,7 +129,7 @@ fun SearchActionsSettingsScreen() {
                                     .setSecondaryToolbarColor(colorScheme.secondaryContainer.toArgb())
                                     .build()
                             )
-                            .build().launchUrl(
+                            .build().tryLaunchUrl(
                                 context,
                                 Uri.parse("https://kvaesitso.mm20.de/docs/user-guide/search/quickactions")
                             )

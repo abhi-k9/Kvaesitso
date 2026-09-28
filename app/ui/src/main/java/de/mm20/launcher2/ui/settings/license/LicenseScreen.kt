@@ -25,6 +25,7 @@ import de.mm20.launcher2.licenses.OpenSourceLibrary
 import de.mm20.launcher2.licenses.OpenSourceLicenses
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.component.preferences.PreferenceCategory
+import de.mm20.launcher2.ui.ktx.tryLaunchUrl
 import de.mm20.launcher2.ui.locals.LocalBackStack
 import kotlinx.serialization.Serializable
 
@@ -73,7 +74,7 @@ fun LicenseScreen(libraryName: String?) {
                                 .setToolbarColor(colorScheme.primaryContainer.toArgb())
                                 .build())
                             .build()
-                            .launchUrl(context, Uri.parse(library.url))
+                            .tryLaunchUrl(context, Uri.parse(library.url))
                     }) {
                         Icon(
                             painterResource(R.drawable.open_in_browser_24px),

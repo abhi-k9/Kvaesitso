@@ -1,6 +1,8 @@
 package de.mm20.launcher2.nextcloud
 
+import android.content.ActivityNotFoundException
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -199,9 +201,15 @@ class LoginActivity : AppCompatActivity() {
 
     private var currentLoginFlow: LoginFlowResponse? = null
     private fun openLoginPage(flow: LoginFlowResponse) {
-        currentLoginFlow = flow
         val customTabIntent = CustomTabsIntent.Builder().build()
-        customTabIntent.launchUrl(this, flow.login.toUri())
+        try {
+            customTabIntent.launchUrl(this, flow.login.toUri())
+        } catch (e: ActivityNotFoundException) {
+            // No browser installed
+            Log.e("NextcloudLogin", "Could not open login page", e)
+            return
+        }
+        currentLoginFlow = flow
     }
 
     override fun onResume() {

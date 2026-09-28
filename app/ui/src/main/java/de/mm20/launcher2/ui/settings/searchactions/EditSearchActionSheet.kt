@@ -99,6 +99,7 @@ import de.mm20.launcher2.ui.component.ExperimentalBadge
 import de.mm20.launcher2.ui.component.SearchActionIcon
 import de.mm20.launcher2.ui.component.preferences.ListPreference
 import de.mm20.launcher2.ui.ktx.toPixels
+import de.mm20.launcher2.ui.ktx.tryLaunchUrl
 
 @Composable
 fun EditSearchActionSheet(
@@ -538,7 +539,7 @@ fun CustomizeWebSearch(viewModel: EditSearchActionSheetVM) {
                                                     .build()
                                             )
                                             .build()
-                                            .launchUrl(
+                                            .tryLaunchUrl(
                                                 context,
                                                 Uri.parse("https://kvaesitso.mm20.de/docs/user-guide/search/quickactions#web-search")
                                             )

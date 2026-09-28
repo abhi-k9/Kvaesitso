@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import de.mm20.launcher2.ui.R
+import de.mm20.launcher2.ui.ktx.tryLaunchUrl
 import de.mm20.launcher2.ui.settings.SettingsActivity
 
 @Composable
@@ -115,7 +116,7 @@ fun RowScope.SearchBarMenu(
                                     .build()
                             )
                             .build()
-                            .launchUrl(
+                            .tryLaunchUrl(
                                 context,
                                 Uri.parse("https://kvaesitso.mm20.de/docs/user-guide")
                             )

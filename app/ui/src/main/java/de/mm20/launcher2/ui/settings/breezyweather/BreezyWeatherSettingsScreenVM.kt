@@ -7,6 +7,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.mm20.launcher2.applications.AppRepository
+import de.mm20.launcher2.ktx.tryStartActivity
 import de.mm20.launcher2.preferences.weather.WeatherSettings
 import de.mm20.launcher2.weather.WeatherRepository
 import de.mm20.launcher2.weather.breezy.BreezyWeatherProvider
@@ -44,7 +45,7 @@ class BreezyWeatherSettingsScreenVM: ViewModel(), KoinComponent {
     }
 
     fun downloadBreezyApp(activity: AppCompatActivity) {
-        activity.startActivity(
+        activity.tryStartActivity(
             Intent(Intent.ACTION_VIEW).apply {
                 data = "https://github.com/breezy-weather/breezy-weather/blob/main/INSTALL.md".toUri()
             }

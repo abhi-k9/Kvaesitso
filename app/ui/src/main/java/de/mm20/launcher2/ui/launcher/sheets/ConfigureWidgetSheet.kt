@@ -108,6 +108,7 @@ import de.mm20.launcher2.ui.component.preferences.Preference
 import de.mm20.launcher2.ui.component.preferences.SliderPreference
 import de.mm20.launcher2.ui.component.preferences.SwitchPreference
 import de.mm20.launcher2.ui.ktx.toDp
+import de.mm20.launcher2.ui.ktx.tryLaunchUrl
 import de.mm20.launcher2.ui.launcher.widgets.external.AppWidgetHost
 import de.mm20.launcher2.ui.locals.LocalDarkTheme
 import de.mm20.launcher2.ui.locals.LocalPreferDarkContentOverWallpaper
@@ -999,7 +1000,7 @@ fun ColumnScope.ConfigureCalendarWidget(
                             .setSecondaryToolbarColor(colorScheme.secondaryContainer.toArgb())
                             .build()
                     )
-                    .build().launchUrl(
+                    .build().tryLaunchUrl(
                         context,
                         Uri.parse("https://kvaesitso.mm20.de/docs/user-guide/widgets/calendar-widget#my-calendars-dont-show-up")
                     )

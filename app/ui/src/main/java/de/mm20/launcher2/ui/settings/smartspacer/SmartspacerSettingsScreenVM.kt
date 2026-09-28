@@ -7,6 +7,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.mm20.launcher2.applications.AppRepository
+import de.mm20.launcher2.ktx.tryStartActivity
 import de.mm20.launcher2.preferences.ui.ClockWidgetSettings
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
@@ -29,7 +30,7 @@ class SmartspacerSettingsScreenVM: ViewModel(), KoinComponent {
         .shareIn(viewModelScope, SharingStarted.WhileSubscribed(), 1)
 
     fun downloadSmartspacerApp(activity: AppCompatActivity) {
-        activity.startActivity(
+        activity.tryStartActivity(
             Intent(Intent.ACTION_VIEW).apply {
                 data = "https://github.com/KieronQuinn/Smartspacer".toUri()
             }
