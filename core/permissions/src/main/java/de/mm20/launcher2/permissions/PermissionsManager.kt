@@ -287,7 +287,9 @@ internal class PermissionsManagerImpl(
         when (permissionGroup) {
             PermissionGroup.Calendar -> calendarPermissionState.value = granted
             PermissionGroup.Tasks -> tasksPermissionState.value = granted
-            PermissionGroup.Location -> locationPermissionState.value = granted
+            // Coarse location alone is sufficient (the user can choose "approximate" location)
+            PermissionGroup.Location -> locationPermissionState.value =
+                checkPermissionOnce(PermissionGroup.Location)
             PermissionGroup.Contacts -> contactsPermissionState.value = granted
             PermissionGroup.ExternalStorage -> externalStoragePermissionState.value = granted
             PermissionGroup.Notifications -> notificationsPermissionState.value = granted
@@ -303,6 +305,13 @@ internal class PermissionsManagerImpl(
         externalStoragePermissionState.value = checkPermissionOnce(PermissionGroup.ExternalStorage)
         appShortcutsPermissionState.value = checkPermissionOnce(PermissionGroup.AppShortcuts)
         manageProfilesPermissionState.value = checkPermissionOnce(PermissionGroup.ManageProfiles)
+        // Runtime permissions can also be granted in the system settings while the app is running
+        calendarPermissionState.value = checkPermissionOnce(PermissionGroup.Calendar)
+        tasksPermissionState.value = checkPermissionOnce(PermissionGroup.Tasks)
+        contactsPermissionState.value = checkPermissionOnce(PermissionGroup.Contacts)
+        locationPermissionState.value = checkPermissionOnce(PermissionGroup.Location)
+        callPermissionState.value = checkPermissionOnce(PermissionGroup.Call)
+        localNetworkPermissionState.value = checkPermissionOnce(PermissionGroup.LocalNetwork)
     }
 
     override fun reportNotificationListenerState(running: Boolean) {

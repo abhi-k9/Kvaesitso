@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 
 
 class NotificationRepository {
@@ -22,12 +23,21 @@ class NotificationRepository {
 
     internal fun getNotifications(): List<Notification> = _notifications.value
 
+    /**
+     * Atomically updates the list of notifications
+     */
+    internal fun updateNotifications(transform: (List<Notification>) -> List<Notification>) {
+        _notifications.update(transform)
+    }
+
     internal fun onNotificationPosted(notification: Notification) {
-        _notifications.value = _notifications.value.filter { !isEqual(it, notification) } + notification
+        _notifications.update { notifications ->
+            notifications.filter { !isEqual(it, notification) } + notification
+        }
     }
 
     internal fun onNotificationRemoved(key: String) {
-        _notifications.value = _notifications.value.filter { it.key != key }
+        _notifications.update { notifications -> notifications.filter { it.key != key } }
     }
 
     private fun isEqual(

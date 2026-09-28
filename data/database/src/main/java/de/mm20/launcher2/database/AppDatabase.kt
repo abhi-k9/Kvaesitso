@@ -93,7 +93,12 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun pluginDao(): PluginDao
 
     companion object {
+        @Volatile
         private var _instance: AppDatabase? = null
+
+        // Synchronized, this is not only called by Koin but also directly from other modules
+        // (e.g. CurrencyRepository), and there must never be two instances for the same file.
+        @Synchronized
         fun getInstance(context: Context): AppDatabase {
             val instance = _instance
                 ?: Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "room")

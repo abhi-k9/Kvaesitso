@@ -382,8 +382,10 @@ internal fun parseOpeningSchedule(
                 when (selector) {
                     is Weekday -> rulesMap[selector]!!.add(rule)
                     is WeekdayRange -> {
-                        for (weekday in selector.start.ordinal..selector.end.ordinal) {
-                            rulesMap[Weekday.entries[weekday]]!!.add(rule)
+                        // Ranges can wrap around the end of the week, e.g. "Fr-Mo"
+                        val days = (selector.end.ordinal - selector.start.ordinal).mod(7)
+                        for (i in 0..days) {
+                            rulesMap[Weekday.entries[(selector.start.ordinal + i) % 7]]!!.add(rule)
                         }
                     }
                     is SpecificWeekdays -> {
@@ -459,7 +461,12 @@ private fun List<Range>.filterMonths(localTime: LocalDateTime): List<Range> {
     val thisMonth = filter {
         it.months?.any {
             when (it) {
-                is MonthRange -> (it.year?.let { it == localTime.year } != false) && localTime.month.ordinal in it.start.ordinal..it.end.ordinal
+                is MonthRange -> (it.year?.let { it == localTime.year } != false) && if (it.start.ordinal <= it.end.ordinal) {
+                    localTime.month.ordinal in it.start.ordinal..it.end.ordinal
+                } else {
+                    // Range wraps around the end of the year, e.g. "Nov-Feb"
+                    localTime.month.ordinal >= it.start.ordinal || localTime.month.ordinal <= it.end.ordinal
+                }
 
                 is SingleMonth -> (it.year?.let { it == localTime.year } != false) && localTime.month.ordinal == it.month.ordinal
 
@@ -536,15 +543,15 @@ private fun TimesSelector.toLocalTimeWithDuration(): Pair<LocalTime, Duration>? 
     val start = start as? ClockTime ?: return null
     val end = end as? ExtendedClockTime ?: return null
 
+    // end can be 24:00 or later (ExtendedClockTime, e.g. "00:00-24:00"), or not after start if
+    // the time span extends past midnight (e.g. "22:00-02:00").
+    val durationMinutes = (end.hour * 60 + end.minutes - start.hour * 60 - start.minutes)
+        .let { if (it <= 0) it + 24 * 60 else it }
+
     return LocalTime.of(
         start.hour,
         start.minutes
-    ) to Duration.ofMinutes(
-        (Math.floorMod(
-            end.hour - start.hour,
-            24
-        ) * 60 + end.minutes - start.minutes).toLong()
-    )
+    ) to Duration.ofMinutes(durationMinutes.toLong())
 }
 
 /**

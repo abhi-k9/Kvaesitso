@@ -44,7 +44,7 @@ internal class TemperatureConverter(context: Context) : Converter {
             val toValue = convertTemperature(value, from.unit, to.unit)
 
             values += UnitValue(
-                value = value,
+                value = toValue,
                 symbol = toUnit,
                 formattedName = ConverterUtils.formatName(context, to, toValue),
                 formattedValue = ConverterUtils.formatValue(context, to, toValue),

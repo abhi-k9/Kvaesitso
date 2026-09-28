@@ -166,9 +166,7 @@ interface SearchableDao {
 
     @Transaction
     suspend fun touch(item: SavedSearchableEntity, alpha: Double) {
-        incrementLaunchCount(item.key)
-        increaseWeightWhere(item.key, alpha)
-        reduceWeightExcept(item.key, alpha)
+        // Insert first, so that the launch count and weight of new items are updated, too
         if (insert(item) == -1L) {
             update(
                 SavedSearchableUpdateContentEntity(
@@ -178,6 +176,9 @@ interface SearchableDao {
                 )
             )
         }
+        incrementLaunchCount(item.key)
+        increaseWeightWhere(item.key, alpha)
+        reduceWeightExcept(item.key, alpha)
     }
 
     @Query("UPDATE Searchable SET launchCount = launchCount + 1 WHERE `key` = :key")

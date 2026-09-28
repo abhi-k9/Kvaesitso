@@ -28,7 +28,6 @@ import org.koin.core.component.inject
 import java.lang.Integer.min
 import java.time.Instant
 import java.time.LocalDate
-import java.time.OffsetDateTime
 import java.time.ZoneId
 import kotlin.math.max
 
@@ -126,9 +125,9 @@ class CalendarWidgetVM : ViewModel(), KoinComponent {
     fun createEvent(context: Context) {
         val intent = Intent(Intent.ACTION_EDIT)
         intent.data = CalendarContract.Events.CONTENT_URI
-        val zoneOffset = OffsetDateTime.now().offset
-        val beginTime = selectedDate.value.atTime(12, 0).toInstant(zoneOffset).toEpochMilli()
-        val endTime = selectedDate.value.atTime(13, 0).toInstant(zoneOffset).toEpochMilli()
+        val zone = ZoneId.systemDefault()
+        val beginTime = selectedDate.value.atTime(12, 0).atZone(zone).toInstant().toEpochMilli()
+        val endTime = selectedDate.value.atTime(13, 0).atZone(zone).toInstant().toEpochMilli()
         intent.putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, beginTime)
         intent.putExtra(CalendarContract.EXTRA_EVENT_END_TIME, endTime)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -136,8 +135,7 @@ class CalendarWidgetVM : ViewModel(), KoinComponent {
     }
 
     fun openCalendarApp(context: Context) {
-        val zoneOffset = OffsetDateTime.now().offset
-        val startMillis = selectedDate.value.atTime(12, 0).toInstant(zoneOffset).toEpochMilli()
+        val startMillis = selectedDate.value.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val builder = CalendarContract.CONTENT_URI.buildUpon()
         builder.appendPath("time")
         ContentUris.appendId(builder, startMillis)
@@ -150,9 +148,11 @@ class CalendarWidgetVM : ViewModel(), KoinComponent {
     private fun updateEvents() {
         val date = selectedDate.value ?: return
         val now = System.currentTimeMillis()
-        val offset = OffsetDateTime.now().offset
-        val dayStart = max(now, date.atStartOfDay().toEpochSecond(offset) * 1000)
-        val dayEnd = date.plusDays(1).atStartOfDay().toEpochSecond(offset) * 1000
+        // Use the zone instead of the current offset, the selected date may be on the other
+        // side of a DST transition
+        val zone = ZoneId.systemDefault()
+        val dayStart = max(now, date.atStartOfDay(zone).toInstant().toEpochMilli())
+        val dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
         var events = upcomingEvents.filter {
             if (it.isTask && it.isCompleted == true) {
                 it.endTime >= dayStart && it.endTime < dayEnd
@@ -161,8 +161,8 @@ class CalendarWidgetVM : ViewModel(), KoinComponent {
             }
         }
 
-        val startOfDay = date.atStartOfDay().toEpochSecond(offset) * 1000
-        val startOfNextDay = date.atStartOfDay().plusDays(1).toEpochSecond(offset) * 1000
+        val startOfDay = date.atStartOfDay(zone).toInstant().toEpochMilli()
+        val startOfNextDay = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
 
         if (!showRunningPastDayEvents) {
             val totalCount = events.size

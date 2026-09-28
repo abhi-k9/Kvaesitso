@@ -91,6 +91,9 @@ internal class AppRepositoryImpl(
                 scope.launch {
                     mutex.withLock {
                         val apps = installedApps.value.toMutableList()
+                        // Remove existing entries first to avoid duplicates, e.g. when the
+                        // packages were already available
+                        apps.removeAll { packageNames.contains(it.componentName.packageName) && it.user == user }
                         for (packageName in packageNames) {
                             apps.addAll(getApplications(packageName, user))
                         }
@@ -103,6 +106,7 @@ internal class AppRepositoryImpl(
                 scope.launch {
                     mutex.withLock {
                         val apps = installedApps.value.toMutableList()
+                        apps.removeAll { packageName == it.componentName.packageName && it.user == user }
                         apps.addAll(getApplications(packageName, user))
                         installedApps.value = apps
                     }

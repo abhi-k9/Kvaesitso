@@ -356,7 +356,9 @@ internal class MusicServiceImpl(
                     }
                 } else {
                     val file = java.io.File(context.filesDir, "album_art")
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, file.outputStream())
+                    file.outputStream().use {
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+                    }
                     preferences.edit {
                         putString(PREFS_KEY_ALBUM_ART, "notnull")
                     }
@@ -596,6 +598,14 @@ internal class MusicServiceImpl(
             preferences.edit {
                 clear()
             }
+            // Also reset the cached values, otherwise the old values would be shown
+            // until the app is restarted
+            lastPlayerPackage = null
+            lastTitle = null
+            lastArtist = null
+            lastAlbum = null
+            lastPosition = null
+            lastDuration = null
         }
     }
 

@@ -168,7 +168,10 @@ class IconService(
 
     fun resolveCustomIcon(searchable: SavableSearchable, size: Int, customIcon: CustomIcon?): Flow<LauncherIcon?> {
         return combine(iconProviders, transformations) { providers, transformations ->
-            var icon: LauncherIcon? = cache.get(searchable.key + customIcon.hashCode() + providers.hashCode() + transformations.hashCode())
+            // Icons can be loaded at different sizes (e.g. bitmap thumbnails), so the size needs
+            // to be part of the key
+            val cacheKey = "${searchable.key}|$size|${customIcon.hashCode()}|${providers.hashCode()}|${transformations.hashCode()}"
+            var icon: LauncherIcon? = cache.get(cacheKey)
             if (icon != null) {
                 return@combine icon
             }
@@ -181,7 +184,7 @@ class IconService(
             if (icon != null) {
                 icon = icon.transform(transforms)
 
-                cache.put(searchable.key + customIcon.hashCode() + providers.hashCode() + transformations.hashCode(), icon)
+                cache.put(cacheKey, icon)
             }
             return@combine icon
         }

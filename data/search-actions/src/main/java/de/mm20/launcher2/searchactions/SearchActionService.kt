@@ -118,7 +118,7 @@ internal class SearchActionServiceImpl(
                     "https://$url"
                 }
 
-                if (u.contains("${1}")) {
+                if (u.contains("\${1}")) {
                     return@withContext CustomWebsearchActionBuilder(
                         urlTemplate = u,
                         label = "",

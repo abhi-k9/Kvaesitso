@@ -112,15 +112,22 @@ class PluginFileProvider(
             set(FileColumns.MetaTitle, metaData[FileMetaType.Title])
             set(FileColumns.MetaArtist, metaData[FileMetaType.Artist])
             set(FileColumns.MetaAlbum, metaData[FileMetaType.Album])
-            set(FileColumns.MetaDuration, metaData[FileMetaType.Duration]?.toLong())
-            set(FileColumns.MetaYear, metaData[FileMetaType.Year]?.toInt())
+            // Duration is stored as formatted elapsed time ([h:]mm:ss), convert it back to millis.
+            // Using toLong() on it threw, which made every refresh of such files fail.
+            set(
+                FileColumns.MetaDuration,
+                metaData[FileMetaType.Duration]?.split(":")
+                    ?.fold<String, Long?>(0L) { acc, part -> part.toLongOrNull()?.let { acc?.times(60)?.plus(it) } }
+                    ?.times(1000L)
+            )
+            set(FileColumns.MetaYear, metaData[FileMetaType.Year]?.toIntOrNull())
             set(
                 FileColumns.MetaWidth,
-                metaData[FileMetaType.Dimensions]?.split("x")?.getOrNull(0)?.toInt()
+                metaData[FileMetaType.Dimensions]?.split("x")?.getOrNull(0)?.toIntOrNull()
             )
             set(
                 FileColumns.MetaHeight,
-                metaData[FileMetaType.Dimensions]?.split("x")?.getOrNull(1)?.toInt()
+                metaData[FileMetaType.Dimensions]?.split("x")?.getOrNull(1)?.toIntOrNull()
             )
             set(FileColumns.MetaLocation, metaData[FileMetaType.Location])
             set(FileColumns.MetaAppName, metaData[FileMetaType.AppName])

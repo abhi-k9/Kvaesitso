@@ -47,10 +47,10 @@ class WeatherWidgetVM : ViewModel(), KoinComponent {
             }
             selectedForecastIndex = min(
                 selectedForecastIndex,
-                forecasts[value].hourlyForecasts.lastIndex
+                forecasts[field].hourlyForecasts.lastIndex
             )
-            currentDayForecasts.value = forecasts[value].hourlyForecasts
-            currentDailyForecast.value = forecasts[value]
+            currentDayForecasts.value = forecasts[field].hourlyForecasts
+            currentDailyForecast.value = forecasts[field]
             currentForecast.value = getCurrentlySelectedForecast()
         }
 

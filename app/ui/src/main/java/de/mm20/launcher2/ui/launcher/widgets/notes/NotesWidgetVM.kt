@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
@@ -145,21 +146,24 @@ class NotesWidgetVM(
     private var writeSemaphore = Semaphore(1)
     private suspend fun writeContentToFile(context: Context, uri: Uri, text: String): Boolean {
         return withContext(Dispatchers.IO) {
-            writeSemaphore.acquire()
-            try {
-                val outputStream = context.contentResolver.openOutputStream(uri, "wt")
-                outputStream?.use {
-                    it.bufferedWriter().use {
-                        it.write(text)
+            // withPermit makes sure that the permit is also released if the write fails,
+            // otherwise all subsequent writes would wait forever
+            writeSemaphore.withPermit {
+                try {
+                    val outputStream = context.contentResolver.openOutputStream(uri, "wt")
+                    outputStream?.use {
+                        it.bufferedWriter().use {
+                            it.write(text)
+                        }
                     }
+                } catch (e: Exception) {
+                    linkedFileSavingState.value = LinkedFileSavingState.Error
+                    CrashReporter.logException(e)
+                    return@withContext false
                 }
-            } catch (e: Exception) {
-                linkedFileSavingState.value = LinkedFileSavingState.Error
-                CrashReporter.logException(e)
-                return@withContext false
+                linkedFileSavingState.value = LinkedFileSavingState.Saved
+                return@withContext true
             }
-            writeSemaphore.release()
-            return@withContext true
         }
     }
 

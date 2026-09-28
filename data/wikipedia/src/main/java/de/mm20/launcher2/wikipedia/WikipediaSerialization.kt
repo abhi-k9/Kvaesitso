@@ -33,7 +33,7 @@ class WikipediaDeserializer(val context: Context) : SearchableDeserializer {
             text = json.getString("text"),
             id = id,
             imageUrl = json.optString("image"),
-            sourceUrl = json.optString("url").takeIf { !it.isNullOrBlank() } ?: "${wikipediaUrl.padEnd(1, '/')}wiki?curid=$id",
+            sourceUrl = json.optString("url").takeIf { !it.isNullOrBlank() } ?: "${wikipediaUrl.removeSuffix("/")}/wiki?curid=$id",
             wikipediaUrl = wikipediaUrl,
             sourceName = context.getString(R.string.wikipedia_source),
         )

@@ -48,15 +48,14 @@ class NotificationService : NotificationListenerService() {
     override fun onNotificationRankingUpdate(rankingMap: RankingMap?) {
         super.onNotificationRankingUpdate(rankingMap)
         scope.launch {
-            val notifications = notificationRepository.getNotifications()
-
-            val ranking = Ranking()
-            val updatedNotifications = notifications.map {
-                rankingMap?.getRanking(it.key, ranking)
-                Notification(it, ranking)
+            // Update atomically, notifications might be posted or removed concurrently
+            notificationRepository.updateNotifications { notifications ->
+                val ranking = Ranking()
+                notifications.map {
+                    rankingMap?.getRanking(it.key, ranking)
+                    Notification(it, ranking)
+                }
             }
-
-            notificationRepository.setNotifications(updatedNotifications)
         }
     }
 

@@ -27,6 +27,8 @@ class AppShortcutBadgeProvider(
                             componentName
                         )
                     } catch (e: PackageManager.NameNotFoundException) {
+                        // Always emit a value, BadgeService waits for all providers
+                        send(null)
                         return@withContext
                     }
                     val badge = MutableBadge(icon = BadgeIcon(BadgeDrawable(context, icon)))
@@ -39,6 +41,8 @@ class AppShortcutBadgeProvider(
                             packageName
                         )
                     } catch (e: PackageManager.NameNotFoundException) {
+                        // Always emit a value, BadgeService waits for all providers
+                        send(null)
                         return@withContext
                     }
                     val badge = MutableBadge(icon = BadgeIcon(BadgeDrawable(context, icon)))
