@@ -91,8 +91,9 @@ jobs:
 
       - name: Build APK
         run: |
-          # Same date based scheme as the upstream nightlies, so every release updates the previous one
-          VERSION_CODE_OVERRIDE="$(date -u +%Y%m%d)00"
+          # Date based like the upstream version codes (yyyymmddNN), with the hour as NN so that
+          # several releases on the same day still have increasing version codes
+          VERSION_CODE_OVERRIDE="$(date -u +%Y%m%d%H)"
           export VERSION_CODE_OVERRIDE
           echo "VERSION_CODE_OVERRIDE=$VERSION_CODE_OVERRIDE" >> "$GITHUB_ENV"
           ./gradlew assembleDefaultRelease
