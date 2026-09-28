@@ -132,9 +132,14 @@ class NotesWidgetVM(
     fun exportNote(context: Context, uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
             val text = noteText.value.text
-            val outputStream = context.contentResolver.openOutputStream(uri)
-            outputStream?.use {
-                it.write(text.toByteArray())
+            try {
+                val outputStream = context.contentResolver.openOutputStream(uri)
+                outputStream?.use {
+                    it.write(text.toByteArray())
+                }
+            } catch (e: Exception) {
+                // Catch-all because the content resolver can throw all sorts of exceptions
+                CrashReporter.logException(e)
             }
         }
     }

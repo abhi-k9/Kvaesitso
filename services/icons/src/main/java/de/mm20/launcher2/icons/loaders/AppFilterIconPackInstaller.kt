@@ -104,7 +104,7 @@ class AppFilterIconPackInstaller(
                     val component = parser.getAttributeValue(null, "component")
                         ?: continue@loop
                     val drawable = parser.getAttributeValue(null, "prefix") ?: continue@loop
-                    if (component.length < 14) continue@loop
+                    if (component.length <= 14) continue@loop
                     val componentName = ComponentName.unflattenFromString(
                         component.substring(
                             14,

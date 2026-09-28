@@ -30,9 +30,9 @@ import io.ktor.http.parameters
 import io.ktor.http.path
 import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerializationException
 import java.io.File
 import java.io.IOException
 import java.security.GeneralSecurityException
@@ -119,14 +119,18 @@ class NextcloudApiHelper(val context: Context) {
         if (response?.status != HttpStatusCode.OK) {
             Log.e(
                 "NextcloudApiHelper",
-                "Invalid response: ${response?.status} ${response?.bodyAsText()}"
+                "Invalid response: ${response?.status} ${runCatching { response?.bodyAsText() }.getOrNull()}"
             )
             return null
         }
 
         return try {
             response.body<LoginFlowResponse>()
-        } catch (e: SerializationException) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Not SerializationException: body() throws JsonConvertException for invalid JSON, and
+            // NoTransformationFoundException if the response isn't JSON at all
             Log.e("NextcloudApiHelper", "Invalid response body", e)
             null
         }
@@ -147,14 +151,18 @@ class NextcloudApiHelper(val context: Context) {
         if (response?.status != HttpStatusCode.OK) {
             Log.e(
                 "NextcloudApiHelper",
-                "Invalid response: ${response?.status} ${response?.bodyAsText()}"
+                "Invalid response: ${response?.status} ${runCatching { response?.bodyAsText() }.getOrNull()}"
             )
             return null
         }
 
         return try {
             response.body<LoginPollResponse>()
-        } catch (e: SerializationException) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Not SerializationException: body() throws JsonConvertException for invalid JSON, and
+            // NoTransformationFoundException if the response isn't JSON at all
             Log.e("NextcloudApiHelper", "Invalid response body", e)
             null
         }
@@ -216,7 +224,11 @@ class NextcloudApiHelper(val context: Context) {
         }
         val body = try {
             response.body<UserReponse>()
-        } catch (e: SerializationException) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Not SerializationException: body() throws JsonConvertException for invalid JSON, and
+            // NoTransformationFoundException if the response isn't JSON at all
             Log.e("NextcloudApiHelper", "Invalid response body", e)
             return getUserName()
         }

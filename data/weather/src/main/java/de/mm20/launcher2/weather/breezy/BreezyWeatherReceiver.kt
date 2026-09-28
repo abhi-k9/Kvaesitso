@@ -7,6 +7,7 @@ import android.util.Log
 import de.mm20.launcher2.crashreporter.CrashReporter
 import de.mm20.launcher2.preferences.weather.WeatherSettings
 import de.mm20.launcher2.serialization.Json
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,7 +23,13 @@ class BreezyWeatherReceiver : BroadcastReceiver(), KoinComponent {
 
     private val settings: WeatherSettings by inject()
 
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    // This receiver is exported, any app can send it (malformed) data. Log unexpected errors
+    // instead of crashing the launcher.
+    private val scope = CoroutineScope(
+        Dispatchers.IO + SupervisorJob() + CoroutineExceptionHandler { _, e ->
+            Log.e("BreezyWeatherReceiver", "Failed to process weather broadcast", e)
+        }
+    )
 
     override fun onReceive(context: Context, intent: Intent) {
         scope.launch {

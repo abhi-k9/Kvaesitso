@@ -25,7 +25,7 @@ import io.ktor.http.appendPathSegments
 import io.ktor.http.path
 import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.serialization.SerializationException
+import kotlinx.coroutines.CancellationException
 import java.io.File
 import java.io.IOException
 import java.security.GeneralSecurityException
@@ -184,7 +184,11 @@ class OwncloudClient(val context: Context) {
         }
         val body = try {
             response.body<UserReponse>()
-        } catch (e: SerializationException) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Not SerializationException: body() throws JsonConvertException for invalid JSON, and
+            // NoTransformationFoundException if the response isn't JSON at all
             CrashReporter.logException(e)
             return getUserName()
         }

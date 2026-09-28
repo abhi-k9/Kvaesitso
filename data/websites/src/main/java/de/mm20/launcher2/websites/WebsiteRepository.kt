@@ -12,7 +12,9 @@ import io.ktor.client.request.get
 import io.ktor.client.request.url
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.request
+import io.ktor.http.BadContentTypeFormatException
 import io.ktor.http.Url
+import io.ktor.http.contentType
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Dispatchers
@@ -68,6 +70,10 @@ internal class WebsiteRepository(
                     url(url)
                 }
                 url = response.request.url.toString()
+                // Don't download (potentially huge) files that aren't web pages
+                if (response.contentType()?.contentSubtype?.contains("html", ignoreCase = true) == false) {
+                    return@withContext null
+                }
                 val body = response.bodyAsText()
                 val doc = Jsoup.parse(body)
                 var title = doc.select("meta[property=og:title]").attr("content")
@@ -105,6 +111,8 @@ internal class WebsiteRepository(
             } catch (e: UncheckedIOException) {
             } catch (e: URISyntaxException) {
             } catch (e: RuntimeException) {
+            } catch (e: BadContentTypeFormatException) {
+                // Invalid Content-Type header, thrown by bodyAsText
             }
             return@withContext null
         }

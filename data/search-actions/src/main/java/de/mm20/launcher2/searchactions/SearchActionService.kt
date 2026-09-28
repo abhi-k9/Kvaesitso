@@ -26,6 +26,7 @@ import io.ktor.utils.io.jvm.javaio.toInputStream
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -149,6 +150,11 @@ internal class SearchActionServiceImpl(
             } catch (e: IOException) {
                 CrashReporter.logException(e)
             } catch (e: XmlPullParserException) {
+                CrashReporter.logException(e)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // The URL is user input, e.g. an invalid port throws IllegalArgumentException
                 CrashReporter.logException(e)
             }
             return@withContext null

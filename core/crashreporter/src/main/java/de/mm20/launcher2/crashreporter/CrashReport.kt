@@ -1,6 +1,5 @@
 package de.mm20.launcher2.crashreporter
 
-import android.icu.text.SimpleDateFormat
 import android.icu.util.TimeZone
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -16,8 +15,9 @@ class CrashReport(
 ) {
     companion object {
         suspend fun fromFile(file: File, loadStackTrace: Boolean): CrashReport {
-            val df = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-            val time = df.parse(file.name.replace(Regex("[a-zA-Z_.]"), ""))
+            // The file name contains the time too, but formatted with the locale (digits, calendar)
+            // at the time of the crash, so it can't be parsed reliably.
+            val time = Date(file.lastModified())
             val content = if (loadStackTrace) {
                 withContext(Dispatchers.IO) {
                     file.inputStream().bufferedReader().use {
