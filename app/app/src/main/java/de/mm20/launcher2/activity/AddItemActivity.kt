@@ -13,7 +13,9 @@ class AddItemActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val shortcut = AppShortcut(this, intent)
+        // This activity is exported, so any app can start it. Only accept pin requests that are
+        // backed by the system (LauncherApps.PinItemRequest), never raw legacy shortcut intents.
+        val shortcut = AppShortcut(this, intent, allowLegacy = false)
         if (shortcut != null) {
             favoritesService.pinItem(shortcut)
         } else {

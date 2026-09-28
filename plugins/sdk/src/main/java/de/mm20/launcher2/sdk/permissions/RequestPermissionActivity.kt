@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.text.Html
+import android.text.TextUtils
 import android.view.LayoutInflater
 import de.mm20.launcher2.sdk.R
 import de.mm20.launcher2.sdk.databinding.ActivityRequestPermissionBinding
@@ -43,10 +44,12 @@ internal class RequestPermissionActivity: Activity() {
         }
 
         binding = ActivityRequestPermissionBinding.inflate(LayoutInflater.from(this))
+        // App labels are controlled by the respective app, escape them so that they can't inject
+        // markup into the permission prompt.
         val text = getString(
             R.string.request_permission_message,
-            callingPackageInfo.loadLabel(packageManager),
-            myPackageInfo.loadLabel(packageManager)
+            TextUtils.htmlEncode(callingPackageInfo.loadLabel(packageManager).toString()),
+            TextUtils.htmlEncode(myPackageInfo.loadLabel(packageManager).toString())
         )
         binding.textView.text = Html.fromHtml(text, Html.FROM_HTML_MODE_LEGACY)
         setContentView(binding.root)

@@ -114,11 +114,16 @@ class BackupManager(
 
     private suspend fun extractArchive(inputStream: InputStream, outDir: File) = withContext(Dispatchers.IO) {
         val zipStream = ZipInputStream(inputStream)
+        val canonicalOutDir = outDir.canonicalFile
         var entry = zipStream.nextEntry
         while(entry != null) {
             val file = File(outDir, entry.name)
-            file.outputStream().use {
-                zipStream.copyTo(it)
+            // Backups are flat archives. Skip everything else, in particular entries like
+            // "../foo" that would be written outside of outDir (zip path traversal).
+            if (!entry.isDirectory && file.canonicalFile.parentFile == canonicalOutDir) {
+                file.outputStream().use {
+                    zipStream.copyTo(it)
+                }
             }
             zipStream.closeEntry()
 

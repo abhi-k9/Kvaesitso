@@ -37,4 +37,16 @@ object CrashReporter {
     fun getDeviceInformation(context: Context): String {
         return AppUtils.getDeviceDetails(context)
     }
+
+    /**
+     * Returns true if [filePath] points to a file in the crash report directory.
+     */
+    fun isCrashReportFile(filePath: String): Boolean {
+        return try {
+            val crashReportDir = File(CrashUtil.getDefaultPath()).canonicalFile
+            File(filePath).canonicalFile.parentFile == crashReportDir
+        } catch (e: Exception) {
+            false
+        }
+    }
 }

@@ -36,6 +36,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import de.mm20.launcher2.crashreporter.CrashReporter
 import de.mm20.launcher2.ui.base.BaseActivity
 import de.mm20.launcher2.ui.base.ProvideCompositionLocals
 import de.mm20.launcher2.ui.locals.LocalBackStack
@@ -427,7 +428,9 @@ class SettingsActivity : BaseActivity() {
             ROUTE_MEDIA_INTEGRATION -> MediaIntegrationSettingsRoute
             ROUTE_SEARCH_ACTIONS -> SearchActionsSettingsRoute
             ROUTE_HIDDEN_ITEMS -> HiddenItemsSettingsRoute
-            ROUTE_CRASH_REPORT if (intent.hasExtra(EXTRA_CRASH_REPORT_PATH)) -> {
+            // This activity is exported, only open files that are actually crash reports
+            ROUTE_CRASH_REPORT if (intent.getStringExtra(EXTRA_CRASH_REPORT_PATH)
+                ?.let { CrashReporter.isCrashReportFile(it) } == true) -> {
                 CrashReportRoute(intent.getStringExtra(EXTRA_CRASH_REPORT_PATH)!!)
             }
             else -> null
