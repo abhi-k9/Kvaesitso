@@ -65,7 +65,9 @@ class LauncherShortcutDeserializer(
                 val shortcuts = try {
                     launcherApps.getShortcuts(query, user)
                 } catch (e: IllegalStateException) {
-                    return null
+                    // The user is locked or not running (e.g. paused work profile), the shortcut
+                    // is only temporarily unavailable. Throw, so that it isn't removed.
+                    throw e
                 }
                 if (shortcuts.isNullOrEmpty()) {
                     return null
@@ -78,7 +80,8 @@ class LauncherShortcutDeserializer(
             }
         } catch (e: SecurityException) {
             Log.e("MM20", "Failed to deserialize shortcut: $serialized", e)
-            return null
+            // Temporarily unavailable, don't remove it
+            throw e
         }
     }
 }

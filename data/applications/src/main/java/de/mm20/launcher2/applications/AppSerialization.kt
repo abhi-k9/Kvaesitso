@@ -79,7 +79,8 @@ class LauncherAppDeserializer(val context: Context) : SearchableDeserializer {
             return LauncherApp(context, launcherActivityInfo)
         } catch (e: SecurityException) {
             Log.e("MM20", "Failed to deserialize app: $serialized", e)
-            return null
+            // e.g. the profile is currently not accessible. Temporarily unavailable, don't remove it
+            throw e
         }
     }
 

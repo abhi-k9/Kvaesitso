@@ -2,6 +2,7 @@ package de.mm20.launcher2.files
 
 import android.content.Context
 import android.net.Uri
+import android.os.Environment
 import android.provider.MediaStore
 import androidx.core.database.getStringOrNull
 import de.mm20.launcher2.files.providers.LocalFile
@@ -21,6 +22,7 @@ import de.mm20.launcher2.search.SearchableSerializer
 import de.mm20.launcher2.search.UpdateResult
 import de.mm20.launcher2.search.asUpdateResult
 import de.mm20.launcher2.serialization.Json
+import java.io.IOException
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.flow.firstOrNull
@@ -64,10 +66,11 @@ internal class LocalFileDeserializer(
 ) : SearchableDeserializer, KoinComponent {
     override suspend fun deserialize(serialized: String): SavableSearchable? {
         val permissionsManager: PermissionsManager = get()
+        // Throw instead of returning null, so that the item isn't removed
         if (!permissionsManager.checkPermissionOnce(
                 PermissionGroup.ExternalStorage
             )
-        ) return null
+        ) throw SecurityException("Storage permission not granted")
         val json = JSONObject(serialized)
         val uri = MediaStore.Files.getContentUri("external")
         val proj = arrayOf(
@@ -82,7 +85,13 @@ internal class LocalFileDeserializer(
         cursor.use {
             if (cursor.moveToNext()) {
                 val path = cursor.getStringOrNull(2) ?: return null
-                if (!java.io.File(path).exists()) return null
+                if (!java.io.File(path).exists()) {
+                    // The file might be on a storage volume that is currently not mounted (e.g. an SD card)
+                    if (Environment.getExternalStorageState(java.io.File(path)) != Environment.MEDIA_MOUNTED) {
+                        throw IOException("Storage volume of $path is not mounted")
+                    }
+                    return null
+                }
                 val directory = java.io.File(path).isDirectory
                 val id = cursor.getLong(0)
                 val mimeType = cursor.getStringOrNull(3).takeIf { it != "application/octet-stream" }
@@ -260,11 +269,13 @@ internal class PluginFileDeserializer(
         val strategy = json.strategy ?: StorageStrategy.StoreCopy
 
         val plugin = pluginRepository.get(authority).firstOrNull() ?: return null
-        if (!plugin.enabled) return null
+        // Disabled plugins: keep the items, they are available again when the plugin is enabled
+        if (!plugin.enabled) throw IllegalStateException("Plugin $authority is disabled")
 
         return when(strategy) {
             StorageStrategy.StoreReference -> {
-                PluginFileProvider(context, authority).get(id).getOrNull()
+                // Throws if the plugin couldn't be queried, the item is temporarily unavailable then
+                PluginFileProvider(context, authority).get(id).getOrThrow()
             }
             else -> {
                 val timestamp = json.timestamp ?: 0

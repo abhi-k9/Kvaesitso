@@ -93,7 +93,8 @@ internal class AndroidContactDeserializer(
 ) : SearchableDeserializer {
 
     override suspend fun deserialize(serialized: String): SavableSearchable? {
-        if (!permissionsManager.checkPermissionOnce(PermissionGroup.Contacts)) return null
+        // Throw instead of returning null, so that the item isn't removed
+        if (!permissionsManager.checkPermissionOnce(PermissionGroup.Contacts)) throw SecurityException("Contacts permission not granted")
         val id = JSONObject(serialized).getLong("id")
 
         val androidContactProvider = AndroidContactProvider(context)
@@ -113,11 +114,13 @@ internal class PluginContactDeserializer(
         val id = json.id ?: return null
         val strategy = json.strategy
         val plugin = pluginRepository.get(authority).firstOrNull() ?: return null
-        if (!plugin.enabled) return null
+        // Disabled plugins: keep the items, they are available again when the plugin is enabled
+        if (!plugin.enabled) throw IllegalStateException("Plugin $authority is disabled")
 
         return when(strategy) {
             StorageStrategy.StoreReference -> {
-                PluginContactProvider(context, authority).get(id).getOrNull()
+                // Throws if the plugin couldn't be queried, the item is temporarily unavailable then
+                PluginContactProvider(context, authority).get(id).getOrThrow()
             }
 
             else -> {

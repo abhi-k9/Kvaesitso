@@ -13,6 +13,7 @@ import de.mm20.launcher2.preferences.WeightFactor
 import de.mm20.launcher2.preferences.search.RankingSettings
 import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.search.SearchableDeserializer
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerializationException
 import org.json.JSONArray
 import org.json.JSONException
 import org.koin.core.component.KoinComponent
@@ -401,7 +403,12 @@ internal class SavableSearchableRepositoryImpl(
         return database.searchableDao().getWeights(keys)
     }
 
-    private suspend fun fromDatabaseEntity(entity: SavedSearchableEntity): SavedSearchable {
+    /**
+     * @return the deserialized searchable; success(null) if the item doesn't exist anymore; failure if
+     * the item is only temporarily unavailable (deserializers throw in that case, e.g. if a work
+     * profile is paused or a permission has been revoked).
+     */
+    private suspend fun deserialize(entity: SavedSearchableEntity): Result<SavableSearchable?> {
         val deserializer: SearchableDeserializer? = try {
             get(named(entity.type))
         } catch (e: NoDefinitionFoundException) {
@@ -411,8 +418,28 @@ internal class SavableSearchableRepositoryImpl(
             CrashReporter.logException(e)
             null
         }
-        val searchable = deserializer?.deserialize(entity.serializedSearchable)
-        if (searchable == null) removeInvalidItem(entity.key)
+        return try {
+            Result.success(deserializer?.deserialize(entity.serializedSearchable))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: JSONException) {
+            // Corrupt entry
+            CrashReporter.logException(e)
+            Result.success(null)
+        } catch (e: SerializationException) {
+            CrashReporter.logException(e)
+            Result.success(null)
+        } catch (e: Exception) {
+            Log.w("MM20", "Searchable ${entity.key} is temporarily unavailable", e)
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun fromDatabaseEntity(entity: SavedSearchableEntity): SavedSearchable {
+        val result = deserialize(entity)
+        val searchable = result.getOrNull()
+        // Keep temporarily unavailable items, they are only hidden until they are available again
+        if (result.isSuccess && searchable == null) removeInvalidItem(entity.key)
         return SavedSearchable(
             key = entity.key,
             searchable = searchable,
@@ -515,13 +542,15 @@ internal class SavableSearchableRepositoryImpl(
             do {
                 val favorites = dao.exportFavorites(limit = 100, offset = page * 100)
                 for (fav in favorites) {
-                    val item = fromDatabaseEntity(fav)
-                    if (item.searchable == null || item.searchable.key != item.key) {
-                        removeInvalidItem(item.key)
+                    val result = deserialize(fav)
+                    if (result.isFailure) continue // temporarily unavailable
+                    val searchable = result.getOrNull()
+                    if (searchable == null || searchable.key != fav.key) {
+                        removeInvalidItem(fav.key)
                         removed++
                         Log.i(
                             "MM20",
-                            "SearchableDatabase cleanup: removed invalid item ${item.key}"
+                            "SearchableDatabase cleanup: removed invalid item ${fav.key}"
                         )
                     }
                 }

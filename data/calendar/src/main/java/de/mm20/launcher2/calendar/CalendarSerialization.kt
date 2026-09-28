@@ -41,7 +41,8 @@ class AndroidCalendarEventSerializer: SearchableSerializer {
 
 class AndroidCalendarEventDeserializer(val context: Context): SearchableDeserializer {
     override suspend fun deserialize(serialized: String): SavableSearchable? {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) return null
+        // Throw instead of returning null, so that the item isn't removed
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) throw SecurityException("Calendar permission not granted")
         val json = JSONObject(serialized)
         val id = json.getLong("id")
         return AndroidCalendarProvider(context).get(id)
@@ -62,7 +63,7 @@ class TasksCalendarEventSerializer: SearchableSerializer {
 
 class TasksCalendarEventDeserializer(val context: Context): SearchableDeserializer {
     override suspend fun deserialize(serialized: String): SavableSearchable? {
-        if (ContextCompat.checkSelfPermission(context, "org.tasks.permission.READ_TASKS") != PackageManager.PERMISSION_GRANTED) return null
+        if (ContextCompat.checkSelfPermission(context, "org.tasks.permission.READ_TASKS") != PackageManager.PERMISSION_GRANTED) throw SecurityException("Tasks permission not granted")
         val json = JSONObject(serialized)
         val id = json.getLong("id")
         return TasksCalendarProvider(context).get(id)
@@ -138,11 +139,13 @@ class PluginCalendarEventDeserializer(
         val id = json.id ?: return null
         val strategy = json.strategy
         val plugin = pluginRepository.get(authority).firstOrNull() ?: return null
-        if (!plugin.enabled) return null
+        // Disabled plugins: keep the items, they are available again when the plugin is enabled
+        if (!plugin.enabled) throw IllegalStateException("Plugin $authority is disabled")
 
         return when(strategy) {
             StorageStrategy.StoreReference -> {
-                PluginCalendarProvider(context, authority).get(id).getOrNull()
+                // Throws if the plugin couldn't be queried, the item is temporarily unavailable then
+                PluginCalendarProvider(context, authority).get(id).getOrThrow()
             }
             else -> {
                 val timestamp = json.timestamp

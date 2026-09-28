@@ -161,11 +161,13 @@ internal class PluginLocationDeserializer(
         val strategy = json.storageStrategy ?: StorageStrategy.StoreCopy
 
         val plugin = pluginRepository.get(authority).firstOrNull() ?: return null
-        if (!plugin.enabled) return null
+        // Disabled plugins: keep the items, they are available again when the plugin is enabled
+        if (!plugin.enabled) throw IllegalStateException("Plugin $authority is disabled")
 
         return when (strategy) {
             StorageStrategy.StoreReference -> {
-                PluginLocationProvider(context, authority).get(id).getOrNull()
+                // Throws if the plugin couldn't be queried, the item is temporarily unavailable then
+                PluginLocationProvider(context, authority).get(id).getOrThrow()
             }
 
             else -> {
