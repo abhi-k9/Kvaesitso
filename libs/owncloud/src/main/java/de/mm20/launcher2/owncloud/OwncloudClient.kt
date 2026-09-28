@@ -28,6 +28,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.SerializationException
 import java.io.File
 import java.io.IOException
+import java.security.GeneralSecurityException
 
 class OwncloudClient(val context: Context) {
 
@@ -63,6 +64,11 @@ class OwncloudClient(val context: Context) {
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
         } catch (e: IOException) {
+            if (!catchErrors) throw e
+            File(context.filesDir, "../shared_prefs/owncloud.xml").delete()
+            return createPreferences(false)
+        } catch (e: GeneralSecurityException) {
+            // e.g. AEADBadTagException if the file can't be decrypted with the current master key
             if (!catchErrors) throw e
             File(context.filesDir, "../shared_prefs/owncloud.xml").delete()
             return createPreferences(false)
@@ -168,9 +174,13 @@ class OwncloudClient(val context: Context) {
             return getUserName()
         }
 
-        if (response.status != HttpStatusCode.OK) {
+        if (response.status == HttpStatusCode.Unauthorized) {
             logout()
             return null
+        }
+        if (response.status != HttpStatusCode.OK) {
+            // Don't log out on temporary server errors
+            return getUserName()
         }
         val body = try {
             response.body<UserReponse>()

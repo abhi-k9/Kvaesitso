@@ -39,20 +39,6 @@ class Migration_18_19 : Migration(18, 19) {
             connection.prepare(
                 "INSERT INTO `SearchAction` (`position`, `type`, `data`, `label`, `color`, `icon`, `customIcon`, `options`)" +
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-            ).use { statement ->
-                statement.bindInt(1, position)
-                statement.bindText(2, "url")
-                statement.bindText(3, data)
-                statement.bindText(4, label)
-                statement.bindInt(5, color)
-                statement.bindInt(6, if (icon == null) 0 else 1)
-                statement.bindTextOrNull(7, icon)
-                statement.bindTextOrNull(8, options)
-            }
-
-            connection.prepare(
-                "INSERT INTO `SearchAction` (`position`, `type`, `data`, `label`, `color`, `icon`, `customIcon`, `options`)" +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
             ).use {
                 it.bindInt(1, position)
                 it.bindText(2, "url")
