@@ -1,6 +1,7 @@
 # Builds a release APK signed with this fork's own key and publishes it as a GitHub release.
 # With "build only" it just checks that the code builds (e.g. after merging upstream changes),
-# without signing or publishing anything.
+# without signing or publishing anything. "Lint" additionally runs Android lint and the unit tests
+# and prints the lint findings.
 # This file only exists in the fork, so it never conflicts with upstream changes.
 #
 # Required repository secrets (same names as the upstream nightly workflow):
@@ -28,6 +29,11 @@ on:
         default: false
       build_only:
         description: 'Build only, no signing and no release'
+        required: false
+        type: boolean
+        default: false
+      lint:
+        description: 'Build only, then run lint and unit tests'
         required: false
         type: boolean
         default: false
@@ -59,7 +65,7 @@ jobs:
 
       # Fail fast on configuration errors, before spending time on the build
       - name: Validate inputs and signing secrets
-        if: ${{ !inputs.build_only }}
+        if: ${{ !inputs.build_only && !inputs.lint }}
         run: |
           if ! [[ "$TAG" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
             echo "::error::Invalid tag '$TAG'"
@@ -90,9 +96,38 @@ jobs:
           echo "VERSION_CODE_OVERRIDE=$VERSION_CODE_OVERRIDE" >> "$GITHUB_ENV"
           ./gradlew assembleDefaultRelease
 
+      - name: Run lint and unit tests
+        if: ${{ inputs.lint }}
+        run: |
+          # Only run the unit tests of modules that have any
+          tests="$(find . -path '*/src/test' -type d -not -path '*/build/*' \
+            | sed -E 's#^\./##; s#/src/test$##; s#/#:#g; s#^(.*)$#:\1:testDebugUnitTest#')"
+          # shellcheck disable=SC2086
+          ./gradlew lintRelease :app:app:lintDefaultRelease $tests --continue
+
+      - name: Print lint findings
+        if: ${{ inputs.lint && !cancelled() }}
+        run: |
+          python3 - <<'EOF'
+          import collections, glob, os, xml.etree.ElementTree as ET
+          workspace = os.environ['GITHUB_WORKSPACE'] + '/'
+          issues = []
+          for report in sorted(glob.glob('**/build/reports/lint-results-*.xml', recursive=True)):
+              for issue in ET.parse(report).getroot().iter('issue'):
+                  location = issue.find('location')
+                  file = location.get('file', '').replace(workspace, '') if location is not None else ''
+                  line = location.get('line', '') if location is not None else ''
+                  issues.append((issue.get('severity'), issue.get('id'), f'{file}:{line}', issue.get('message')))
+          for (severity, issue_id), count in collections.Counter((i[0], i[1]) for i in issues).most_common():
+              print(f'{count:6} {severity:12} {issue_id}')
+          print()
+          for severity, issue_id, location, message in sorted(issues):
+              print(f'{severity}: {issue_id}: {location}: {message}')
+          EOF
+
       # The release build type is signed with the debug key by default, re-sign it with the fork's key
       - name: Sign APK
-        if: ${{ !inputs.build_only }}
+        if: ${{ !inputs.build_only && !inputs.lint }}
         run: |
           BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
           APK="kvaesitso-$TAG.apk"
@@ -111,13 +146,13 @@ jobs:
         run: rm -rf "$RUNNER_TEMP/keystore"
 
       - uses: actions/upload-artifact@v6
-        if: ${{ !inputs.build_only }}
+        if: ${{ !inputs.build_only && !inputs.lint }}
         with:
           name: ${{ env.APK }}
           path: ${{ env.APK }}
 
       - name: Create release
-        if: ${{ !inputs.build_only }}
+        if: ${{ !inputs.build_only && !inputs.lint }}
         env:
           NOTES: ${{ inputs.notes }}
           PRERELEASE: ${{ inputs.prerelease }}
