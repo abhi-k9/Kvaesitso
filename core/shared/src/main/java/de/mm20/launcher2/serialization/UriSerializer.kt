@@ -11,7 +11,6 @@ object UriSerializer : KSerializer<Uri> {
     override val descriptor = PrimitiveSerialDescriptor(javaClass.canonicalName!!, PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: Uri) {
-        // We use millis here for backwards compatibility in LocationSerializer
         encoder.encodeString(value.toString())
     }
 

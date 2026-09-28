@@ -102,9 +102,7 @@ internal data class LauncherApp(
         try {
             val icon =
                 withContext(Dispatchers.IO) {
-                    val density = size / (108 / 1.5)
                     launcherActivityInfo.getIcon(0)
-
                 } ?: return null
             if (icon is AdaptiveIconDrawable) {
                 if (themed && isAtLeastApiLevel(33) && icon.monochrome != null) {
