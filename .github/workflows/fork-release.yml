@@ -1,4 +1,6 @@
 # Builds a release APK signed with this fork's own key and publishes it as a GitHub release.
+# With "build only" it just checks that the code builds (e.g. after merging upstream changes),
+# without signing or publishing anything.
 # This file only exists in the fork, so it never conflicts with upstream changes.
 #
 # Required repository secrets (same names as the upstream nightly workflow):
@@ -12,8 +14,8 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag to create, e.g. v1.41.0-fork.1'
-        required: true
+        description: 'Release tag to create, e.g. v1.41.0-fork.1 (not needed for build only)'
+        required: false
         type: string
       notes:
         description: 'Release notes (optional)'
@@ -21,6 +23,11 @@ on:
         type: string
       prerelease:
         description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+      build_only:
+        description: 'Build only, no signing and no release'
         required: false
         type: boolean
         default: false
@@ -52,6 +59,7 @@ jobs:
 
       # Fail fast on configuration errors, before spending time on the build
       - name: Validate inputs and signing secrets
+        if: ${{ !inputs.build_only }}
         run: |
           if ! [[ "$TAG" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
             echo "::error::Invalid tag '$TAG'"
@@ -84,6 +92,7 @@ jobs:
 
       # The release build type is signed with the debug key by default, re-sign it with the fork's key
       - name: Sign APK
+        if: ${{ !inputs.build_only }}
         run: |
           BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
           APK="kvaesitso-$TAG.apk"
@@ -102,11 +111,13 @@ jobs:
         run: rm -rf "$RUNNER_TEMP/keystore"
 
       - uses: actions/upload-artifact@v6
+        if: ${{ !inputs.build_only }}
         with:
           name: ${{ env.APK }}
           path: ${{ env.APK }}
 
       - name: Create release
+        if: ${{ !inputs.build_only }}
         env:
           NOTES: ${{ inputs.notes }}
           PRERELEASE: ${{ inputs.prerelease }}
