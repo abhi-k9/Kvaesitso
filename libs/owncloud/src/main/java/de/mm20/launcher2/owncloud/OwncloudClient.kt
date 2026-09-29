@@ -28,7 +28,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CancellationException
 import java.io.File
 import java.io.IOException
-import java.security.GeneralSecurityException
+import javax.crypto.AEADBadTagException
 
 class OwncloudClient(val context: Context) {
 
@@ -63,12 +63,7 @@ class OwncloudClient(val context: Context) {
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
-        } catch (e: IOException) {
-            if (!catchErrors) throw e
-            File(context.filesDir, "../shared_prefs/owncloud.xml").delete()
-            return createPreferences(false)
-        } catch (e: GeneralSecurityException) {
-            // e.g. AEADBadTagException if the file can't be decrypted with the current master key
+        } catch (e: Exception) {
             if (!catchErrors) throw e
             File(context.filesDir, "../shared_prefs/owncloud.xml").delete()
             return createPreferences(false)
