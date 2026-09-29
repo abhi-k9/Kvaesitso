@@ -190,6 +190,8 @@ internal class AppRepositoryImpl(
     private suspend fun addProfile(profile: Profile) {
         mutex.withLock {
             val apps = installedApps.value.toMutableList()
+            // onPackagesAvailable may already have added apps of this profile after it was unlocked
+            apps.removeAll { it.user == profile.userHandle }
             apps.addAll(getApplications(null, profile.userHandle))
             installedApps.value = apps
         }

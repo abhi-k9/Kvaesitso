@@ -140,6 +140,8 @@ internal fun looksLikeWebAddress(query: String): Boolean {
     val host = query.substringBefore('/').substringBefore('?').substringBefore('#').substringBefore(':')
     if (host.contains('@')) return false
     if (Regex("""\d{1,3}(\.\d{1,3}){3}""").matches(host)) return true
+    // Other characters make OkHttp throw on its dispatcher thread, which crashes the app
+    if (host.split('.').any { label -> label.isEmpty() || !label.all { it.isLetterOrDigit() || it == '-' } }) return false
     val tld = host.substringAfterLast('.', "")
-    return tld.length >= 2 && tld.first().isLetter() && tld.all { it.isLetterOrDigit() || it == '-' }
+    return tld.length >= 2 && tld.first().isLetter()
 }

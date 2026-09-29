@@ -41,7 +41,8 @@ class BatteryPartProvider(
 
         chargingInfo.collectLatest {
             batteryInfo.value = it
-            if (batteryStatusVisibility == BatteryStatusVisibility.Hide) {
+            // Devices without a battery report Integer.MIN_VALUE as capacity
+            if (batteryStatusVisibility == BatteryStatusVisibility.Hide || it.level < 0) {
                 send(0)
             } else if (batteryStatusVisibility == BatteryStatusVisibility.Always) {
                 send(10)

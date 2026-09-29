@@ -84,6 +84,10 @@ internal class SearchActionRepositoryImpl(
             val jsonArray = JSONArray()
             for (websearch in websearches) {
                 var customIcon = websearch.customIcon
+                if (customIcon != null && !File(customIcon).exists()) {
+                    // Icon file has been deleted, back up the search action without it
+                    customIcon = null
+                }
                 if (customIcon != null) {
                     val fileName = "asset.searchaction.${iconCounter.toString().padStart(4, '0')}"
                     val iconAssetFile = File(toDir, fileName)
@@ -137,8 +141,8 @@ internal class SearchActionRepositoryImpl(
 
                     var iconFile: File? = null
 
-                    if (customIcon != null) {
-                        val asset = File(fromDir, customIcon)
+                    val asset = customIcon?.let { File(fromDir, it) }
+                    if (asset != null && asset.exists()) {
                         iconFile = File(context.filesDir, UUID.randomUUID().toString())
                         asset.inputStream().use { inStream ->
                             iconFile.outputStream().use { outStream ->

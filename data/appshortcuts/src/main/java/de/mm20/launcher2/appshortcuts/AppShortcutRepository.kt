@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Process
 import android.os.UserHandle
+import android.util.Log
 import androidx.core.content.getSystemService
 import de.mm20.launcher2.ktx.getSerialNumber
 import de.mm20.launcher2.permissions.PermissionGroup
@@ -84,6 +85,9 @@ internal class AppShortcutRepositoryImpl(
             val shortcuts = try {
                 launcherApps.getShortcuts(query, user)
             } catch (e: IllegalStateException) {
+                emptyList()
+            } catch (e: SecurityException) {
+                // Not (or no longer) the default launcher
                 emptyList()
             }
             val appShortcuts = mutableListOf<LauncherShortcut>()
@@ -225,7 +229,16 @@ internal class AppShortcutRepositoryImpl(
                     LauncherApps.ShortcutQuery.FLAG_MATCH_CACHED or
                     LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED_BY_ANY_LAUNCHER
         )
-        val result = launcherApps.getShortcuts(shortcutQuery, Process.myUserHandle()) ?: emptyList()
+        val result = try {
+            launcherApps.getShortcuts(shortcutQuery, Process.myUserHandle())
+        } catch (e: IllegalStateException) {
+            null
+        } catch (e: SecurityException) {
+            // "Caller can't access shortcut information", e.g. if the launcher is not (or no
+            // longer) the default launcher
+            Log.e("AppShortcutRepository", "Could not query shortcuts", e)
+            null
+        } ?: emptyList()
         val normalized = result.mapNotNull {
             if ("${it.`package`}:${it.userHandle.getSerialNumber(context)}" in blocklist) return@mapNotNull null
             NormalizedShortcut(

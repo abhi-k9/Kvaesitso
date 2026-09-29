@@ -54,7 +54,8 @@ fun FailedGestureSheet(
             Gesture.SwipeRight -> R.string.preference_gesture_swipe_right
             Gesture.SwipeUp -> R.string.preference_gesture_swipe_up
             Gesture.HomeButton -> R.string.preference_gesture_home_button
-            else -> throw IllegalArgumentException("Unknown gesture: ${it.gesture}")
+            // Not a configurable gesture (i.e. TapSearchBar), nothing to show
+            else -> return@DismissableBottomSheet
         })
 
         Column(

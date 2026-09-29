@@ -77,6 +77,8 @@ class LauncherBottomSheetManager(registryOwner: SavedStateRegistryOwner) :
     }
 
     fun showFailedGestureSheet(gesture: Gesture, action: GestureAction) {
+        // The search bar tap always opens the search, it's not a gesture that can fail
+        if (gesture == Gesture.TapSearchBar) return
         failedGestureSheetShown.value = FailedGesture(gesture, action)
     }
     fun dismissFailedGestureSheet() {

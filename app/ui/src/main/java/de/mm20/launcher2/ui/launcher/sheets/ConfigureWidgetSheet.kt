@@ -4,9 +4,11 @@ import android.app.Activity
 import android.app.ActivityOptions
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -819,7 +821,8 @@ fun ColumnScope.ConfigureAppWidget(
                 }
             }
         }
-        if (isAtLeastApiLevel(28) && widgetInfo.widgetFeatures and AppWidgetProviderInfo.WIDGET_FEATURE_RECONFIGURABLE != 0) {
+        // Some widgets are flagged as reconfigurable but don't have a configuration activity
+        if (isAtLeastApiLevel(28) && widgetInfo.configure != null && widgetInfo.widgetFeatures and AppWidgetProviderInfo.WIDGET_FEATURE_RECONFIGURABLE != 0) {
             val appWidgetHost = LocalAppWidgetHost.current
             TextButton(
                 modifier = Modifier
@@ -832,21 +835,25 @@ fun ColumnScope.ConfigureAppWidget(
                     bottom = 8.dp,
                 ),
                 onClick = {
-                    appWidgetHost.startAppWidgetConfigureActivityForResult(
-                        lifecycleOwner as Activity,
-                        widget.config.widgetId,
-                        0,
-                        0,
-                        if (Build.VERSION.SDK_INT < 34) {
-                            null
-                        } else {
-                            ActivityOptions.makeBasic()
-                                .setPendingIntentBackgroundActivityStartMode(
-                                    ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
-                                )
-                                .toBundle()
-                        }
-                    )
+                    try {
+                        appWidgetHost.startAppWidgetConfigureActivityForResult(
+                            lifecycleOwner as Activity,
+                            widget.config.widgetId,
+                            0,
+                            0,
+                            if (Build.VERSION.SDK_INT < 34) {
+                                null
+                            } else {
+                                ActivityOptions.makeBasic()
+                                    .setPendingIntentBackgroundActivityStartMode(
+                                        ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                                    )
+                                    .toBundle()
+                            }
+                        )
+                    } catch (e: ActivityNotFoundException) {
+                        Log.e("ConfigureWidgetSheet", "Could not open widget configuration", e)
+                    }
                 }) {
                 Text(
                     stringResource(id = R.string.widget_config_appwidget_configure)

@@ -173,18 +173,26 @@ internal data class LauncherShortcut(
             setQueryFlags(LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED)
         }
         val userHandle = launcherShortcut.userHandle
-        val allPinned = launcherApps.getShortcuts(pinnedShortcutsQuery, userHandle)
+        try {
+            val allPinned = launcherApps.getShortcuts(pinnedShortcutsQuery, userHandle)
 
-        if (allPinned == null) {
-            Log.e("MM20", "Could not remove shortcut ${key}: shortcut query returned null")
-            return
+            if (allPinned == null) {
+                Log.e("MM20", "Could not remove shortcut ${key}: shortcut query returned null")
+                return
+            }
+
+            launcherApps.pinShortcuts(
+                launcherShortcut.`package`,
+                allPinned.filter { it.id != launcherShortcut.id }.map { it.id },
+                userHandle
+            )
+        } catch (e: IllegalStateException) {
+            // User is locked
+            Log.e("MM20", "Could not remove shortcut ${key}", e)
+        } catch (e: SecurityException) {
+            // Not (or no longer) the default launcher
+            Log.e("MM20", "Could not remove shortcut ${key}", e)
         }
-
-        launcherApps.pinShortcuts(
-            launcherShortcut.`package`,
-            allPinned.filter { it.id != launcherShortcut.id }.map { it.id },
-            userHandle
-        )
     }
 
     companion object {

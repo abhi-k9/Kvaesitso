@@ -129,7 +129,9 @@ fun LazyListScope.UnitConverterResults(
         val count = if (truncate) min(5, converter.values.size) else converter.values.size
         items(
             count,
-            key = { "converter-${converter.values[it].symbol}" }
+            // Not the symbol: in some languages, several units share the same symbol (e.g. US and
+            // imperial gallons in English), and duplicate keys crash the LazyColumn
+            key = { "converter-$it" }
         ) {
             val value = converter.values[it]
             ListItemSurface(
