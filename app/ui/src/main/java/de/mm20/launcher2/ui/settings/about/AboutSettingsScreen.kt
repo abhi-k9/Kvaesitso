@@ -100,10 +100,10 @@ fun AboutSettingsScreen() {
                 Preference(
                     icon = R.drawable.github,
                     title = "GitHub",
-                    summary = "github.com/MM2-0/Kvaesitso",
+                    summary = "github.com/abhi-k9/Kvaesitso",
                     onClick = {
                         context.tryStartActivity(Intent(Intent.ACTION_VIEW).apply {
-                            data = "https://github.com/MM2-0/Kvaesitso".toUri()
+                            data = "https://github.com/abhi-k9/Kvaesitso".toUri()
                         })
                     }
                 )

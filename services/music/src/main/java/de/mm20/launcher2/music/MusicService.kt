@@ -106,12 +106,17 @@ internal class MusicServiceImpl(
             settings,
         ) { notifications, settings ->
             withContext(Dispatchers.Default) {
+                val mediaNotifications = notifications.filter { it.mediaSessionToken != null }
+                // Notifications change often, don't query the installed player apps if there is
+                // no media notification at all
+                if (mediaNotifications.isEmpty()) return@withContext null
                 val musicApps = getEnabledPlayerPackages(
+                    mediaNotifications.mapTo(mutableSetOf()) { it.packageName },
                     settings.allowList,
                     settings.denyList,
                 )
-                val sbn: Notification? = notifications.filter {
-                    it.mediaSessionToken != null && musicApps.contains(it.packageName)
+                val sbn: Notification? = mediaNotifications.filter {
+                    musicApps.contains(it.packageName)
                 }.maxByOrNull { it.postTime }
 
                 return@withContext sbn?.mediaSessionToken
@@ -585,11 +590,19 @@ internal class MusicServiceImpl(
         return apps
     }
 
+    /**
+     * Installed player apps, and the packages with media notifications they have been queried for
+     */
+    private var installedPlayerPackagesCache: Pair<Set<String>, Set<String>>? = null
+
     private suspend fun getEnabledPlayerPackages(
+        mediaPackages: Set<String>,
         allowList: Set<String>,
         denyList: Set<String>
     ): Set<String> {
-        val installed = getInstalledPlayerPackages()
+        // Only query the installed player apps again if other apps posted media notifications
+        val installed = installedPlayerPackagesCache?.takeIf { it.first == mediaPackages }?.second
+            ?: getInstalledPlayerPackages().also { installedPlayerPackagesCache = mediaPackages to it }
         return installed.union(allowList).subtract(denyList).toSet()
     }
 

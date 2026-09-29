@@ -78,7 +78,13 @@ internal class WeatherRepositoryImpl(
             }
         }
         scope.launch {
-            settings.collectLatest {
+            // The update worker writes lastLocation and lastUpdate itself, don't start another
+            // update when these change (except when the forecasts have been cleared). Otherwise
+            // saving the location while updating started a second, concurrent update.
+            settings
+                .map { it.copy(lastLocation = null, lastUpdate = if (it.lastUpdate == 0L) 0L else 1L) }
+                .distinctUntilChanged()
+                .collectLatest {
                 val provider =  WeatherProvider.getInstance(it.provider)
                 val weatherRequest =
                     PeriodicWorkRequestBuilder<WeatherUpdateWorker>(Duration.ofMillis(provider.getUpdateInterval()))

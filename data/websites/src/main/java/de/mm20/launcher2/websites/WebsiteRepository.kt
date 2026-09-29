@@ -62,8 +62,11 @@ internal class WebsiteRepository(
         val result = withContext(Dispatchers.IO) {
             var url = query
             val protocol = "https://"
-            if (!query.startsWith("https://") && !query.startsWith("http://")) url =
-                "$protocol$query"
+            if (!query.startsWith("https://") && !query.startsWith("http://")) {
+                // Otherwise every search query would be sent to the DNS server as a host name
+                if (!looksLikeWebAddress(query)) return@withContext null
+                url = "$protocol$query"
+            }
             if (!URLUtil.isValidUrl(url)) return@withContext null
             try {
                 val response = httpClient.get {
@@ -126,4 +129,17 @@ internal class WebsiteRepository(
             ""
         }
     }
+}
+
+/**
+ * Whether a query without a scheme looks like a web address, e.g. "example.com/path" or
+ * "192.168.1.1", as opposed to a regular search query.
+ */
+internal fun looksLikeWebAddress(query: String): Boolean {
+    if (query.any { it.isWhitespace() }) return false
+    val host = query.substringBefore('/').substringBefore('?').substringBefore('#').substringBefore(':')
+    if (host.contains('@')) return false
+    if (Regex("""\d{1,3}(\.\d{1,3}){3}""").matches(host)) return true
+    val tld = host.substringAfterLast('.', "")
+    return tld.length >= 2 && tld.first().isLetter() && tld.all { it.isLetterOrDigit() || it == '-' }
 }
