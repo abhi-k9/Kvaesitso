@@ -225,6 +225,11 @@ internal data class LocalFile(
 
         const val Domain = "file"
 
+        /**
+         * Max size of files other than JPEG, PNG and WebP to read EXIF data from, see [getMetaData]
+         */
+        private const val MaxExifFileSize = 16L * 1024 * 1024
+
         internal fun getMimetypeByFileExtension(extension: String): String {
             return when (extension) {
                 "apk" -> "application/vnd.android.package-archive"
@@ -345,7 +350,13 @@ internal data class LocalFile(
                     if (height >= 0 && width >= 0) {
                         metaData[FileMetaType.Dimensions] = "${width}x$height"
                     }
-                    try {
+                    // For TIFF based formats (TIFF, DNG and other raw images) and HEIF,
+                    // ExifInterface keeps everything up to the metadata it reads in memory, and
+                    // the metadata can be at the end of the file, so large files crash the
+                    // launcher with an OutOfMemoryError. JPEG, PNG and WebP are read without that.
+                    val canReadExif = mimeType == "image/jpeg" || mimeType == "image/png" ||
+                            mimeType == "image/webp" || JavaIOFile(path).length() <= MaxExifFileSize
+                    if (canReadExif) try {
                         val exif = ExifInterface(path)
                         val loc = exif.latLong
                         if (loc != null && Geocoder.isPresent()) {

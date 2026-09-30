@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,6 +43,9 @@ fun CrashReportScreen(fileName: String) {
             null -> ""
         },
         topBarActions = {
+            IconButton(onClick = { crashReport?.let { viewModel.copyCrashReport(context, it) } }) {
+                Icon(painterResource(R.drawable.content_copy_24px), contentDescription = null)
+            }
             IconButton(onClick = { crashReport?.let { viewModel.shareCrashReport(context, it) } }) {
                 Icon(painterResource(R.drawable.share_24px), contentDescription = null)
             }
@@ -63,16 +67,18 @@ fun CrashReportScreen(fileName: String) {
                     ),
             ) {
                 crashReport?.stacktrace?.let {
-                    Text(
-                        text = it,
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (crashReport?.type == CrashReportType.Crash) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.primary
-                        },
-                    )
+                    SelectionContainer {
+                        Text(
+                            text = it,
+                            modifier = Modifier.padding(12.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (crashReport?.type == CrashReportType.Crash) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -85,11 +91,13 @@ fun CrashReportScreen(fileName: String) {
             ) {
                 Text(text = "Device Information", style = MaterialTheme.typography.titleMedium)
                 val deviceInformation = remember { viewModel.getDeviceInformation(context) }
-                Text(
-                    text = deviceInformation,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                )
+                SelectionContainer {
+                    Text(
+                        text = deviceInformation,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                    )
+                }
             }
         }
     }

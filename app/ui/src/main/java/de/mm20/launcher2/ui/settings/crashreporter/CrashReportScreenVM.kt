@@ -1,9 +1,12 @@
 package de.mm20.launcher2.ui.settings.crashreporter
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
+import androidx.core.content.getSystemService
 import androidx.lifecycle.ViewModel
 import de.mm20.launcher2.crashreporter.CrashReport
 import de.mm20.launcher2.crashreporter.CrashReporter
@@ -48,18 +51,37 @@ class CrashReportScreenVM : ViewModel() {
         })
     }
 
-    fun shareCrashReport(context: Context, crashReport: CrashReport) {
+    /**
+     * The full report (stack trace and device information) as plain text
+     */
+    private fun getReportText(context: Context, crashReport: CrashReport): String {
+        return "${crashReport.stacktrace ?: crashReport.summary}\n\n${getDeviceInformation(context)}"
+    }
 
-        val uri = FileProvider.getUriForFile(
-            context,
-            context.applicationContext.packageName + ".fileprovider",
-            File(crashReport.filePath)
+    fun copyCrashReport(context: Context, crashReport: CrashReport) {
+        context.getSystemService<ClipboardManager>()?.setPrimaryClip(
+            ClipData.newPlainText("Kvaesitso crash report", getReportText(context, crashReport))
         )
+    }
+
+    fun shareCrashReport(context: Context, crashReport: CrashReport) {
+        val uri = try {
+            FileProvider.getUriForFile(
+                context,
+                context.applicationContext.packageName + ".fileprovider",
+                File(crashReport.filePath)
+            )
+        } catch (e: IllegalArgumentException) {
+            null
+        }
+        // text/plain (not */*), so that the file can be saved, and the full report as text (not
+        // only the device information) for apps that only take the text
         val intent = Intent(Intent.ACTION_SEND)
-        intent.type = "*/*"
-        intent.putExtra(Intent.EXTRA_TEXT, CrashReporter.getDeviceInformation(context))
-        intent.putExtra(Intent.EXTRA_STREAM, uri)
-        context.startActivity(Intent.createChooser(intent, "Share via"))
+        intent.type = "text/plain"
+        intent.putExtra(Intent.EXTRA_SUBJECT, crashReport.summary)
+        intent.putExtra(Intent.EXTRA_TEXT, getReportText(context, crashReport))
+        if (uri != null) intent.putExtra(Intent.EXTRA_STREAM, uri)
+        context.tryStartActivity(Intent.createChooser(intent, "Share via"))
     }
 
 }
