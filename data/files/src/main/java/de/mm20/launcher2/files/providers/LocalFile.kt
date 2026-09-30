@@ -29,10 +29,12 @@ import de.mm20.launcher2.search.File
 import de.mm20.launcher2.search.FileMetaType
 import de.mm20.launcher2.search.SearchableSerializer
 import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
+import java.io.FileInputStream
 import java.io.IOException
 import java.io.File as JavaIOFile
 
@@ -226,9 +228,10 @@ internal data class LocalFile(
         const val Domain = "file"
 
         /**
-         * Max size of files other than JPEG, PNG and WebP to read EXIF data from, see [getMetaData]
+         * Max number of bytes of a file that metadata parsers that read the file into memory
+         * (i.e. ExifInterface) may read.
          */
-        private const val MaxExifFileSize = 16L * 1024 * 1024
+        private const val MaxMetaDataBytes = 8L * 1024 * 1024
 
         internal fun getMimetypeByFileExtension(extension: String): String {
             return when (extension) {
@@ -258,7 +261,28 @@ internal data class LocalFile(
         }
 
 
+        /**
+         * Metadata is optional: whatever goes wrong while reading it (i.e. an OutOfMemoryError
+         * while parsing a large or corrupt file) must not crash the launcher, which would happen
+         * again every time the file shows up in the search results or favorites.
+         */
         internal fun getMetaData(
+            context: Context,
+            mimeType: String,
+            path: String
+        ): ImmutableMap<FileMetaType, String> {
+            return try {
+                readMetaData(context, mimeType, path)
+            } catch (e: Exception) {
+                CrashReporter.logException(e)
+                persistentMapOf()
+            } catch (e: OutOfMemoryError) {
+                CrashReporter.logException(RuntimeException("Out of memory while reading file metadata", e))
+                persistentMapOf()
+            }
+        }
+
+        private fun readMetaData(
             context: Context,
             mimeType: String,
             path: String
@@ -350,14 +374,12 @@ internal data class LocalFile(
                     if (height >= 0 && width >= 0) {
                         metaData[FileMetaType.Dimensions] = "${width}x$height"
                     }
-                    // For TIFF based formats (TIFF, DNG and other raw images) and HEIF,
-                    // ExifInterface keeps everything up to the metadata it reads in memory, and
-                    // the metadata can be at the end of the file, so large files crash the
-                    // launcher with an OutOfMemoryError. JPEG, PNG and WebP are read without that.
-                    val canReadExif = mimeType == "image/jpeg" || mimeType == "image/png" ||
-                            mimeType == "image/webp" || JavaIOFile(path).length() <= MaxExifFileSize
-                    if (canReadExif) try {
-                        val exif = ExifInterface(path)
+                    try {
+                        // For some formats (TIFF, DNG and other raw images, HEIF), ExifInterface
+                        // keeps everything it reads in memory, up to the metadata, which can be at
+                        // the end of the file, so limit how much of the file it can read.
+                        val exif = LimitedInputStream(FileInputStream(path), MaxMetaDataBytes)
+                            .use { ExifInterface(it) }
                         val loc = exif.latLong
                         if (loc != null && Geocoder.isPresent()) {
                             val list = try {
