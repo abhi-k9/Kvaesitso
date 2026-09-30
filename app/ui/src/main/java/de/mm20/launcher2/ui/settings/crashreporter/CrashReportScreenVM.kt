@@ -5,15 +5,24 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.core.content.getSystemService
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import de.mm20.launcher2.crashreporter.CrashReport
+import de.mm20.launcher2.crashreporter.CrashReportType
 import de.mm20.launcher2.crashreporter.CrashReporter
 import de.mm20.launcher2.ktx.tryStartActivity
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 import java.net.URLEncoder
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class CrashReportScreenVM : ViewModel() {
     fun getCrashReport(fileName: String) = flow<CrashReport?> {
@@ -65,23 +74,36 @@ class CrashReportScreenVM : ViewModel() {
     }
 
     fun shareCrashReport(context: Context, crashReport: CrashReport) {
-        val uri = try {
-            FileProvider.getUriForFile(
+        viewModelScope.launch {
+            // Share a copy like the log export: crash report file names contain the time with
+            // colons, which aren't allowed on shared storage, so files apps couldn't save them.
+            val file = withContext(Dispatchers.IO) {
+                try {
+                    val time = SimpleDateFormat("yyyy-MM-dd-HHmmss", Locale.ROOT).format(crashReport.time)
+                    val type = if (crashReport.type == CrashReportType.Crash) "crash" else "exception"
+                    val dir = File(context.cacheDir, "crashreports").apply { mkdirs() }
+                    File(dir, "kvaesitso-$type-$time.txt").apply {
+                        writeText(getReportText(context, crashReport))
+                    }
+                } catch (e: IOException) {
+                    Log.e("CrashReportScreenVM", "Could not create crash report file", e)
+                    null
+                }
+            } ?: return@launch
+            val uri = FileProvider.getUriForFile(
                 context,
                 context.applicationContext.packageName + ".fileprovider",
-                File(crashReport.filePath)
+                file
             )
-        } catch (e: IllegalArgumentException) {
-            null
+            context.tryStartActivity(
+                Intent.createChooser(
+                    Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                    }, null
+                )
+            )
         }
-        // text/plain (not */*), so that the file can be saved, and the full report as text (not
-        // only the device information) for apps that only take the text
-        val intent = Intent(Intent.ACTION_SEND)
-        intent.type = "text/plain"
-        intent.putExtra(Intent.EXTRA_SUBJECT, crashReport.summary)
-        intent.putExtra(Intent.EXTRA_TEXT, getReportText(context, crashReport))
-        if (uri != null) intent.putExtra(Intent.EXTRA_STREAM, uri)
-        context.tryStartActivity(Intent.createChooser(intent, "Share via"))
     }
 
 }
