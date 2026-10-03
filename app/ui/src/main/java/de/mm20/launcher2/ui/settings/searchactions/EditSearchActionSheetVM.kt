@@ -204,6 +204,8 @@ class EditSearchActionSheetVM : ViewModel(), KoinComponent {
     fun onSave() {
         val action = searchAction.value ?: return
         if (initialCustomIcon != action.customIcon) deleteCustomIcon(initialCustomIcon)
+        // The sheet calls onDismiss when it closes after saving, which must not delete the saved icon
+        initialCustomIcon = action.customIcon
     }
 
     fun onDismiss() {

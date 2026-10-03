@@ -7,6 +7,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import de.mm20.launcher2.themes.shapes.CornerStyle
 import de.mm20.launcher2.themes.shapes.Shape as ThemeShape
@@ -34,7 +36,13 @@ private fun fromShape(shape: ThemeShape?, baseShape: ThemeShape, factor: Float):
     val bottomEnd = getCornerRadius(shape, baseShape, factor, 2)
     val bottomStart = getCornerRadius(shape, baseShape, factor, 3)
 
-    return if ((shape?.corners ?: baseShape.corners) == CornerStyle.Cut) {
+    // Material animates RoundedCornerShapes (e.g. selected menu items) with a spring, which
+    // overshoots a 0 corner to a negative size and crashes. A rectangle looks the same as
+    // CutCornerShape, which isn't animated.
+    val isRectangle = listOf(topStart, topEnd, bottomEnd, bottomStart)
+        .all { it.toPx(Size.Zero, Density(1f)) == 0f }
+
+    return if (isRectangle || (shape?.corners ?: baseShape.corners) == CornerStyle.Cut) {
         CutCornerShape(
             topStart = topStart,
             topEnd = topEnd,

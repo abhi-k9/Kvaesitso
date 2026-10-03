@@ -70,7 +70,9 @@ internal class CustomAttributesRepositoryImpl(
     }
 
     override fun getCustomLabels(items: List<SavableSearchable>): Flow<List<CustomLabel>> {
-        if (items.size <= 999) {
+        // SQLite < 3.32 (Android 11 and older) allows at most 999 variables per query, and the
+        // query has one more (the type)
+        if (items.size <= 998) {
             val dao = appDatabase.customAttrsDao()
             return dao.getCustomAttributes(items.map { it.key }, CustomAttributeType.Label.value)
                 .map { list ->
@@ -78,7 +80,7 @@ internal class CustomAttributesRepositoryImpl(
                 }
         } else {
             val dao = appDatabase.customAttrsDao()
-            return combine(items.chunked(999).map { chunk ->
+            return combine(items.chunked(998).map { chunk ->
                 dao.getCustomAttributes(chunk.map { it.key }, CustomAttributeType.Label.value)
             }) { results ->
                 results.flatMap { list ->

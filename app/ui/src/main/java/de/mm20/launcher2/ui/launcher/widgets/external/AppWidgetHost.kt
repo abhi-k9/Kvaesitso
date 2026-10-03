@@ -1,6 +1,9 @@
 package de.mm20.launcher2.ui.launcher.widgets.external
 
 import android.appwidget.AppWidgetProviderInfo
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.util.SizeF
@@ -52,7 +55,11 @@ fun AppWidgetHost(
                 modifier = modifier
                     .fillMaxSize(),
                 factory = {
-                    val view = appWidgetHost.createView(it.applicationContext, widgetId, widgetInfo)
+                    val view = appWidgetHost.createView(
+                        WidgetContext(it.applicationContext),
+                        widgetId,
+                        widgetInfo
+                    )
                     enableNestedScroll(view)
                     return@AndroidView view
                 },
@@ -86,6 +93,20 @@ fun AppWidgetHost(
                 }
             )
         }
+    }
+}
+
+/**
+ * Context for app widget views. Some widgets start activities themselves (e.g. links in a
+ * TextView), which crashes with a non-activity context without [Intent.FLAG_ACTIVITY_NEW_TASK].
+ */
+private class WidgetContext(base: Context) : ContextWrapper(base) {
+    override fun startActivity(intent: Intent) {
+        startActivity(intent, null)
+    }
+
+    override fun startActivity(intent: Intent, options: Bundle?) {
+        super.startActivity(Intent(intent).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), options)
     }
 }
 
