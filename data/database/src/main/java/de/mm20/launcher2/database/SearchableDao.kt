@@ -213,10 +213,17 @@ interface SearchableDao {
 
     @Transaction
     suspend fun replace(key: String, item: SavedSearchableUpdateContentEntity) {
+        // An existing entry with the new key (e.g. when a tag is renamed to the name of another
+        // tag) would make the key update fail ("UNIQUE constraint failed"). The old entry
+        // replaces it.
+        if (key != item.key && exists(key)) delete(item.key)
         updateKey(key, item.key)
         update(item)
     }
 
     @Query("UPDATE Searchable SET `key` = :newKey WHERE `key` = :oldKey")
     suspend fun updateKey(oldKey: String, newKey: String)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM Searchable WHERE `key` = :key)")
+    suspend fun exists(key: String): Boolean
 }

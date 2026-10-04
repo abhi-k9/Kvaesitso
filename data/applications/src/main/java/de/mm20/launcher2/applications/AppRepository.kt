@@ -9,11 +9,13 @@ import android.content.pm.ShortcutInfo
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
+import android.os.SystemClock
 import android.os.UserHandle
 import de.mm20.launcher2.profiles.Profile
 import de.mm20.launcher2.profiles.ProfileManager
 import de.mm20.launcher2.search.Application
 import de.mm20.launcher2.search.ResultScore
+import de.mm20.launcher2.search.SearchableKeyMigrator
 import de.mm20.launcher2.search.SearchableRepository
 import de.mm20.launcher2.search.StringNormalizer
 import kotlinx.collections.immutable.ImmutableList
@@ -44,6 +46,7 @@ internal class AppRepositoryImpl(
     private val context: Context,
     private val profileManager: ProfileManager,
     private val stringNormalizer: StringNormalizer,
+    private val keyMigrator: SearchableKeyMigrator,
 ) : AppRepository {
     private val scope = CoroutineScope(Dispatchers.Default + Job())
 
@@ -76,8 +79,11 @@ internal class AppRepositoryImpl(
                 scope.launch {
                     mutex.withLock {
                         val apps = installedApps.value.toMutableList()
+                        val before = apps.filter { packageName == it.componentName.packageName && it.user == user }
+                        val after = getApplications(packageName, user)
+                        migrateReplacedActivity(packageName, user, before, after)
                         apps.removeAll { packageName == it.componentName.packageName && it.user == user }
-                        apps.addAll(getApplications(packageName, user))
+                        apps.addAll(after)
                         installedApps.value = apps
                     }
                 }
@@ -204,6 +210,50 @@ internal class AppRepositoryImpl(
                 apps.removeAll { it.user == profile.userHandle }
                 installedApps.value = apps
             }
+        }
+    }
+
+    private class ActivityChange(
+        val removed: List<LauncherApp>,
+        val added: List<LauncherApp>,
+        val time: Long,
+    )
+
+    /**
+     * Launcher activities that were only removed or only added, per package and user, in case an
+     * app switches to another activity in two steps.
+     */
+    private val pendingActivityChanges = mutableMapOf<Pair<String, UserHandle>, ActivityChange>()
+
+    /**
+     * Some apps (e.g. Duolingo) change their icon by switching to another launcher activity, and
+     * app updates can rename the launcher activity. Its key changes with it, so if exactly one
+     * launcher activity of a package was replaced by another one, move its favorite, visibility,
+     * custom label, tags etc. to the new one. Must be called with [mutex] held.
+     */
+    private fun migrateReplacedActivity(
+        packageName: String,
+        user: UserHandle,
+        before: List<LauncherApp>,
+        after: List<LauncherApp>,
+    ) {
+        val removedNow = before.filter { b -> after.none { it.componentName == b.componentName } }
+        val addedNow = after.filter { a -> before.none { it.componentName == a.componentName } }
+        if (removedNow.isEmpty() && addedNow.isEmpty()) return
+
+        val now = SystemClock.elapsedRealtime()
+        val pending = pendingActivityChanges.remove(packageName to user)
+            ?.takeIf { now - it.time < 60_000L }
+        val allRemoved = removedNow + pending?.removed.orEmpty()
+        val allAdded = addedNow + pending?.added.orEmpty()
+        // An activity that was disabled and enabled again is not a replacement
+        val removed = allRemoved.filter { r -> allAdded.none { it.componentName == r.componentName } }
+        val added = allAdded.filter { a -> allRemoved.none { it.componentName == a.componentName } }
+
+        if (removed.size == 1 && added.size == 1) {
+            keyMigrator.migrate(removed[0].key, added[0])
+        } else if (removed.isEmpty() != added.isEmpty()) {
+            pendingActivityChanges[packageName to user] = ActivityChange(removed, added, now)
         }
     }
 

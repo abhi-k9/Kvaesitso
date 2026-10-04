@@ -4,6 +4,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.Configuration
+import android.icu.util.Measure
+import android.icu.util.MeasureUnit
+import android.icu.text.MeasureFormat
 import android.os.BatteryManager
 import android.os.Build
 import androidx.compose.foundation.layout.Column
@@ -16,8 +20,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -28,6 +36,7 @@ import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.utils.formatPercent
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
+import java.util.Locale
 import kotlinx.coroutines.flow.*
 
 class BatteryPartProvider(
@@ -81,10 +90,7 @@ class BatteryPartProvider(
                     if (it.charging) {
                         Text(
                             modifier = Modifier.padding(start = 8.dp).alignByBaseline(),
-                            text = it.fullIn?.let {
-                                val m = (it / 60000).toInt()
-                                pluralStringResource(R.plurals.battery_part_remaining_charge_time, m, m)
-                            } ?: stringResource(R.string.battery_part_charging),
+                            text = chargingText(it.fullIn),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -107,10 +113,7 @@ class BatteryPartProvider(
                         )
                         if (it.charging) {
                             Text(
-                                text = it.fullIn?.let {
-                                    val m = (it / 60000).toInt()
-                                    pluralStringResource(R.plurals.battery_part_remaining_charge_time, m, m)
-                                } ?: stringResource(R.string.battery_part_charging),
+                                text = chargingText(it.fullIn),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -118,6 +121,36 @@ class BatteryPartProvider(
                 }
             }
         }
+    }
+
+    @Composable
+    private fun chargingText(fullIn: Long?): String {
+        fullIn ?: return stringResource(R.string.battery_part_charging)
+        val minutes = (fullIn / 60000).toInt()
+        if (minutes >= 60) {
+            val context = LocalContext.current
+            val resources = LocalResources.current
+            val configuration = LocalConfiguration.current
+            val locale = configuration.locales[0]
+            // Languages without a translation keep the minutes, instead of mixing languages
+            val translated = remember(resources, configuration) {
+                locale.language == Locale.ENGLISH.language ||
+                        resources.getString(R.string.battery_part_remaining_charge_time_long) !=
+                        context.createConfigurationContext(
+                            Configuration(configuration).apply { setLocale(Locale.ENGLISH) }
+                        ).resources.getString(R.string.battery_part_remaining_charge_time_long)
+            }
+            if (translated) {
+                val measures = listOfNotNull(
+                    Measure(minutes / 60, MeasureUnit.HOUR),
+                    Measure(minutes % 60, MeasureUnit.MINUTE).takeIf { minutes % 60 > 0 },
+                )
+                val duration = MeasureFormat.getInstance(locale, MeasureFormat.FormatWidth.WIDE)
+                    .formatMeasures(*measures.toTypedArray())
+                return stringResource(R.string.battery_part_remaining_charge_time_long, duration)
+            }
+        }
+        return pluralStringResource(R.plurals.battery_part_remaining_charge_time, minutes, minutes)
     }
 
     private fun getBatteryIcon(batteryInfo: BatteryInfo): Int {
@@ -158,13 +191,19 @@ class BatteryPartProvider(
 
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
+                // Some devices still report the status "charging" for a while after the charger
+                // has been unplugged, so also check whether it is plugged in.
+                val charging = intent != null &&
+                        intent.action != Intent.ACTION_POWER_DISCONNECTED &&
+                        intent.getIntExtra(
+                            BatteryManager.EXTRA_STATUS,
+                            BatteryManager.BATTERY_STATUS_UNKNOWN
+                        ) == BatteryManager.BATTERY_STATUS_CHARGING &&
+                        intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) != 0
                 trySendBlocking(
                     BatteryInfo(
                         level = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY),
-                        charging = intent?.getIntExtra(
-                            BatteryManager.EXTRA_STATUS,
-                            BatteryManager.BATTERY_STATUS_UNKNOWN
-                        ) == BatteryManager.BATTERY_STATUS_CHARGING,
+                        charging = charging,
                         fullIn = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                             batteryManager.computeChargeTimeRemaining().takeIf { it > 0 }
                         } else null,
@@ -174,6 +213,7 @@ class BatteryPartProvider(
         }
         context.registerReceiver(receiver, IntentFilter().apply {
             addAction(Intent.ACTION_BATTERY_CHANGED)
+            addAction(Intent.ACTION_POWER_DISCONNECTED)
         })
         awaitClose {
             context.unregisterReceiver(receiver)

@@ -113,23 +113,25 @@ internal data class LocalFile(
             mimeType.startsWith("audio/") -> {
                 val thumbnail = withContext(Dispatchers.IO) {
                     val mediaMetadataRetriever = MediaMetadataRetriever()
+                    // Release in any case, an unreleased retriever is released by its finalizer,
+                    // which can time out and crash the app
                     try {
                         mediaMetadataRetriever.setDataSource(path)
                         val thumbData = mediaMetadataRetriever.embeddedPicture
-                        if (thumbData != null) {
-                            val thumbnail = ThumbnailUtils.extractThumbnail(
-                                BitmapFactory.decodeByteArray(thumbData, 0, thumbData.size),
-                                size,
-                                size
-                            )
-                            mediaMetadataRetriever.release()
-                            return@withContext thumbnail
-                        }
+                            ?: return@withContext null
+                        ThumbnailUtils.extractThumbnail(
+                            BitmapFactory.decodeByteArray(thumbData, 0, thumbData.size),
+                            size,
+                            size
+                        )
                     } catch (e: RuntimeException) {
+                        null
+                    } catch (e: OutOfMemoryError) {
+                        // Very large cover art
+                        null
+                    } finally {
+                        mediaMetadataRetriever.release()
                     }
-                    mediaMetadataRetriever.release()
-                    return@withContext null
-
                 }
                 thumbnail ?: return null
 
@@ -309,8 +311,8 @@ internal data class LocalFile(
                                 metaData[FileMetaType.Duration] =
                                     DateUtils.formatElapsedTime((it) / 1000)
                             }
-                        retriever.release()
                     } catch (e: RuntimeException) {
+                    } finally {
                         retriever.release()
                     }
                 }

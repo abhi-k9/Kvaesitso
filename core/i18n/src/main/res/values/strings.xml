@@ -730,6 +730,8 @@
         <item quantity="one">Full in %1$s minute</item>
         <item quantity="other">Full in %1$s minutes</item>
     </plurals>
+    <!-- Remaining charge time of an hour or more. %1$s: hours and minutes, e.g. "2 hours, 40 minutes" -->
+    <string name="battery_part_remaining_charge_time_long">Full in %1$s</string>
     <string name="backup_complete">The backup has been completed.</string>
     <string name="restore_invalid_file">The selected file does not appear to be a backup. Are you sure you selected the right file?</string>
     <!-- %1$s: app name -->

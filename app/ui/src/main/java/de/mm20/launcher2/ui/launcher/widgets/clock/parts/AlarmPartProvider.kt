@@ -20,7 +20,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
 import de.mm20.launcher2.ktx.tryStartActivity
+import de.mm20.launcher2.preferences.TimeFormat
 import de.mm20.launcher2.ui.R
+import de.mm20.launcher2.ui.locals.LocalTimeFormat
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.*
@@ -75,6 +77,7 @@ class AlarmPartProvider : PartProvider {
 
         val alarmTime by nextAlarmTime
         val time by this.time.collectAsState(System.currentTimeMillis())
+        val timeFormat = LocalTimeFormat.current
 
         alarmTime?.let {
 
@@ -94,12 +97,7 @@ class AlarmPartProvider : PartProvider {
                     )
                     Text(
                         modifier = Modifier.padding(start = 12.dp),
-                        text = DateUtils.getRelativeTimeSpanString(
-                            it,
-                            time,
-                            DateUtils.MINUTE_IN_MILLIS
-                        )
-                            .toString(),
+                        text = formatAlarmTime(context, it, time, timeFormat),
                     )
                 }
             } else {
@@ -118,16 +116,27 @@ class AlarmPartProvider : PartProvider {
                     )
                     Text(
                         modifier = Modifier.padding(start = 12.dp),
-                        text = DateUtils.getRelativeTimeSpanString(
-                            it,
-                            time,
-                            DateUtils.MINUTE_IN_MILLIS
-                        )
-                            .toString(),
+                        text = formatAlarmTime(context, it, time, timeFormat),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
             }
         }
     }
+}
+
+/**
+ * “in 25 minutes” for alarms within the next hour. Later alarms would be rounded down to full
+ * hours (“in 1 hour” for 1 h 59 min), so show the time of the alarm instead.
+ */
+private fun formatAlarmTime(context: Context, alarm: Long, now: Long, timeFormat: TimeFormat): String {
+    if (alarm - now < DateUtils.HOUR_IN_MILLIS) {
+        return DateUtils.getRelativeTimeSpanString(alarm, now, DateUtils.MINUTE_IN_MILLIS).toString()
+    }
+    val timeFormatFlag = when (timeFormat) {
+        TimeFormat.TwelveHour -> DateUtils.FORMAT_12HOUR
+        TimeFormat.TwentyFourHour -> DateUtils.FORMAT_24HOUR
+        else -> 0
+    }
+    return DateUtils.formatDateTime(context, alarm, DateUtils.FORMAT_SHOW_TIME or timeFormatFlag)
 }

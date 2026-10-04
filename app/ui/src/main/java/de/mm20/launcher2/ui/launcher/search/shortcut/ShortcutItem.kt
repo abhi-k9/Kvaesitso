@@ -114,6 +114,16 @@ fun AppShortcutItem(
                                 style = MaterialTheme.typography.titleMedium,
                             )
 
+                            val tags by viewModel.tags.collectAsState(emptyList())
+                            if (tags.isNotEmpty()) {
+                                Text(
+                                    modifier = Modifier.padding(top = 1.dp, bottom = 4.dp),
+                                    text = tags.joinToString(separator = " #", prefix = "#"),
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+
                             val children by viewModel.children.collectAsState(emptyList())
 
                             for (app in children) {

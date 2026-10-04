@@ -66,4 +66,24 @@ interface CustomAttrsDao {
     @Query("DELETE FROM CustomAttributes WHERE type = 'tag' AND value = :tag")
     suspend fun deleteTag(tag: String)
 
+    /**
+     * Moves all attributes of an item to a new key. They replace the attributes already stored
+     * for the new key, if any.
+     */
+    @Transaction
+    suspend fun replaceKey(oldKey: String, newKey: String) {
+        if (oldKey == newKey || !hasAttributes(oldKey)) return
+        deleteAttributes(newKey)
+        moveAttributes(oldKey, newKey)
+    }
+
+    @Query("SELECT EXISTS(SELECT 1 FROM CustomAttributes WHERE `key` = :key)")
+    suspend fun hasAttributes(key: String): Boolean
+
+    @Query("DELETE FROM CustomAttributes WHERE `key` = :key")
+    suspend fun deleteAttributes(key: String)
+
+    @Query("UPDATE CustomAttributes SET `key` = :newKey WHERE `key` = :oldKey")
+    suspend fun moveAttributes(oldKey: String, newKey: String)
+
 }
