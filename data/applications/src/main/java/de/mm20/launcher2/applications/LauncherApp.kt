@@ -33,6 +33,7 @@ import de.mm20.launcher2.search.SearchableSerializer
 import de.mm20.launcher2.search.StoreLink
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.IOException
 
 internal data class LauncherApp(
     private val launcherActivityInfo: LauncherActivityInfo,
@@ -215,7 +216,7 @@ internal data class LauncherApp(
             context.cacheDir,
             "${componentName.packageName}-${versionName}.apk"
         )
-        withContext(Dispatchers.IO) {
+        val copied = withContext(Dispatchers.IO) {
             try {
                 val info = launcherApps.getApplicationInfo(componentName.packageName, 0, user)
                 val file = java.io.File(info.publicSourceDir)
@@ -226,8 +227,15 @@ internal data class LauncherApp(
                     // Do nothing. If the file is already there we don't have to copy it again.
                 }
             } catch (e: PackageManager.NameNotFoundException) {
+            } catch (e: IOException) {
+                // e.g. not enough storage. Don't share (or later reuse) a partial copy.
+                Log.e("MM20", "Could not copy the APK file", e)
+                fileCopy.delete()
+                return@withContext false
             }
+            true
         }
+        if (!copied) return
         val shareIntent = Intent(Intent.ACTION_SEND)
         shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         val uri = FileProvider.getUriForFile(
