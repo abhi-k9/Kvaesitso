@@ -21,6 +21,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -62,10 +63,20 @@ class ProfileManager(
     }
 
     /**
-     * List of profiles that are currently unlocked
+     * Personal profiles besides the main one, e.g. clone profiles ("dual apps"). They aren't in
+     * [profiles]; their apps are shown with the apps of the main personal profile.
      */
-    val unlockedProfiles: Flow<List<Profile>> = profileMap.map {
-        it.values.mapNotNull {
+    private val additionalProfileList = MutableStateFlow(listOf<ProfileWithState>())
+
+    val additionalProfiles: Flow<List<Profile>> = additionalProfileList.map { list ->
+        list.map { it.profile }
+    }
+
+    /**
+     * List of profiles that are currently unlocked, including [additionalProfiles]
+     */
+    val unlockedProfiles: Flow<List<Profile>> = combine(profileMap, additionalProfileList) { profiles, additional ->
+        (profiles.values + additional).mapNotNull {
             if (it.state.locked) null else it.profile
         }
     }
@@ -110,8 +121,10 @@ class ProfileManager(
     private suspend fun refreshProfiles() {
         mutex.withLock {
             val profiles = mutableMapOf<Profile.Type, ProfileWithState>()
+            val additionalProfiles = mutableListOf<ProfileWithState>()
 
-            for (userHandle in launcherApps.profiles) {
+            // The current user first, so that it is the main personal profile
+            for (userHandle in launcherApps.profiles.sortedByDescending { it == Process.myUserHandle() }) {
                 val serial = userManager.getSerialNumberForUser(userHandle)
                 if (android.os.Build.MANUFACTURER == "samsung" && serial == 150L) continue // Hide Samsung Secure Folder
 
@@ -126,9 +139,20 @@ class ProfileManager(
                         ),
                         getProfileStateByUserHandle(userHandle),
                     )
+                } else if (type == Profile.Type.Personal) {
+                    // e.g. a clone profile ("dual apps")
+                    additionalProfiles += ProfileWithState(
+                        Profile(
+                            type = type,
+                            userHandle = userHandle,
+                            serial = serial,
+                        ),
+                        getProfileStateByUserHandle(userHandle),
+                    )
                 }
             }
             profileMap.value = profiles
+            additionalProfileList.value = additionalProfiles
         }
     }
 

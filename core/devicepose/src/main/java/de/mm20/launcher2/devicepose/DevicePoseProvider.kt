@@ -8,6 +8,7 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.location.Location
 import android.location.LocationManager
+import android.os.Build
 import android.os.Looper
 import android.util.Log
 import androidx.core.content.getSystemService
@@ -19,7 +20,6 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.channelFlow
-import de.mm20.launcher2.ktx.foldOrNull
 import de.mm20.launcher2.ktx.isBetterThan
 import kotlinx.coroutines.flow.combine
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -70,9 +70,20 @@ class DevicePoseProvider internal constructor(
                 val hasCoarseAccess =
                     context.checkPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
 
-                val previousLocation =
-                    hasFineAccess.foldOrNull { getLastKnownLocation(LocationManager.GPS_PROVIDER) } ?:
-                    hasCoarseAccess.foldOrNull { getLastKnownLocation(LocationManager.NETWORK_PROVIDER) }
+                // On some devices, only the fused or passive provider has a last known location.
+                // Without one, callers (e.g. location search) wait for a live fix that may never
+                // come, e.g. indoors.
+                val providers = buildList {
+                    if (hasFineAccess) add(LocationManager.GPS_PROVIDER)
+                    if (hasCoarseAccess) add(LocationManager.NETWORK_PROVIDER)
+                    if ((hasFineAccess || hasCoarseAccess) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        add(LocationManager.FUSED_PROVIDER)
+                    }
+                    if (hasFineAccess) add(LocationManager.PASSIVE_PROVIDER)
+                }
+                val previousLocation = providers
+                    .mapNotNull { runCatching { getLastKnownLocation(it) }.getOrNull() }
+                    .reduceOrNull { best, location -> if (location.isBetterThan(best)) location else best }
 
                 if (previousLocation != null) {
                     updateLocation(previousLocation)

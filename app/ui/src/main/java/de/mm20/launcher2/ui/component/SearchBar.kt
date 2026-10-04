@@ -25,7 +25,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -39,8 +41,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import de.mm20.launcher2.preferences.SearchBarStyle
 import de.mm20.launcher2.ui.R
@@ -165,6 +169,13 @@ fun SearchBar(
                                 color = contentColor
                             )
                         }
+                        // When the text is changed from outside (e.g. typed with a hardware keyboard
+                        // before the search bar had focus), put the cursor at the end
+                        var textFieldValue by remember {
+                            mutableStateOf(TextFieldValue(value, TextRange(value.length)))
+                        }
+                        val currentValue = if (textFieldValue.text == value) textFieldValue
+                        else TextFieldValue(value, TextRange(value.length))
                         BasicTextField(
                             modifier = Modifier
                                 .onFocusChanged {
@@ -179,8 +190,11 @@ fun SearchBar(
                                 color = contentColor
                             ),
                             singleLine = true,
-                            value = value,
-                            onValueChange = onValueChange,
+                            value = currentValue,
+                            onValueChange = {
+                                textFieldValue = it
+                                if (it.text != value) onValueChange(it.text)
+                            },
                             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                             keyboardOptions = KeyboardOptions(
                                 imeAction = ImeAction.Go,

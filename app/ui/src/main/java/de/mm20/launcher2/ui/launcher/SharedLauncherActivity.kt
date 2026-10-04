@@ -6,6 +6,8 @@ import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.Bundle
+import android.view.KeyCharacterMap
+import android.view.KeyEvent
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -81,6 +83,7 @@ import de.mm20.launcher2.ui.locals.LocalWindowSize
 import de.mm20.launcher2.ui.overlays.OverlayHost
 import de.mm20.launcher2.ui.theme.LauncherTheme
 import de.mm20.launcher2.ui.theme.wallpaperColorsAsState
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 
 abstract class SharedLauncherActivity(
@@ -267,6 +270,8 @@ abstract class SharedLauncherActivity(
                                         searchBarPosition = if (bottomSearchBar) SearchBarPosition.Bottom else SearchBarPosition.Top,
                                         finishOnBack = true,
                                         backgroundColor = backgroundColor,
+                                        showStatusBar = !hideStatus,
+                                        showNavBar = !hideNav,
                                     )
                                 } else {
                                     val searchComponent = SearchComponent(
@@ -479,6 +484,23 @@ abstract class SharedLauncherActivity(
     override fun onPause() {
         super.onPause()
         isNewIntent = false
+    }
+
+    /**
+     * Text typed with a hardware keyboard while nothing had focus (e.g. on the home screen), which
+     * starts a search.
+     */
+    internal val typedText = MutableSharedFlow<String>(extraBufferCapacity = 16)
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (event.isPrintingKey && !event.isCtrlPressed && !event.isAltPressed && !event.isMetaPressed) {
+            val char = event.unicodeChar
+            if (char > 0 && (char and KeyCharacterMap.COMBINING_ACCENT) == 0 && !Character.isISOControl(char)) {
+                typedText.tryEmit(String(Character.toChars(char)))
+                return true
+            }
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

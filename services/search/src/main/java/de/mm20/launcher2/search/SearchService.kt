@@ -272,8 +272,15 @@ internal class SearchServiceImpl(
     }
 
     override fun getAllApps(): Flow<AllAppsResults> {
-        return profileManager.profiles.flatMapLatest { profiles ->
+        return combine(
+            profileManager.profiles,
+            profileManager.additionalProfiles,
+        ) { profiles, additionalProfiles -> profiles to additionalProfiles }.flatMapLatest { (profiles, additionalProfiles) ->
             val standardProfile = profiles.find { it.type == Profile.Type.Personal }
+            // e.g. clone profiles ("dual apps")
+            val additionalPersonalUsers = additionalProfiles
+                .filter { it.type == Profile.Type.Personal }
+                .map { it.userHandle }
             val workProfile = profiles.find { it.type == Profile.Type.Work }
             val privateSpace = profiles.find { it.type == Profile.Type.Private }
             appRepository.search("", false)
@@ -287,6 +294,8 @@ internal class SearchServiceImpl(
                             standardProfile != null && app.user == standardProfile.userHandle -> standardProfileApps.add(
                                 app
                             )
+
+                            app.user in additionalPersonalUsers -> standardProfileApps.add(app)
 
                             workProfile != null && app.user == workProfile.userHandle -> workProfileApps.add(
                                 app

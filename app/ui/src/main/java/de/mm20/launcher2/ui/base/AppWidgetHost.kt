@@ -25,7 +25,13 @@ fun ProvideAppWidgetHost(
     val widgetHost = remember { AppWidgetHost(context.applicationContext, 44203) }
     LaunchedEffect(null) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            widgetHost.startListening()
+            try {
+                widgetHost.startListening()
+            } catch (e: RuntimeException) {
+                // "system server dead?", e.g. if the widgets' pending updates are too large to be
+                // transferred. Widgets won't update, but the launcher doesn't crash on every start.
+                CrashReporter.logException(e)
+            }
             try {
                 awaitCancellation()
             } finally {

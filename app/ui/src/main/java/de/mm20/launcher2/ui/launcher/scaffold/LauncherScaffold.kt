@@ -107,6 +107,7 @@ import de.mm20.launcher2.ui.launcher.scaffold.animation.PushScaffoldAnimationCon
 import de.mm20.launcher2.ui.launcher.scaffold.animation.RubberbandScaffoldAnimationController
 import de.mm20.launcher2.ui.launcher.scaffold.animation.ScaffoldAnimationController
 import de.mm20.launcher2.ui.launcher.scaffold.animation.ZoomInScaffoldAnimationController
+import de.mm20.launcher2.ui.launcher.scaffold.components.ClockAndWidgetsHomeComponent
 import de.mm20.launcher2.ui.launcher.scaffold.components.ScaffoldComponent
 import de.mm20.launcher2.ui.launcher.scaffold.components.SearchComponent
 import de.mm20.launcher2.ui.launcher.search.SearchVM
@@ -1122,6 +1123,17 @@ internal fun LauncherScaffold(
             }
         }
 
+        // Typing with a hardware keyboard while nothing has focus starts a search with the text
+        LaunchedEffect(state) {
+            val activity = (activity as? SharedLauncherActivity) ?: return@LaunchedEffect
+            activity.typedText.collect { text ->
+                if (state.isLocked) return@collect
+                searchVM.search(searchVM.searchQuery.value + text)
+                state.isSearchBarFocused = true
+                state.onSearchBarTap()
+            }
+        }
+
 
         LaunchedEffect(
             config, activity, view,
@@ -1147,7 +1159,13 @@ internal fun LauncherScaffold(
 
         if (config.wallpaperBlurRadius > 0.dp) {
             val maxRadius = config.wallpaperBlurRadius.toPixels()
-            WallpaperBlur { (maxRadius * state.currentProgress).toInt() }
+            WallpaperBlur {
+                // Also blur while the widgets on the home screen are scrolled, like before the
+                // layout rewrite
+                val homeScrolled = config.homeComponent is ClockAndWidgetsHomeComponent &&
+                        config.homeComponent.isAtTop.value == false
+                (maxRadius * if (homeScrolled) 1f else state.currentProgress).toInt()
+            }
         }
 
         if (!config.finishOnBack || state.currentProgress > 0) {

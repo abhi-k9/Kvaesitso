@@ -1,5 +1,6 @@
 package de.mm20.launcher2.ui.launcher.widgets.external
 
+import android.appwidget.AppWidgetHostView
 import android.appwidget.AppWidgetProviderInfo
 import android.content.Context
 import android.content.ContextWrapper
@@ -8,10 +9,12 @@ import android.os.Build
 import android.os.Bundle
 import android.util.SizeF
 import android.util.SparseIntArray
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ListView
 import android.widget.ScrollView
+import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,7 +28,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.iterator
 import androidx.core.view.setPadding
+import de.mm20.launcher2.crashreporter.CrashReporter
 import de.mm20.launcher2.ktx.isAtLeastApiLevel
+import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.base.LocalAppWidgetHost
 import de.mm20.launcher2.ui.ktx.toPixels
 import palettes.TonalPalette
@@ -43,6 +48,7 @@ fun AppWidgetHost(
     val padding = if (borderless) 0 else 8.dp.toPixels().roundToInt()
 
     val colorScheme = MaterialTheme.colorScheme
+    val errorTextColor = colorScheme.onSurfaceVariant.toArgb()
     val appWidgetHost = LocalAppWidgetHost.current
 
     BoxWithConstraints(
@@ -51,19 +57,31 @@ fun AppWidgetHost(
         val maxWidth = maxWidth
         val maxHeight = maxHeight
         key(widgetId) {
-            AndroidView(
+            AndroidView<View>(
                 modifier = modifier
                     .fillMaxSize(),
                 factory = {
-                    val view = appWidgetHost.createView(
-                        WidgetContext(it.applicationContext),
-                        widgetId,
-                        widgetInfo
-                    )
+                    val view = try {
+                        appWidgetHost.createView(
+                            WidgetContext(it.applicationContext),
+                            widgetId,
+                            widgetInfo
+                        )
+                    } catch (e: RuntimeException) {
+                        // "system server dead?", e.g. if the widget's views are too large to be
+                        // transferred. Without this, the launcher crashes every time it starts.
+                        CrashReporter.logException(e)
+                        return@AndroidView TextView(it).apply {
+                            text = it.getString(R.string.app_widget_loading_failed)
+                            gravity = Gravity.CENTER
+                            setTextColor(errorTextColor)
+                        }
+                    }
                     enableNestedScroll(view)
                     return@AndroidView view
                 },
-                update = {
+                update = update@{
+                    if (it !is AppWidgetHostView) return@update
                     if (isAtLeastApiLevel(29)) {
                         it.setOnLightBackground(onLightBackground)
                     }

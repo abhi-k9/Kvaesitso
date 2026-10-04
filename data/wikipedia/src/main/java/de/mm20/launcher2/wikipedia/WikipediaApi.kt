@@ -40,6 +40,8 @@ data class WikipediaSearchResultQueryPageThumnail(
     val source: String
 )
 
+private val LanguageVariant = Regex("[a-z]{2,3}(-[a-z0-9]{2,8})+")
+
 internal class WikipediaApi(
     private val context: Context,
     var baseUrl: String?,
@@ -70,8 +72,14 @@ internal class WikipediaApi(
         return httpClient.get {
             url {
                 takeFrom(baseUrl)
-                if (pathSegments.isEmpty()) {
+                val segments = pathSegments.filter { it.isNotEmpty() }
+                if (segments.isEmpty()) {
                     path("w", "api.php")
+                } else if (segments.size == 1 && LanguageVariant.matches(segments[0])) {
+                    // A language variant, e.g. https://zh.wikipedia.org/zh-tw/ (the default for
+                    // Traditional Chinese): the API isn't below that path
+                    path("w", "api.php")
+                    parameter("variant", segments[0])
                 }
                 parameter("action", "query")
                 parameter("generator", "search")
