@@ -1,5 +1,6 @@
 package de.mm20.launcher2.ui.launcher.widgets.clock.parts
 
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -123,6 +124,8 @@ class BatteryPartProvider(
         }
     }
 
+    // The English configuration is only used to read the default string
+    @SuppressLint("AppBundleLocaleChanges")
     @Composable
     private fun chargingText(fullIn: Long?): String {
         fullIn ?: return stringResource(R.string.battery_part_charging)
