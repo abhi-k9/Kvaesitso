@@ -26,6 +26,7 @@ import de.mm20.launcher2.icons.TintedIconLayer
 import de.mm20.launcher2.icons.TransparentLayer
 import de.mm20.launcher2.ktx.getSerialNumber
 import de.mm20.launcher2.ktx.isAtLeastApiLevel
+import de.mm20.launcher2.ktx.tryStartActivity
 import de.mm20.launcher2.search.Application
 import de.mm20.launcher2.search.ResultScore
 import de.mm20.launcher2.search.SearchableSerializer
@@ -193,7 +194,7 @@ internal data class LauncherApp(
     override fun uninstall(context: Context) {
         val intent = Intent(Intent.ACTION_DELETE)
         intent.data = Uri.parse("package:${componentName.packageName}")
-        context.startActivity(intent)
+        context.tryStartActivity(intent)
     }
 
     override fun openAppDetails(context: Context) {

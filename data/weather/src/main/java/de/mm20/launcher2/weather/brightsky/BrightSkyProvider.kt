@@ -9,6 +9,7 @@ import de.mm20.launcher2.preferences.weather.WeatherLocation
 import de.mm20.launcher2.weather.Forecast
 import de.mm20.launcher2.weather.GeocoderWeatherProvider
 import de.mm20.launcher2.weather.R
+import java.text.ParsePosition
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -62,7 +63,9 @@ internal class BrightSkyProvider(
         for (weather in result.weather) {
             forecasts.add(
                 Forecast(
-                    timestamp = format.parse(weather.timestamp)?.time ?: continue,
+                    // parse(String) would throw instead of returning null
+                    timestamp = weather.timestamp?.let { format.parse(it, ParsePosition(0)) }?.time
+                        ?: continue,
                     clouds = weather.cloudCover?.roundToInt() ?: -1,
                     condition = getCondition(weather.icon ?: continue) ?: continue,
                     humidity = weather.relativeHumidity ?: -1.0,

@@ -22,8 +22,11 @@ class CreateBackupSheetVM : ViewModel(), KoinComponent {
     fun createBackup(uri: Uri) {
         viewModelScope.launch {
             state.value = CreateBackupState.BackingUp
-            backupManager.backup(uri)
-            state.value = CreateBackupState.BackedUp
+            state.value = if (backupManager.backup(uri)) {
+                CreateBackupState.BackedUp
+            } else {
+                CreateBackupState.Failed
+            }
         }
     }
 }
@@ -32,4 +35,5 @@ enum class CreateBackupState {
     Ready,
     BackingUp,
     BackedUp,
+    Failed,
 }

@@ -77,6 +77,14 @@ fun CreateBackupSheet(
                         id = R.string.backup_complete
                     )
                 )
+            } else if (it == CreateBackupState.Failed) {
+                LargeMessage(
+                    modifier = Modifier.aspectRatio(1f),
+                    icon = R.drawable.error_48px,
+                    text = stringResource(
+                        id = R.string.backup_failed
+                    )
+                )
             }
         }
     }

@@ -41,8 +41,12 @@ class RestoreBackupSheetVM : ViewModel(), KoinComponent {
 
         viewModelScope.launch {
             state.value = RestoreBackupState.Restoring
-            backupManager.restore(uri)
-            state.value = RestoreBackupState.Restored
+            state.value = if (backupManager.restore(uri)) {
+                RestoreBackupState.Restored
+            } else {
+                // e.g. a corrupt archive
+                RestoreBackupState.InvalidFile
+            }
         }
     }
 }

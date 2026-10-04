@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import de.mm20.launcher2.crashreporter.CrashReporter
+import de.mm20.launcher2.ktx.readTextOrNull
 import de.mm20.launcher2.preferences.weather.WeatherSettings
 import de.mm20.launcher2.serialization.Json
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -42,10 +43,16 @@ class BreezyWeatherReceiver : BroadcastReceiver(), KoinComponent {
 
 
                 val json = try {
+                    // Don't decompress more than real weather data can be: a small, highly
+                    // compressed payload could otherwise fill the memory.
                     val inputStream = GZIPInputStream(gz.inputStream())
-                    inputStream.bufferedReader().use { it.readText() }
+                    inputStream.bufferedReader().use { it.readTextOrNull(MaxWeatherDataLength) }
                 } catch (e: IOException) {
                     CrashReporter.logException(e)
+                    return@launch
+                }
+                if (json == null) {
+                    Log.e("BreezyWeatherReceiver", "Weather data is too large")
                     return@launch
                 }
 
@@ -77,3 +84,5 @@ class BreezyWeatherReceiver : BroadcastReceiver(), KoinComponent {
         }
     }
 }
+
+private const val MaxWeatherDataLength = 5_000_000

@@ -2,6 +2,7 @@ package de.mm20.launcher2.search
 
 import android.util.Log
 import de.mm20.launcher2.calculator.CalculatorRepository
+import de.mm20.launcher2.crashreporter.CrashReporter
 import de.mm20.launcher2.data.customattrs.CustomAttributesRepository
 import de.mm20.launcher2.data.customattrs.utils.withCustomLabels
 import de.mm20.launcher2.profiles.Profile
@@ -11,6 +12,7 @@ import de.mm20.launcher2.search.data.UnitConverter
 import de.mm20.launcher2.searchactions.SearchActionService
 import de.mm20.launcher2.searchactions.actions.SearchAction
 import de.mm20.launcher2.unitconverter.UnitConverterRepository
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.update
@@ -51,6 +54,16 @@ internal class SearchServiceImpl(
     private val customAttributesRepository: CustomAttributesRepository,
     private val profileManager: ProfileManager,
 ) : SearchService {
+
+    /**
+     * A failing search provider (e.g. because of a bug in another app's content provider) must
+     * not crash the launcher, its results are just missing.
+     */
+    private val providerErrorHandler = CoroutineExceptionHandler { _, e ->
+        // Errors (e.g. running out of memory) are still fatal
+        if (e !is Exception) throw e
+        CrashReporter.logException(e)
+    }
 
     override fun search(
         query: String,
@@ -269,7 +282,8 @@ internal class SearchServiceImpl(
             }
             emitAll(results)
         }
-    }
+        // The coroutines launched above inherit the handler
+    }.flowOn(providerErrorHandler)
 
     override fun getAllApps(): Flow<AllAppsResults> {
         return combine(

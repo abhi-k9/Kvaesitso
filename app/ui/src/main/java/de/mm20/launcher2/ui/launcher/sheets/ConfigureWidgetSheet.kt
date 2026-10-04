@@ -853,6 +853,9 @@ fun ColumnScope.ConfigureAppWidget(
                         )
                     } catch (e: ActivityNotFoundException) {
                         Log.e("ConfigureWidgetSheet", "Could not open widget configuration", e)
+                    } catch (e: SecurityException) {
+                        // The AOSP launcher catches this as well
+                        Log.e("ConfigureWidgetSheet", "Could not open widget configuration", e)
                     }
                 }) {
                 Text(

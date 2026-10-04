@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.mm20.launcher2.crashreporter.CrashReporter
+import de.mm20.launcher2.ktx.readTextOrNull
 import de.mm20.launcher2.preferences.ui.UiSettings
 import de.mm20.launcher2.themes.ThemeBundle
 import de.mm20.launcher2.themes.ThemeRepository
@@ -55,8 +56,10 @@ class ImportThemeSettingsScreenVM : ViewModel(), KoinComponent {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 context.contentResolver.openInputStream(fromUri)?.reader()?.use {
-                    val text = it.readText()
-                    val theme = ThemeBundle.fromJson(text)
+                    // Theme files are small. Other apps can start this with any file, don't read
+                    // a huge one into memory.
+                    val text = it.readTextOrNull(MaxThemeFileLength)
+                    val theme = text?.let { json -> ThemeBundle.fromJson(json) }
                     if (theme != null) {
                         val colors =
                             theme.colors?.id?.let { themeRepository.colors.get(it) }?.first()
@@ -146,3 +149,5 @@ class ImportThemeSettingsScreenVM : ViewModel(), KoinComponent {
         }
     }
 }
+
+private const val MaxThemeFileLength = 1_000_000

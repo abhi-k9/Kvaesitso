@@ -5,6 +5,7 @@ import android.app.ActivityOptions
 import android.appwidget.AppWidgetHost
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -87,6 +88,15 @@ class BindAndConfigureAppWidgetActivity : Activity() {
         appWidgetHost = AppWidgetHost(this, 44203)
         appWidgetManager = AppWidgetManager.getInstance(this)
 
+        if (savedInstanceState != null) {
+            // Recreated (e.g. after a configuration change) while the bind or configure activity
+            // was open. Its result is still delivered to onActivityResult, don't start over with
+            // another widget id.
+            appWidgetId = savedInstanceState.getInt(StateAppWidgetId, AppWidgetManager.INVALID_APPWIDGET_ID)
+                .takeIf { it != AppWidgetManager.INVALID_APPWIDGET_ID }
+            return
+        }
+
         val appWidgetProviderInfo = intent.getParcelableExtra<AppWidgetProviderInfo>(
             ExtraAppWidgetProviderInfo
         )
@@ -127,18 +137,46 @@ class BindAndConfigureAppWidgetActivity : Activity() {
         }
     }
 
-    private fun configureAppWidget(widget: AppWidgetProviderInfo, appWidgetId: Int) {
+    private fun configureAppWidget(widget: AppWidgetProviderInfo?, appWidgetId: Int) {
+        if (widget == null) {
+            // e.g. the widget's app has been uninstalled in the meantime
+            Log.e("MM20", "No app widget info for widget $appWidgetId, canceling")
+            appWidgetHost.deleteAppWidgetId(appWidgetId)
+            cancel()
+            return
+        }
         if (widget.configure != null) {
-            appWidgetHost.startAppWidgetConfigureActivityForResult(
-                this,
-                appWidgetId,
-                0,
-                RequestCodeConfigure,
-                getConfigurationOptions(),
-            )
+            try {
+                appWidgetHost.startAppWidgetConfigureActivityForResult(
+                    this,
+                    appWidgetId,
+                    0,
+                    RequestCodeConfigure,
+                    getConfigurationOptions(),
+                )
+            } catch (e: ActivityNotFoundException) {
+                onConfigureActivityUnavailable(appWidgetId, e)
+            } catch (e: SecurityException) {
+                // The AOSP launcher catches this as well
+                onConfigureActivityUnavailable(appWidgetId, e)
+            }
         } else {
             finishWithResult(appWidgetId)
         }
+    }
+
+    /**
+     * The configuration activity of some widgets can't be started (e.g. because it's disabled).
+     * Add the widget without configuring it instead of crashing, it can still be removed.
+     */
+    private fun onConfigureActivityUnavailable(appWidgetId: Int, e: Exception) {
+        Log.w("MM20", "Could not start the widget configuration activity", e)
+        finishWithResult(appWidgetId)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        appWidgetId?.let { outState.putInt(StateAppWidgetId, it) }
     }
 
     private fun getConfigurationOptions(): Bundle? {
@@ -215,6 +253,7 @@ class BindAndConfigureAppWidgetActivity : Activity() {
         const val RequestCodeConfigure = 1
         const val RequestCodeBind = 2
         const val ExtraAppWidgetProviderInfo = "extra_app_widget_provider_info"
+        private const val StateAppWidgetId = "app_widget_id"
     }
 }
 

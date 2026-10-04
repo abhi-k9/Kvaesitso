@@ -21,11 +21,11 @@ class BackupManager(
 
     /**
      * Create a backup
-     * @return Uri to the created backup archive
+     * @return false if the backup couldn't be written
      */
     suspend fun backup(
         uri: Uri
-    ) {
+    ): Boolean {
 
         val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
 
@@ -36,45 +36,72 @@ class BackupManager(
             format = BackupFormat,
         )
 
-        withContext(Dispatchers.IO) {
-            val outputStream = context.contentResolver.openOutputStream(uri) ?: return@withContext null
-            val backupDir = File(context.cacheDir, "backup")
-            if (backupDir.exists()) {
-                backupDir.deleteRecursively()
-            }
-            backupDir.mkdirs()
+        return withContext(Dispatchers.IO) {
+            // Writing can fail, e.g. if the storage is full or the target app (e.g. a cloud
+            // storage provider) throws.
+            try {
+                val outputStream = context.contentResolver.openOutputStream(uri)
+                    ?: return@withContext false
+                outputStream.use {
+                    val backupDir = File(context.cacheDir, "backup")
+                    if (backupDir.exists()) {
+                        backupDir.deleteRecursively()
+                    }
+                    backupDir.mkdirs()
 
-            val metaFile = File(backupDir, "meta")
-            meta.writeToFile(metaFile)
+                    val metaFile = File(backupDir, "meta")
+                    meta.writeToFile(metaFile)
 
-            for (component in components) {
-                try {
-                    component.backup(backupDir)
-                } catch (e: Exception) {
-                    if (e is CancellationException) throw e
-                    Log.e("BackupManager", "Failed to back up ${component::class.java.name}", e)
+                    for (component in components) {
+                        try {
+                            component.backup(backupDir)
+                        } catch (e: Exception) {
+                            if (e is CancellationException) throw e
+                            Log.e("BackupManager", "Failed to back up ${component::class.java.name}", e)
+                        }
+                    }
+
+                    createArchive(backupDir, it)
                 }
+                true
+            } catch (e: IOException) {
+                Log.e("BackupManager", "Failed to create backup", e)
+                false
+            } catch (e: SecurityException) {
+                Log.e("BackupManager", "Failed to create backup", e)
+                false
             }
-
-            createArchive(backupDir, outputStream)
-            outputStream.close()
-
         }
     }
 
+    /**
+     * Restore a backup
+     * @return false if the backup couldn't be read (e.g. because it is corrupt); nothing has been
+     * restored then
+     */
     suspend fun restore(
         uri: Uri,
-    ) {
+    ): Boolean {
+        var success = false
         val job = scope.launch {
             withContext(Dispatchers.IO) {
-                val inputStream = context.contentResolver.openInputStream(uri) ?: return@withContext
                 val restoreDir = File(context.cacheDir, "restore")
                 if (restoreDir.exists()) {
                     restoreDir.deleteRecursively()
                 }
                 restoreDir.mkdirs()
-                extractArchive(inputStream, restoreDir)
-                inputStream.close()
+                try {
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                        ?: return@withContext
+                    inputStream.use { extractArchive(it, restoreDir) }
+                } catch (e: IOException) {
+                    // e.g. a truncated archive, whose meta entry could still be read
+                    Log.e("BackupManager", "Failed to read backup", e)
+                    return@withContext
+                } catch (e: SecurityException) {
+                    Log.e("BackupManager", "Failed to read backup", e)
+                    return@withContext
+                }
 
                 for (component in components) {
                     // Don't let a single broken component abort the restore (or crash the app)
@@ -85,9 +112,11 @@ class BackupManager(
                         Log.e("BackupManager", "Failed to restore ${component::class.java.name}", e)
                     }
                 }
+                success = true
             }
         }
         job.join()
+        return success
     }
 
     suspend fun readBackupMeta(uri: Uri): BackupMetadata? {

@@ -19,6 +19,7 @@ import kotlinx.serialization.SerializationException
 import org.shredzone.commons.suncalc.SunTimes
 import java.io.IOException
 import java.security.MessageDigest
+import java.text.ParsePosition
 import java.text.SimpleDateFormat
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -76,14 +77,16 @@ internal class MetNoProvider(
 
             val properties = data.properties
             val meta = properties.meta
-            val updatedAt = dateFormat.parse(meta.updatedAt)?.time
+            // parse(String) would throw instead of returning null, so one malformed date would
+            // fail the whole update
+            val updatedAt = dateFormat.parse(meta.updatedAt, ParsePosition(0))?.time
                 ?: System.currentTimeMillis()
             val timeseries = properties.timeseries
 
             for (i in 0 until timeseries.size) {
                 val fc = timeseries[i]
                 val data = fc.data
-                val timestamp = dateFormat.parse(fc.time)?.time ?: continue
+                val timestamp = dateFormat.parse(fc.time, ParsePosition(0))?.time ?: continue
                 val details = data.instant.details
                 var hours = 0
                 val nextHours = data.next1Hours?.also { hours = 1 }
