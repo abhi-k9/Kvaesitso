@@ -2,9 +2,11 @@ package de.mm20.launcher2.contacts.providers
 
 import android.content.ContentUris
 import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.provider.ContactsContract
 import android.telephony.PhoneNumberUtils
+import android.util.Log
 import androidx.core.database.getLongOrNull
 import androidx.core.database.getStringOrNull
 import de.mm20.launcher2.ktx.distinctByEquality
@@ -44,6 +46,7 @@ internal class AndroidContactProvider(
                 contactMap.getOrPut(cursor.getLong(0)) { mutableSetOf() }.add(cursor.getLong(1))
             }
             cursor.close()
+            addFilterMatches(query, contactMap)
             val results = mutableListOf<Contact>()
             for ((id, rawIds) in contactMap) {
                 getWithRawIds(id, rawIds)?.let { results.add(it) }
@@ -52,6 +55,42 @@ internal class AndroidContactProvider(
             results
         }
         return results
+    }
+
+    /**
+     * LIKE doesn't ignore accents ("abcu" doesn't find "ABCÜ"). Also add the contacts found by
+     * Android's contact filter, which does, like the system's contact search.
+     */
+    private fun addFilterMatches(query: String, contactMap: MutableMap<Long, MutableSet<Long>>) {
+        try {
+            val filterUri = Uri.withAppendedPath(
+                ContactsContract.Contacts.CONTENT_FILTER_URI,
+                Uri.encode(query)
+            )
+            val contactIds = mutableListOf<Long>()
+            context.contentResolver.query(
+                filterUri, arrayOf(ContactsContract.Contacts._ID), null, null, null
+            )?.use {
+                while (it.moveToNext()) {
+                    val id = it.getLong(0)
+                    if (id !in contactMap) contactIds.add(id)
+                }
+            }
+            if (contactIds.isEmpty()) return
+            context.contentResolver.query(
+                ContactsContract.RawContacts.CONTENT_URI,
+                arrayOf(ContactsContract.RawContacts.CONTACT_ID, ContactsContract.RawContacts._ID),
+                "${ContactsContract.RawContacts.CONTACT_ID} IN (${contactIds.take(100).joinToString()})",
+                null,
+                null
+            )?.use {
+                while (it.moveToNext()) {
+                    contactMap.getOrPut(it.getLong(0)) { mutableSetOf() }.add(it.getLong(1))
+                }
+            }
+        } catch (e: Exception) {
+            Log.w("AndroidContactProvider", "Contact filter query failed", e)
+        }
     }
 
     /**

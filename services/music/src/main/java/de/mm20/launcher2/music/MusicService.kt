@@ -209,6 +209,12 @@ internal class MusicServiceImpl(
     override val position: SharedFlow<Long?> = channelFlow {
         currentState.collectLatest { state ->
             if (state == null || state.state != android.media.session.PlaybackState.STATE_PLAYING) {
+                // Use the position reported by the paused player if it has one: the last saved
+                // position may belong to another track (e.g. if the player has switched tracks
+                // while paused) and be past its end.
+                if (state != null && state.position >= 0 && state.lastPositionUpdateTime != 0L) {
+                    lastPosition = state.position
+                }
                 send(lastPosition)
                 return@collectLatest
             }

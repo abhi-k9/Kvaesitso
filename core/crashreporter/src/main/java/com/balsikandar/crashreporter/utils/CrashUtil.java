@@ -160,7 +160,10 @@ public class CrashUtil {
     }
 
     public static String getDefaultPath() {
-        String defaultPath = CrashReporter.getContext().getExternalFilesDir(null).getAbsolutePath()
+        // getExternalFilesDir() returns null if the external storage isn't available
+        File baseDir = CrashReporter.getContext().getExternalFilesDir(null);
+        if (baseDir == null) baseDir = CrashReporter.getContext().getFilesDir();
+        String defaultPath = baseDir.getAbsolutePath()
                 + File.separator + Constants.CRASH_REPORT_DIR;
 
         File file = new File(defaultPath);

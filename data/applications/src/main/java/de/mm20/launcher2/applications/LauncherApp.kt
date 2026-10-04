@@ -160,6 +160,11 @@ internal data class LauncherApp(
         } catch (e: ActivityNotFoundException) {
             Log.e("MM20", "Could not launch app", e)
             return false
+        } catch (e: IllegalStateException) {
+            // "Cannot start activity for disabled component", e.g. if the app has just been
+            // uninstalled or disabled
+            Log.e("MM20", "Could not launch app", e)
+            return false
         }
         return true
     }

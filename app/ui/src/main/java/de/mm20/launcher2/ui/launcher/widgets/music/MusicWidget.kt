@@ -159,7 +159,16 @@ fun MusicWidget(widget: MusicWidget) {
                     }
                     Column {
                         val dur = duration
-                        var pos by remember(position) { mutableStateOf(position) }
+                        // The position can be past the end of the track, e.g. while playing, it's
+                        // extrapolated until the player reports the next track
+                        val currentPosition = position
+                        var pos by remember(currentPosition, dur) {
+                            mutableStateOf(
+                                if (currentPosition != null && dur != null && dur > 0) {
+                                    currentPosition.coerceIn(0L, dur)
+                                } else currentPosition
+                            )
+                        }
 
                         val interactionSource = remember { MutableInteractionSource() }
                         val isDragged by interactionSource.collectIsDraggedAsState()

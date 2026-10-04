@@ -33,7 +33,6 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 import java.io.IOException
 import javax.crypto.AEADBadTagException
 
@@ -72,7 +71,10 @@ class NextcloudApiHelper(val context: Context) {
             )
         } catch (e: Exception) {
             if (!catchErrors) throw e
-            File(context.filesDir, "../shared_prefs/nextcloud.xml").delete()
+            // The preferences can't be read, e.g. after Android restored them on another device
+            // without their key. Deleting only the file would keep them in Android's in-memory
+            // cache, and the retry would fail the same way.
+            context.deleteSharedPreferences("nextcloud")
             return createPreferences(false)
         }
     }
