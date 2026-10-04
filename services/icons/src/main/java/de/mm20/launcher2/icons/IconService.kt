@@ -66,6 +66,8 @@ class IconService(
 
     private val appReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
+            // The app's icon may have changed, e.g. after an update or a reinstall
+            intent?.data?.schemeSpecificPart?.let { evictPackage(it) }
             requestIconPackListUpdate()
         }
     }
@@ -250,6 +252,17 @@ class IconService(
         return null
     }
 
+
+    /**
+     * Removes the cached icons of a package's items. Icons are cached by key, which doesn't change
+     * when the app is updated, so otherwise the old icon would be shown until the launcher
+     * restarts.
+     */
+    private fun evictPackage(packageName: String) {
+        for (key in cache.snapshot().keys) {
+            if (key.contains(packageName)) cache.remove(key)
+        }
+    }
 
     fun requestIconPackListUpdate() {
         scope.launch {

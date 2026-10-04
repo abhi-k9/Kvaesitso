@@ -165,6 +165,11 @@ internal data class LauncherApp(
             // uninstalled or disabled
             Log.e("MM20", "Could not launch app", e)
             return false
+        } catch (e: NullPointerException) {
+            // Thrown by the system on some devices (e.g. "Attempt to read from field
+            // 'int com.android.server.wm.Task.mTaskId' on a null object reference")
+            Log.e("MM20", "Could not launch app", e)
+            return false
         }
         return true
     }
