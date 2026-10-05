@@ -104,7 +104,7 @@ internal data class LauncherApp(
         try {
             val icon =
                 withContext(Dispatchers.IO) {
-                    launcherActivityInfo.getIcon(0)
+                    getCurrentActivityInfo(context).getIcon(0)
                 } ?: return null
             if (icon is AdaptiveIconDrawable) {
                 if (themed && isAtLeastApiLevel(33) && icon.monochrome != null) {
@@ -142,6 +142,20 @@ internal data class LauncherApp(
         } catch (e: PackageManager.NameNotFoundException) {
             return null
         }
+    }
+
+    /**
+     * This object can outlive an update of the app (e.g. as a favorite). The activity info it was
+     * created with then still points to the old, deleted APK, which only gives the system's
+     * default icon.
+     */
+    private fun getCurrentActivityInfo(context: Context): LauncherActivityInfo {
+        val launcherApps = context.getSystemService<LauncherApps>() ?: return launcherActivityInfo
+        return try {
+            launcherApps.resolveActivity(Intent().setComponent(componentName), user)
+        } catch (e: SecurityException) {
+            null
+        } ?: launcherActivityInfo
     }
 
     override fun launch(context: Context, options: Bundle?): Boolean {

@@ -55,6 +55,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class IconService(
@@ -66,8 +67,15 @@ class IconService(
 
     private val appReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            // The app's icon may have changed, e.g. after an update or a reinstall
-            intent?.data?.schemeSpecificPart?.let { evictPackage(it) }
+            // While an app is updated, it is removed and added again. Keep its icon until then.
+            val replacing = intent != null && intent.action == Intent.ACTION_PACKAGE_REMOVED &&
+                    intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
+            val packageName = intent?.data?.schemeSpecificPart
+            if (packageName != null && !replacing) {
+                // The app's icon may have changed, e.g. after an update or a reinstall
+                evictPackage(packageName)
+                packagesChanged.update { it + 1 }
+            }
             requestIconPackListUpdate()
         }
     }
@@ -75,6 +83,12 @@ class IconService(
     private val scope = CoroutineScope(Job() + Dispatchers.Default)
 
     private val cache = LruCache<String, LauncherIcon>(200)
+
+    /**
+     * Incremented when the icons of a package have been removed from the cache, so that the icons
+     * that are currently shown are reloaded.
+     */
+    private val packagesChanged = MutableStateFlow(0)
 
     private val iconProviders: MutableStateFlow<List<IconProvider>> = MutableStateFlow(listOf())
 
@@ -169,7 +183,7 @@ class IconService(
     }
 
     fun resolveCustomIcon(searchable: SavableSearchable, size: Int, customIcon: CustomIcon?): Flow<LauncherIcon?> {
-        return combine(iconProviders, transformations) { providers, transformations ->
+        return combine(iconProviders, transformations, packagesChanged) { providers, transformations, _ ->
             // Icons can be loaded at different sizes (e.g. bitmap thumbnails), so the size needs
             // to be part of the key
             val cacheKey = "${searchable.key}|$size|${customIcon.hashCode()}|${providers.hashCode()}|${transformations.hashCode()}"
