@@ -54,4 +54,5 @@ dependencies {
     implementation(project(":core:base"))
     implementation(project(":core:preferences"))
 
+    testImplementation(libs.bundles.tests)
 }

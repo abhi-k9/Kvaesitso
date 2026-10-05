@@ -61,4 +61,6 @@ dependencies {
     implementation(project(":core:crashreporter"))
     api(project(":data:customattrs"))
 
+    testImplementation(libs.bundles.tests)
+    testImplementation(libs.robolectric)
 }

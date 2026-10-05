@@ -48,4 +48,7 @@ dependencies {
 
     implementation(project(":core:base"))
     implementation(project(":core:ktx"))
+
+    testImplementation(libs.bundles.tests)
+    testImplementation(libs.robolectric)
 }

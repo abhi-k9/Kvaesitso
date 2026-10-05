@@ -60,4 +60,5 @@ dependencies {
     implementation(project(":core:preferences"))
     implementation(project(":core:ktx"))
 
+    testImplementation(libs.bundles.tests)
 }

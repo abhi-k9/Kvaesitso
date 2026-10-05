@@ -38,6 +38,8 @@ coil = "2.7.0"
 koin = "4.2.2"
 ktor = "3.5.2"
 junit = "4.13.2"
+mockk = "1.14.11"
+robolectric = "4.17"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 
@@ -118,6 +120,9 @@ koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = 
 koin-androidxcompose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 
@@ -129,7 +134,7 @@ smartspacer = { group = "com.kieronquinn.smartspacer", name = "sdk-client", vers
 kotlin = ["kotlin-stdlib", "kotlinx-coroutines-core", "kotlinx-coroutines-android", "kotlinx-collections-immutable", "kotlinx-serialization-json"]
 androidx-lifecycle = ["androidx-lifecycle-viewmodel", "androidx-lifecycle-common", "androidx-lifecycle-runtime", "androidx-lifecycle-viewmodelcompose", "androidx-lifecycle-runtimecompose"]
 ktor = ["ktor-client-core", "ktor-client-okhttp", "ktor-serialization-kotlinx-json", "ktor-client-content-negotiation"]
-tests = ["junit"]
+tests = ["junit", "mockk", "kotlinx-coroutines-test"]
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "android-gradle-plugin" }

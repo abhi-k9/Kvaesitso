@@ -1,7 +1,8 @@
 # Builds a release APK signed with this fork's own key and publishes it as a GitHub release.
+# The unit tests (smoke tests) always run, a release is only published if they pass.
 # With "build only" it just checks that the code builds (e.g. after merging upstream changes),
-# without signing or publishing anything. "Lint" additionally runs Android lint and the unit tests
-# and prints the lint findings.
+# without signing or publishing anything. "Lint" additionally runs Android lint and prints its
+# findings.
 # This file only exists in the fork, so it never conflicts with upstream changes.
 #
 # Required repository secrets (same names as the upstream nightly workflow):
@@ -33,7 +34,7 @@ on:
         type: boolean
         default: false
       lint:
-        description: 'Build only, then run lint and unit tests'
+        description: 'Build only, then run lint'
         required: false
         type: boolean
         default: false
@@ -98,14 +99,9 @@ jobs:
           echo "VERSION_CODE_OVERRIDE=$VERSION_CODE_OVERRIDE" >> "$GITHUB_ENV"
           ./gradlew assembleDefaultRelease
 
+      # Also before a release, so that a failing smoke test stops it
       - name: Run unit tests
-        if: ${{ inputs.lint }}
-        run: |
-          # Only run the unit tests of modules that have any
-          tests="$(find . -path '*/src/test' -type d -not -path '*/build/*' \
-            | sed -E 's#^\./##; s#/src/test$##; s#/#:#g; s#^(.*)$#:\1:testDebugUnitTest#')"
-          # shellcheck disable=SC2086
-          ./gradlew $tests --continue
+        run: .github/scripts/unit-tests.sh
 
       - name: Run lint
         if: ${{ inputs.lint && !cancelled() }}

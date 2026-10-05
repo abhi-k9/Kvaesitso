@@ -38,6 +38,10 @@ android {
         }
     }
     namespace = "de.mm20.launcher2.search"
+    testOptions {
+        // Tests call into Android classes that only exist as stubs outside of a device
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -62,4 +66,6 @@ dependencies {
     implementation(project(":core:profiles"))
     implementation(project(":core:crashreporter"))
     implementation(project(":core:ktx"))
+
+    testImplementation(libs.bundles.tests)
 }
