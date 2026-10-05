@@ -25,7 +25,8 @@ import java.util.zip.ZipOutputStream
 import kotlin.random.Random
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
+// Robolectric's Android 16 environment needs internal JDK classes that Java 21 doesn't export
+@Config(sdk = [35])
 class BackupManagerTest {
 
     @get:Rule
