@@ -1,6 +1,7 @@
 package de.mm20.launcher2.search
 
 import android.content.Context
+import android.content.Intent
 import androidx.core.content.ContextCompat
 import de.mm20.launcher2.base.R
 import de.mm20.launcher2.icons.ColorLayer
@@ -140,6 +141,10 @@ interface File : SavableSearchable {
     fun share(context: Context) {}
     suspend fun delete(context: Context) {}
 
+    /**
+     * An intent that opens the folder of this file in a file manager, or null if there is none
+     */
+    fun getLocationIntent(context: Context): Intent? = null
 }
 
 @Serializable

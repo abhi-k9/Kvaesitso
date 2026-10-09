@@ -809,6 +809,7 @@
     <string name="preference_folders_style_sheet">Bottom sheet</string>
     <!-- Turns a folder back into a regular tag, its apps are shown in the app list again -->
     <string name="folder_ungroup">Ungroup</string>
+    <string name="menu_open_file_location">Open file location</string>
     <string name="menu_add_to_folder">Add to folder</string>
     <string name="menu_new_folder">New folder…</string>
     <string name="new_folder_title">New folder</string>

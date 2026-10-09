@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import de.mm20.launcher2.ktx.tryStartActivity
 import de.mm20.launcher2.search.File
 import de.mm20.launcher2.search.FileMetaType
 import de.mm20.launcher2.ui.R
@@ -190,6 +191,18 @@ fun FileItem(
                                 icon = R.drawable.share_24px,
                                 action = {
                                     file.share(context)
+                                }
+                            ))
+                    }
+
+                    val locationIntent = remember(file) { file.getLocationIntent(context) }
+                    if (locationIntent != null) {
+                        toolbarActions.add(
+                            DefaultToolbarAction(
+                                label = stringResource(R.string.menu_open_file_location),
+                                icon = R.drawable.folder_24px,
+                                action = {
+                                    context.tryStartActivity(locationIntent)
                                 }
                             ))
                     }

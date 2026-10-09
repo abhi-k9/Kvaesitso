@@ -10,6 +10,8 @@ import android.media.MediaMetadataRetriever
 import android.media.ThumbnailUtils
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.text.format.DateUtils
 import android.util.Size
@@ -224,10 +226,35 @@ internal data class LocalFile(
         }
     }
 
+    override fun getLocationIntent(context: Context): Intent? {
+        val folder = JavaIOFile(path).parentFile?.absolutePath ?: return null
+        val primaryStorage = Environment.getExternalStorageDirectory().absolutePath
+        // Document IDs of the system's external storage provider, e.g. "primary:Download"
+        val documentId = when {
+            folder == primaryStorage -> "primary:"
+            folder.startsWith("$primaryStorage/") -> "primary:" + folder.removePrefix("$primaryStorage/")
+            // e.g. /storage/1234-5678/DCIM on an SD card
+            folder.startsWith("/storage/") && !folder.startsWith("/storage/emulated/") -> {
+                val volumePath = folder.removePrefix("/storage/")
+                volumePath.substringBefore('/') + ":" + volumePath.substringAfter('/', "")
+            }
+
+            else -> return null
+        }
+        val intent = Intent(Intent.ACTION_VIEW)
+            .setDataAndType(
+                DocumentsContract.buildDocumentUri(ExternalStorageAuthority, documentId),
+                DocumentsContract.Document.MIME_TYPE_DIR,
+            )
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        return intent.takeIf { it.resolveActivity(context.packageManager) != null }
+    }
 
     companion object {
 
         const val Domain = "file"
+
+        private const val ExternalStorageAuthority = "com.android.externalstorage.documents"
 
         /**
          * Max number of bytes of a file that metadata parsers that read the file into memory
