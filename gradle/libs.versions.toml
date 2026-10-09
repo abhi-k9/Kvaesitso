@@ -122,6 +122,9 @@ koin-androidxcompose = { group = "io.insert-koin", name = "koin-androidx-compose
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+# The Android 15 (SDK 35) framework that Robolectric 4.17 runs the tests on, see
+# DefaultSdkProvider. Update it together with Robolectric.
+robolectric-android-all = { group = "org.robolectric", name = "android-all-instrumented", version = "15-robolectric-13954326-i7" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
