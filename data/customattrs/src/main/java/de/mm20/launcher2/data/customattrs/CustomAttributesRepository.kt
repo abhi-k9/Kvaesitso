@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONException
 import java.io.File
+import java.text.Collator
 
 interface CustomAttributesRepository: Backupable {
 
@@ -135,11 +136,13 @@ internal class CustomAttributesRepositoryImpl(
 
     override fun getAllTags(startsWith: String?): Flow<List<String>> {
         val dao = appDatabase.customAttrsDao()
-        return if (startsWith != null) {
+        val tags = if (startsWith != null) {
             dao.getAllTagsLike("$startsWith%")
         } else {
             dao.getAllTags()
         }
+        // The database sorts capital letters first
+        return tags.map { it.sortedWith(Collator.getInstance().apply { strength = Collator.SECONDARY }) }
     }
 
     override fun getItemsForTag(tag: String): Flow<List<SavableSearchable>> {
