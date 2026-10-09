@@ -10,5 +10,5 @@ import org.koin.dsl.module
 val applicationsModule = module {
     factory<SearchableRepository<Application>>(named<Application>()) { get<AppRepository>() }
     single<AppRepository> { AppRepositoryImpl(androidContext(), get(), get(), get()) }
-    factory<SearchableDeserializer>(named(LauncherApp.Domain)) { LauncherAppDeserializer(androidContext()) }
+    factory<SearchableDeserializer>(named(LauncherApp.Domain)) { LauncherAppDeserializer(androidContext(), get()) }
 }

@@ -221,6 +221,30 @@ interface SearchableDao {
         update(item)
     }
 
+    /**
+     * Like [replace], but if there is an entry with the new key already, it's kept, and the old
+     * entry is merged into it: the launch counts are added up, and it's pinned if either was.
+     */
+    @Transaction
+    suspend fun merge(key: String, item: SavedSearchableUpdateContentEntity) {
+        if (key == item.key || !exists(key)) return
+        if (exists(item.key)) {
+            mergeInto(key, item.key)
+            delete(key)
+        } else {
+            updateKey(key, item.key)
+            update(item)
+        }
+    }
+
+    @Query(
+        "UPDATE Searchable SET " +
+                "launchCount = launchCount + (SELECT launchCount FROM Searchable WHERE `key` = :oldKey), " +
+                "pinPosition = MAX(pinPosition, (SELECT pinPosition FROM Searchable WHERE `key` = :oldKey)) " +
+                "WHERE `key` = :newKey"
+    )
+    suspend fun mergeInto(oldKey: String, newKey: String)
+
     @Query("UPDATE Searchable SET `key` = :newKey WHERE `key` = :oldKey")
     suspend fun updateKey(oldKey: String, newKey: String)
 

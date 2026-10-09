@@ -11,8 +11,11 @@ import androidx.core.content.getSystemService
 import de.mm20.launcher2.ktx.isAtLeastApiLevel
 import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.search.SearchableDeserializer
+import de.mm20.launcher2.search.SearchableKeyMigrator
 import de.mm20.launcher2.search.SearchableSerializer
 import de.mm20.launcher2.search.StringNormalizer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 internal class LockedPrivateProfileAppSerializer : SearchableSerializer {
@@ -43,7 +46,10 @@ class LauncherAppSerializer : SearchableSerializer {
         get() = "app"
 }
 
-class LauncherAppDeserializer(val context: Context) : SearchableDeserializer {
+class LauncherAppDeserializer(
+    val context: Context,
+    private val keyMigrator: SearchableKeyMigrator,
+) : SearchableDeserializer {
     override suspend fun deserialize(serialized: String): SavableSearchable? {
         try {
             val json = JSONObject(serialized)
@@ -76,6 +82,27 @@ class LauncherAppDeserializer(val context: Context) : SearchableDeserializer {
                 it.component = componentName
             }
             val launcherActivityInfo = launcherApps.resolveActivity(intent, user) ?: return null
+
+            // resolveActivity also finds activities that aren't shown in launchers (anymore), e.g.
+            // if the app switched to another launcher activity in an update while the launcher
+            // wasn't running. Such an item can't be launched, and it would be shown next to the
+            // app's current activity, e.g. twice in a folder. What's stored for it is moved to the
+            // current activity instead.
+            val launcherActivities = withContext(Dispatchers.IO) {
+                launcherApps.getActivityList(pkg, user)
+            }
+            if (launcherActivities.isNotEmpty() &&
+                launcherActivities.none { it.componentName == componentName }
+            ) {
+                val current = launcherActivities.singleOrNull()
+                if (current != null) {
+                    keyMigrator.merge(
+                        LauncherApp(context, launcherActivityInfo).key,
+                        LauncherApp(context, current),
+                    )
+                }
+                return null
+            }
             return LauncherApp(context, launcherActivityInfo)
         } catch (e: SecurityException) {
             Log.e("MM20", "Failed to deserialize app: $serialized", e)

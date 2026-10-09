@@ -7,4 +7,10 @@ package de.mm20.launcher2.search
  */
 interface SearchableKeyMigrator {
     fun migrate(oldKey: String, newSearchable: SavableSearchable)
+
+    /**
+     * Like [migrate], but what's stored for the new key already is kept, e.g. if both keys are in
+     * a folder, the item is in it once. Returns when it's done.
+     */
+    suspend fun merge(oldKey: String, newSearchable: SavableSearchable)
 }

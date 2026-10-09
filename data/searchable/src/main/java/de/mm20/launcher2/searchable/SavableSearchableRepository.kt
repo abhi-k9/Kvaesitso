@@ -57,6 +57,13 @@ interface SavableSearchableRepository : Backupable {
     )
 
     /**
+     * Like [replace], but keeps the entry of the new key if there is one already, and merges the
+     * old entry into it (see [de.mm20.launcher2.database.SearchableDao.merge]). Returns when it's
+     * done.
+     */
+    suspend fun merge(key: String, newSearchable: SavableSearchable)
+
+    /**
      * Replace a searchable in the database.
      * The new entry will inherit the visibility, launch count, weight and pin position of the old entry,
      * but it will have a different key and searchable.
@@ -339,6 +346,17 @@ internal class SavableSearchableRepositoryImpl(
         scope.launch {
             database.searchableDao().delete(searchable.key)
         }
+    }
+
+    override suspend fun merge(key: String, newSearchable: SavableSearchable) {
+        database.searchableDao().merge(
+            key,
+            SavedSearchableUpdateContentEntity(
+                key = newSearchable.key,
+                type = newSearchable.domain,
+                serializedSearchable = newSearchable.serialize() ?: return
+            )
+        )
     }
 
     override fun replace(key: String, newSearchable: SavableSearchable) {

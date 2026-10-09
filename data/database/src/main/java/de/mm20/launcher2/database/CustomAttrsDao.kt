@@ -83,6 +83,25 @@ interface CustomAttrsDao {
         moveAttributes(oldKey, newKey)
     }
 
+    /**
+     * Moves the attributes of an item to a new key, like [replaceKey], but keeps those that are
+     * already stored for the new key: tags are added, and other attributes are only moved if the
+     * new key has none of the same type. The rest is removed.
+     */
+    @Transaction
+    suspend fun mergeKey(oldKey: String, newKey: String) {
+        if (oldKey == newKey) return
+        moveMissingTags(oldKey, newKey)
+        moveMissingAttributes(oldKey, newKey)
+        deleteAttributes(oldKey)
+    }
+
+    @Query("UPDATE CustomAttributes SET `key` = :newKey WHERE `key` = :oldKey AND type = 'tag' AND value NOT IN (SELECT value FROM CustomAttributes WHERE `key` = :newKey AND type = 'tag')")
+    suspend fun moveMissingTags(oldKey: String, newKey: String)
+
+    @Query("UPDATE CustomAttributes SET `key` = :newKey WHERE `key` = :oldKey AND type != 'tag' AND type NOT IN (SELECT type FROM CustomAttributes WHERE `key` = :newKey)")
+    suspend fun moveMissingAttributes(oldKey: String, newKey: String)
+
     @Query("SELECT EXISTS(SELECT 1 FROM CustomAttributes WHERE `key` = :key)")
     suspend fun hasAttributes(key: String): Boolean
 

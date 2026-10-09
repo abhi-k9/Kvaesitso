@@ -22,4 +22,10 @@ internal class SearchableKeyMigratorImpl(
             appDatabase.customAttrsDao().replaceKey(oldKey, newSearchable.key)
         }
     }
+
+    override suspend fun merge(oldKey: String, newSearchable: SavableSearchable) {
+        if (oldKey == newSearchable.key) return
+        searchableRepository.merge(oldKey, newSearchable)
+        appDatabase.customAttrsDao().mergeKey(oldKey, newSearchable.key)
+    }
 }
