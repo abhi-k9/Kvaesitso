@@ -98,6 +98,8 @@ fun MusicWidget(widget: MusicWidget) {
     val title by viewModel.title.collectAsStateWithLifecycle(null)
     val artist by viewModel.artist.collectAsStateWithLifecycle(null)
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle(PlaybackState.Stopped)
+    // null until the state is known, so that the media doesn't flash
+    val knownPlaybackState by viewModel.playbackState.collectAsStateWithLifecycle<PlaybackState?>(null)
     val position by viewModel.position.collectAsStateWithLifecycle(null)
     val duration by viewModel.duration.collectAsStateWithLifecycle(null)
 
@@ -119,7 +121,9 @@ fun MusicWidget(widget: MusicWidget) {
                 }
             )
         }
-        if (title == null && artist == null) {
+        if (title == null && artist == null ||
+            widget.config.clearWhenStopped && knownPlaybackState == PlaybackState.Stopped
+        ) {
             NoData()
         } else {
             Row(

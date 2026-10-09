@@ -600,6 +600,14 @@ fun ColumnScope.ConfigureMusicWidget(
                     onWidgetUpdated(widget.copy(config = widget.config.copy(interactiveProgressBar = it)))
                 }
             )
+            SwitchPreference(
+                title = stringResource(R.string.music_widget_clear_when_stopped),
+                iconPadding = false,
+                value = widget.config.clearWhenStopped,
+                onValueChanged = {
+                    onWidgetUpdated(widget.copy(config = widget.config.copy(clearWhenStopped = it)))
+                }
+            )
         }
     }
 
