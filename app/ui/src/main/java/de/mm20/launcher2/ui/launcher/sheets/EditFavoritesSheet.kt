@@ -396,8 +396,8 @@ fun ReorderFavoritesGrid(viewModel: EditFavoritesSheetVM, paddingValues: Padding
                                                     onValueChange = {
                                                         viewModel.setFrequentlyUsedRows(it.roundToInt())
                                                     },
-                                                    steps = 2,
-                                                    valueRange = 1f..4f
+                                                    steps = 6,
+                                                    valueRange = 1f..8f
                                                 )
                                                 Text(
                                                     text = frequentlyUsedRows.toString(),

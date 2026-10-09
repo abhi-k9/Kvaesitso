@@ -60,7 +60,7 @@ fun FavoritesSettingsScreen() {
                     value = frequentlyUsedRows,
                     enabled = frequentlyUsed == true,
                     min = 1,
-                    max = 4,
+                    max = 8,
                     onValueChanged = {
                         viewModel.setFrequentlyUsedRows(it)
                     },
