@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -280,9 +281,11 @@ internal class SavableSearchableRepositoryImpl(
             else -> throw IllegalArgumentException("Cannot specify both includeTypes and excludeTypes")
         }
 
+        // Deserializing items can ask other apps or the system (e.g. if an app still exists), so
+        // it's kept off the thread that collects, which is often the main thread
         return entities.map {
             it.mapNotNull { fromDatabaseEntity(it).searchable }
-        }
+        }.flowOn(Dispatchers.IO)
     }
 
     override fun getKeys(
@@ -484,10 +487,11 @@ internal class SavableSearchableRepositoryImpl(
                     }
             }) { results ->
                 results.flatMap { it }
-            }
+            }.flowOn(Dispatchers.IO)
         }
         return dao.getByKeys(keys)
             .map { it.mapNotNull { fromDatabaseEntity(it).searchable } }
+            .flowOn(Dispatchers.IO)
     }
 
     override suspend fun backup(toDir: File) = withContext(Dispatchers.IO) {
