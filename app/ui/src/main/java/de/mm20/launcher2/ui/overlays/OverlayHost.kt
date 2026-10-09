@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,11 +27,15 @@ fun OverlayHost(
                 content()
             }
             for (overlay in overlayManager.overlays) {
-                Box(modifier = Modifier.zIndex(overlay.zIndex)) {
-                    CompositionLocalProvider(
-                        LocalZIndex provides overlay.zIndex
-                    ) {
-                        overlay()
+                // Otherwise, when an overlay is removed, the overlays after it would lose their
+                // state, e.g. a bottom sheet over an item popup would open again
+                key(overlay) {
+                    Box(modifier = Modifier.zIndex(overlay.zIndex)) {
+                        CompositionLocalProvider(
+                            LocalZIndex provides overlay.zIndex
+                        ) {
+                            overlay()
+                        }
                     }
                 }
             }

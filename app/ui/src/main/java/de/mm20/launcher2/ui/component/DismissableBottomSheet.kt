@@ -45,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
@@ -209,6 +210,9 @@ fun <T> DismissableBottomSheet(
                     modifier = Modifier
                         .statusBarsPadding()
                         .focusRequester(focusRequester)
+                        // Focus the sheet itself. Otherwise its first text field would be focused,
+                        // which opens the keyboard.
+                        .focusTarget()
                         .nestedScroll(
                             remember(draggableState) {
                                 BottomSheetNestedScrollConnection(
