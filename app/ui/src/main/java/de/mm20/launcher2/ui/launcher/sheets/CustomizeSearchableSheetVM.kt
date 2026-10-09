@@ -3,6 +3,7 @@ package de.mm20.launcher2.ui.launcher.sheets
 import androidx.compose.runtime.mutableStateOf
 import de.mm20.launcher2.data.customattrs.CustomAttributesRepository
 import de.mm20.launcher2.data.customattrs.CustomIcon
+import de.mm20.launcher2.data.customattrs.TagFoldersRepository
 import de.mm20.launcher2.icons.CustomIconWithPreview
 import de.mm20.launcher2.icons.IconPack
 import de.mm20.launcher2.icons.IconService
@@ -31,6 +32,7 @@ class CustomizeSearchableSheetVM(
     private val customAttributesRepository: CustomAttributesRepository by inject()
     private val favoritesService: FavoritesService by inject()
     private val uiState: UiState by inject()
+    private val tagFoldersRepository: TagFoldersRepository by inject()
 
     val isIconPickerOpen = mutableStateOf(false)
 
@@ -77,6 +79,23 @@ class CustomizeSearchableSheetVM(
 
     fun getVisibility(): Flow<VisibilityLevel> {
         return favoritesService.getVisibility(searchable)
+    }
+
+    /**
+     * The tags that are shown as folders
+     */
+    val folderTags: Flow<Set<String>>
+        get() = tagFoldersRepository.folderTags
+
+    fun isInAppList(): Flow<Boolean> {
+        return tagFoldersRepository.isInAppList(searchable)
+    }
+
+    /**
+     * Shows the item in the app list too, not only in its folders, or not
+     */
+    fun setInAppList(inAppList: Boolean) {
+        tagFoldersRepository.setInAppList(searchable, inAppList)
     }
 
     suspend fun autocompleteTags(query: String): List<String> {

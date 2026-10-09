@@ -64,12 +64,6 @@ class TagsSettingsScreenVM: ViewModel(), KoinComponent {
         folderSettings.setStyle(style)
     }
 
-    val foldersAppsInList = folderSettings.appsInList
-
-    fun setFoldersAppsInList(appsInList: Boolean) {
-        folderSettings.setAppsInList(appsInList)
-    }
-
     fun deleteTag(tag: String) {
         tagsService.deleteTag(tag)
     }

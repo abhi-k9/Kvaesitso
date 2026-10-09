@@ -35,7 +35,6 @@ import de.mm20.launcher2.ui.component.ShapedLauncherIcon
 import de.mm20.launcher2.preferences.FolderStyle
 import de.mm20.launcher2.ui.component.preferences.ListPreference
 import de.mm20.launcher2.ui.component.preferences.Preference
-import de.mm20.launcher2.ui.component.preferences.SwitchPreference
 import de.mm20.launcher2.ui.component.preferences.PreferenceCategory
 import de.mm20.launcher2.ui.component.preferences.PreferenceScreen
 import de.mm20.launcher2.ui.launcher.sheets.EditTagSheet
@@ -155,15 +154,6 @@ fun TagsSettingsScreen() {
                     value = folderStyle,
                     onValueChanged = {
                         if (it != null) viewModel.setFolderStyle(it)
-                    },
-                )
-                val appsInList by viewModel.foldersAppsInList.collectAsState(false)
-                SwitchPreference(
-                    title = stringResource(R.string.preference_folders_apps_in_list),
-                    summary = stringResource(R.string.preference_folders_apps_in_list_summary),
-                    value = appsInList,
-                    onValueChanged = {
-                        viewModel.setFoldersAppsInList(it)
                     },
                 )
                 Preference(

@@ -810,8 +810,9 @@
     <string name="preference_folders_style">Open folders as</string>
     <string name="preference_folders_style_popup">Popup</string>
     <string name="preference_folders_style_sheet">Bottom sheet</string>
-    <string name="preference_folders_apps_in_list">Apps in folders in the app list</string>
-    <string name="preference_folders_apps_in_list_summary">Show apps that are in a folder in the app list too, not only in the folder</string>
+    <!-- Switch in the customize sheet of an app that is in a folder -->
+    <string name="customize_item_in_app_list">Also show in the app list</string>
+    <string name="customize_item_in_app_list_summary">Show this app outside its folder too</string>
     <!-- Turns a folder back into a regular tag, its apps are shown in the app list again -->
     <string name="folder_ungroup">Ungroup</string>
     <string name="preference_folders_from_categories">Create folders from app categories</string>

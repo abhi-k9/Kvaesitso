@@ -42,6 +42,18 @@ interface TagFoldersRepository {
     fun isFolder(tag: String): Flow<Boolean>
 
     /**
+     * Keys of the items that are shown in the app list too, not only in their folders
+     */
+    val inAppListKeys: Flow<Set<String>>
+
+    fun isInAppList(searchable: SavableSearchable): Flow<Boolean>
+
+    /**
+     * Shows [searchable] in the app list too, or only in its folders
+     */
+    fun setInAppList(searchable: SavableSearchable, inAppList: Boolean)
+
+    /**
      * Shows [tag] as a folder or not. If the tag has been renamed from [oldTag], that tag isn't
      * a folder anymore.
      */
@@ -103,6 +115,33 @@ internal class TagFoldersRepositoryImpl(
             .distinctUntilChanged()
     }
 
+    override val inAppListKeys: Flow<Set<String>> = appDatabase.customAttrsDao()
+        .getKeysWithAttribute(InAppListAttribute)
+        .map { it.toSet() }
+        .distinctUntilChanged()
+
+    override fun isInAppList(searchable: SavableSearchable): Flow<Boolean> {
+        return appDatabase.customAttrsDao().getCustomAttribute(searchable.key, InAppListAttribute)
+            .map { it != null }
+            .distinctUntilChanged()
+    }
+
+    override fun setInAppList(searchable: SavableSearchable, inAppList: Boolean) {
+        scope.launch {
+            val dao = appDatabase.customAttrsDao()
+            dao.clearCustomAttribute(searchable.key, InAppListAttribute)
+            if (inAppList) {
+                dao.setCustomAttribute(
+                    CustomAttributeEntity(
+                        key = searchable.key,
+                        type = InAppListAttribute,
+                        value = "true"
+                    )
+                )
+            }
+        }
+    }
+
     override fun setFolder(tag: String, isFolder: Boolean, oldTag: String?) {
         scope.launch {
             val dao = appDatabase.customAttrsDao()
@@ -121,6 +160,7 @@ internal class TagFoldersRepositoryImpl(
 
     companion object {
         private const val FolderAttribute = "folder"
+        private const val InAppListAttribute = "in_app_list"
         private const val TagKeyPrefix = "${Tag.Domain}://"
     }
 }
@@ -135,16 +175,17 @@ data class FolderGrouping<T : SavableSearchable>(
 
 /**
  * Groups this list into [folders] (by tag name, as from [TagFoldersRepository.folders]): items in
- * a folder are only shown in the folder, or also in the list if [keepGroupedItems] is true.
+ * a folder are only shown in the folder, except those in [inAppList] (by key, as from
+ * [TagFoldersRepository.inAppListKeys]), which are shown in both.
  */
 fun <T : SavableSearchable> List<T>.groupIntoFolders(
     folders: Map<String, List<SavableSearchable>>,
-    keepGroupedItems: Boolean = false,
+    inAppList: Set<String> = emptySet(),
 ): FolderGrouping<T> {
     val nonEmptyFolders = folders.filterValues { it.isNotEmpty() }
     if (nonEmptyFolders.isEmpty()) return FolderGrouping(this, emptyList())
-    if (keepGroupedItems) return FolderGrouping(this, nonEmptyFolders.keys.map { Tag(it) })
     val groupedKeys = nonEmptyFolders.values.flatMapTo(HashSet()) { items -> items.map { it.key } }
+    groupedKeys.removeAll(inAppList)
     return FolderGrouping(
         ungrouped = filterNot { it.key in groupedKeys },
         folders = nonEmptyFolders.keys.map { Tag(it) },

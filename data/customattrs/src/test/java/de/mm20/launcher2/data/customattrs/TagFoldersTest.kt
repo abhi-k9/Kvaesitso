@@ -53,12 +53,12 @@ class TagFoldersTest {
     }
 
     @Test
-    fun appsInFoldersCanAlsoBeShownInTheList() {
+    fun appsCanBeShownInTheirFolderAndTheList() {
         val grouping = apps.groupIntoFolders(
-            mapOf("Social" to listOf(chat, mail), "Empty" to emptyList()),
-            keepGroupedItems = true,
+            mapOf("Social" to listOf(chat, mail)),
+            inAppList = setOf(chat.key),
         )
-        assertSame(apps, grouping.ungrouped)
+        assertEquals(listOf(camera, chat, maps), grouping.ungrouped)
         assertEquals(listOf(Tag("Social")), grouping.folders)
     }
 
