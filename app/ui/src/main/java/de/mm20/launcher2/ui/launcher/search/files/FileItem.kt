@@ -21,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -115,7 +116,10 @@ fun FileItem(
                                 ),
                                 style = MaterialTheme.typography.bodySmall,
                             )
-                            for ((k, v) in file.metaData) {
+                            val metaData by produceState(file.metaData, file) {
+                                value = file.loadMetaData(context)
+                            }
+                            for ((k, v) in metaData) {
                                 Text(
                                     text = stringResource(k.labelRes, v),
                                     style = MaterialTheme.typography.bodySmall

@@ -7,6 +7,7 @@ import de.mm20.launcher2.crashreporter.CrashReporter
 import de.mm20.launcher2.permissions.PermissionGroup
 import de.mm20.launcher2.permissions.PermissionsManager
 import de.mm20.launcher2.search.File
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -70,7 +71,7 @@ internal class LocalFileProvider(
                 size = cursor.getLong(2),
                 isDirectory = directory,
                 id = cursor.getLong(1),
-                metaData = LocalFile.getMetaData(context, mimeType, path)
+                metaData = persistentMapOf()
             )
             results.add(file)
         }

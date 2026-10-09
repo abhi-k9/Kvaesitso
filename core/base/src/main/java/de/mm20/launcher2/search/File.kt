@@ -20,6 +20,11 @@ interface File : SavableSearchable {
     val isDirectory: Boolean
     val metaData: ImmutableMap<FileMetaType, String>
 
+    /**
+     * [metaData], read from the file first if it isn't known yet, which can take a while
+     */
+    suspend fun loadMetaData(context: Context): ImmutableMap<FileMetaType, String> = metaData
+
     override val preferDetailsOverLaunch: Boolean
         get() = false
 

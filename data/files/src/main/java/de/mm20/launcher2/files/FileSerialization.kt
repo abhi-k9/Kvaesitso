@@ -107,7 +107,7 @@ internal class LocalFileDeserializer(
                     size = size,
                     isDirectory = directory,
                     id = id,
-                    metaData = LocalFile.getMetaData(context, mimeType, path)
+                    metaData = persistentMapOf()
                 )
             }
         }

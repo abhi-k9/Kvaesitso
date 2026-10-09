@@ -50,6 +50,12 @@ internal data class LocalFile(
     override val labelOverride: String? = null
 ) : File {
 
+    // Reading the metadata of media files is slow, so it's only read when it's shown
+    override suspend fun loadMetaData(context: Context): ImmutableMap<FileMetaType, String> {
+        if (metaData.isNotEmpty()) return metaData
+        return withContext(Dispatchers.IO) { getMetaData(context, mimeType, path) }
+    }
+
     override val label = path.substringAfterLast('/')
 
     override fun overrideLabel(label: String): LocalFile {
