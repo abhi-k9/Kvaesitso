@@ -29,8 +29,12 @@ internal class LocalFileProvider(
             MediaStore.Files.FileColumns.DATA,
             MediaStore.Files.FileColumns.MIME_TYPE
         )
-        val selection = "${MediaStore.Files.FileColumns.TITLE} LIKE ?"
-        val selArgs = if (query.length > 3) arrayOf("%$query%") else arrayOf("$query%")
+        // The title is the name without the extension (or the title tag of songs), so the file
+        // name is searched too, to find files by their full name or extension, e.g. ".pdf"
+        val selection =
+            "(${MediaStore.Files.FileColumns.TITLE} LIKE ? OR ${MediaStore.Files.FileColumns.DISPLAY_NAME} LIKE ?)"
+        val pattern = if (query.length > 3 || query.startsWith('.')) "%$query%" else "$query%"
+        val selArgs = arrayOf(pattern, pattern)
         val sort = "${MediaStore.Files.FileColumns.DISPLAY_NAME} COLLATE NOCASE ASC"
 
 
