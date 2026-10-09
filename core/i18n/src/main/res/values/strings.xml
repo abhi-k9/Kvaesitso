@@ -804,6 +804,12 @@
     <string name="preference_folders_style_sheet">Bottom sheet</string>
     <!-- Turns a folder back into a regular tag, its apps are shown in the app list again -->
     <string name="folder_ungroup">Ungroup</string>
+    <string name="menu_add_to_folder">Add to folder</string>
+    <string name="menu_new_folder">New folder…</string>
+    <string name="new_folder_title">New folder</string>
+    <string name="folder_name">Folder name</string>
+    <!-- Shown when the name of a new folder is the name of an existing tag -->
+    <string name="new_folder_existing_tag">There is a tag with this name. It will be shown as a folder.</string>
     <plurals name="tag_selected_items">
         <item quantity="one">%1$d item selected</item>
         <item quantity="other">%1$d items selected</item>

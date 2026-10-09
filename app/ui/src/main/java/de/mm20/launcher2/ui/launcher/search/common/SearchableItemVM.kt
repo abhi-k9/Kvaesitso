@@ -9,6 +9,8 @@ import androidx.core.app.ActivityOptionsCompat
 import de.mm20.launcher2.applications.AppRepository
 import de.mm20.launcher2.appshortcuts.AppShortcutRepository
 import de.mm20.launcher2.badges.BadgeService
+import de.mm20.launcher2.data.customattrs.CustomAttributesRepository
+import de.mm20.launcher2.data.customattrs.TagFoldersRepository
 import de.mm20.launcher2.devicepose.DevicePoseProvider
 import de.mm20.launcher2.icons.IconService
 import de.mm20.launcher2.icons.LauncherIcon
@@ -29,12 +31,14 @@ import de.mm20.launcher2.services.favorites.FavoritesService
 import de.mm20.launcher2.services.tags.TagsService
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.launcher.search.ListItemViewModel
+import java.text.Collator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -50,6 +54,8 @@ class SearchableItemVM : ListItemViewModel(), KoinComponent {
     private val badgeService: BadgeService by inject()
     private val iconService: IconService by inject()
     private val tagsService: TagsService by inject()
+    private val customAttributesRepository: CustomAttributesRepository by inject()
+    private val tagFoldersRepository: TagFoldersRepository by inject()
     private val notificationRepository: NotificationRepository by inject()
     private val appRepository: AppRepository by inject()
     private val appShortcutRepository: AppShortcutRepository by inject()
@@ -90,6 +96,38 @@ class SearchableItemVM : ListItemViewModel(), KoinComponent {
 
     val tags = searchable.flatMapLatest {
         if (it == null) emptyFlow() else tagsService.getTags(it)
+    }
+
+    val allTags = tagsService.getAllTags()
+
+    /**
+     * The names of all folders, sorted
+     */
+    val folders = tagFoldersRepository.folderTags.map { folders ->
+        folders.sortedWith(Collator.getInstance().apply { strength = Collator.SECONDARY })
+    }
+
+    /**
+     * Adds the item to the folder [folder], or removes it from there
+     */
+    fun setInFolder(folder: String, inFolder: Boolean) {
+        val searchable = searchable.value ?: return
+        viewModelScope.launch {
+            val tags = tagsService.getTags(searchable).first()
+            customAttributesRepository.setTags(
+                searchable,
+                if (inFolder) (tags + folder).distinct() else tags - folder,
+            )
+        }
+    }
+
+    /**
+     * Adds the item to a new folder. If there already is a tag called [name], it's shown as a
+     * folder from now on.
+     */
+    fun addToNewFolder(name: String) {
+        setInFolder(name, true)
+        tagFoldersRepository.setFolder(name, true)
     }
 
     val notifications = searchable.flatMapLatest { searchable ->
