@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.mm20.launcher2.applications.AppRepository
 import de.mm20.launcher2.data.customattrs.CustomIcon
+import de.mm20.launcher2.data.customattrs.TagFoldersRepository
 import de.mm20.launcher2.icons.IconService
 import de.mm20.launcher2.icons.LauncherIcon
 import de.mm20.launcher2.search.SavableSearchable
@@ -31,10 +32,12 @@ class EditTagSheetVM : ViewModel(), KoinComponent {
     private val searchService: SearchService by inject()
     private val iconService: IconService by inject()
     private val appRepository: AppRepository by inject()
+    private val tagFoldersRepository: TagFoldersRepository by inject()
 
     private var oldTagName by mutableStateOf<String?>(null)
     private var allTags by mutableStateOf(emptySet<String>())
     var tagName by mutableStateOf("")
+    var isFolder by mutableStateOf(false)
     var tagCustomIcon = MutableStateFlow<CustomIcon?>(null)
     var tagIcon = emptyFlow<LauncherIcon?>()
 
@@ -59,8 +62,10 @@ class EditTagSheetVM : ViewModel(), KoinComponent {
         this.page = if (tag == null) EditTagSheetPage.CreateTag else EditTagSheetPage.CustomizeTag
         this.wasOnLastPage = this.page == EditTagSheetPage.CustomizeTag
         this.taggedItems = emptyList()
+        this.isFolder = false
         viewModelScope.launch(Dispatchers.Default) {
             allTags = tagService.getAllTags().first().toSet()
+            isFolder = tag != null && tagFoldersRepository.isFolder(tag).first()
             val items = if (tag != null) tagService.getTaggedItems(tag).first() else emptyList()
             tagCustomIcon.value = if (tag != null) iconService.getCustomIcon(Tag(tag)).first() else null
             tagIcon = tagCustomIcon.map {
@@ -84,8 +89,11 @@ class EditTagSheetVM : ViewModel(), KoinComponent {
         val newName = tagName
         val tagIcon = tagCustomIcon.value
         if ((taggedItems.isEmpty() || tagName.isEmpty()) && oldName != null) tagService.deleteTag(oldName)
-        else if (oldName != null) tagService.updateTag(oldName, newName = newName, items = taggedItems)
-        else tagService.createTag(tagName, taggedItems)
+        else {
+            if (oldName != null) tagService.updateTag(oldName, newName = newName, items = taggedItems)
+            else tagService.createTag(tagName, taggedItems)
+            tagFoldersRepository.setFolder(newName, isFolder, oldTag = oldName)
+        }
 
         if (oldName != null && oldName != newName) {
             iconService.setCustomIcon(Tag(oldName), null)

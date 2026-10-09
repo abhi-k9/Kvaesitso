@@ -1,6 +1,7 @@
 package de.mm20.launcher2.ui.launcher.search.favorites
 
 import androidx.lifecycle.viewModelScope
+import de.mm20.launcher2.data.customattrs.TagFoldersRepository
 import de.mm20.launcher2.preferences.ui.UiState
 import de.mm20.launcher2.ui.common.FavoritesVM
 import kotlinx.coroutines.flow.Flow
@@ -8,6 +9,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
+import org.koin.core.component.get
 import org.koin.core.component.inject
 
 class SearchFavoritesVM : FavoritesVM() {
@@ -20,5 +22,7 @@ class SearchFavoritesVM : FavoritesVM() {
     }
 
     override val compactTags: Flow<Boolean> = settings.compactTags
+
+    override fun folderTags(): Flow<Set<String>> = get<TagFoldersRepository>().folderTags
 
 }

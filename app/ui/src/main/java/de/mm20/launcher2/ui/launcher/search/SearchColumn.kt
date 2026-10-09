@@ -33,6 +33,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import de.mm20.launcher2.data.customattrs.mergeFolders
 import de.mm20.launcher2.profiles.Profile
 import de.mm20.launcher2.search.AppShortcut
 import de.mm20.launcher2.search.Application
@@ -89,6 +90,9 @@ fun SearchColumn(
     val allAppsEnabled by viewModel.allAppsEnabled.collectAsState(false)
 
     val apps = viewModel.appResults
+    val appFolders = viewModel.appFolders
+    // Folders are sorted in with the apps
+    val appsWithFolders by remember { derivedStateOf { mergeFolders(apps, appFolders) } }
     val workApps = viewModel.workAppResults
     val privateApps = viewModel.privateSpaceAppResults
     val profiles by viewModel.profiles.collectAsState(emptyList())
@@ -222,7 +226,7 @@ fun SearchColumn(
                         apps = when (selectedProfile?.type) {
                             Profile.Type.Private -> privateApps
                             Profile.Type.Work -> workApps
-                            else -> apps
+                            else -> appsWithFolders
                         },
                         highlightedItem = bestMatch as? Application,
                         profiles = visibleProfiles,
@@ -244,7 +248,7 @@ fun SearchColumn(
                     )
                 } else if (!isSearchEmpty || allAppsEnabled) {
                     AppResults(
-                        apps = apps,
+                        apps = appsWithFolders,
                         highlightedItem = bestMatch as? Application,
                         columns = columns,
                         reverse = reverse,

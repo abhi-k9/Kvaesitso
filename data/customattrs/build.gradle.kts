@@ -51,4 +51,6 @@ dependencies {
     implementation(project(":core:ktx"))
     implementation(project(":core:crashreporter"))
     implementation(project(":data:searchable"))
+
+    testImplementation(libs.bundles.tests)
 }

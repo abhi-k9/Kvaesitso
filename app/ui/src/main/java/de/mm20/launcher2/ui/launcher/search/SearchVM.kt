@@ -1,6 +1,7 @@
 package de.mm20.launcher2.ui.launcher.search
 
 import android.content.Context
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -8,6 +9,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import de.mm20.launcher2.data.customattrs.TagFoldersRepository
+import de.mm20.launcher2.data.customattrs.groupIntoFolders
 import de.mm20.launcher2.devicepose.DevicePoseProvider
 import de.mm20.launcher2.ktx.isAtLeastApiLevel
 import de.mm20.launcher2.permissions.PermissionGroup
@@ -33,6 +36,7 @@ import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.search.SearchFilters
 import de.mm20.launcher2.search.SearchResults
 import de.mm20.launcher2.search.SearchService
+import de.mm20.launcher2.search.Tag
 import de.mm20.launcher2.search.Searchable
 import de.mm20.launcher2.search.Website
 import de.mm20.launcher2.search.data.Calculator
@@ -45,6 +49,7 @@ import de.mm20.launcher2.services.favorites.FavoritesService
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -75,6 +80,7 @@ class SearchVM : ViewModel(), KoinComponent {
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     private val searchService: SearchService by inject()
+    private val tagFoldersRepository: TagFoldersRepository by inject()
 
     val searchQuery = mutableStateOf("")
     val isSearchEmpty = mutableStateOf(true)
@@ -97,6 +103,11 @@ class SearchVM : ViewModel(), KoinComponent {
     }
 
     val appResults = mutableStateListOf<Application>()
+
+    /**
+     * Folders shown in the app list, the apps in them aren't in [appResults]
+     */
+    val appFolders = mutableStateListOf<Tag>()
     val workAppResults = mutableStateListOf<Application>()
     val privateSpaceAppResults = mutableStateListOf<Application>()
 
@@ -219,7 +230,16 @@ class SearchVM : ViewModel(), KoinComponent {
 
                 allApps
                     .combine(hiddenItemKeys) { results, hiddenKeys -> results to hiddenKeys }
-                    .collectLatest { (results, hiddenKeys) ->
+                    .combine(
+                        tagFoldersRepository.folders.catch {
+                            // Show the apps without folders instead of no apps
+                            Log.e("SearchVM", "Failed to load folders", it)
+                            emit(emptyMap())
+                        }
+                    ) { (results, hiddenKeys), folders ->
+                        Triple(results, hiddenKeys, folders)
+                    }
+                    .collectLatest { (results, hiddenKeys, folders) ->
                         val hiddenItems = mutableListOf<SavableSearchable>()
 
                         val (hiddenApps, apps) = results.standardProfileApps.partition {
@@ -244,8 +264,12 @@ class SearchVM : ViewModel(), KoinComponent {
                         hiddenItems += hiddenPrivateApps
                         previousResults = SearchResults(apps = apps)
 
+                        // Apps in a folder are only shown in the folder
+                        val grouping = apps.groupIntoFolders(folders)
+
                         searchActionResults.clear()
-                        appResults.updateItems(apps)
+                        appResults.updateItems(grouping.ungrouped)
+                        appFolders.updateItems(grouping.folders)
                         workAppResults.updateItems(workApps)
                         privateSpaceAppResults.updateItems(privateApps)
                         hiddenResults.updateItems(hiddenItems)
@@ -267,6 +291,7 @@ class SearchVM : ViewModel(), KoinComponent {
                         hiddenResults.clear()
                         workAppResults.clear()
                         privateSpaceAppResults.clear()
+                        appFolders.clear()
 
                         appResults.updateItems(
                             results.apps

@@ -15,6 +15,8 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import de.mm20.launcher2.search.SavableSearchable
+import de.mm20.launcher2.search.Tag
+import de.mm20.launcher2.ui.launcher.search.folders.FolderGridItem
 import de.mm20.launcher2.ui.layout.BottomReversed
 import de.mm20.launcher2.ui.locals.LocalGridSettings
 import kotlin.math.ceil
@@ -48,13 +50,23 @@ fun SearchResultGrid(
                         val item = items.getOrNull(i * columns + j)
                         if (item != null) {
                             key(item.key) {
-                                GridItem(
-                                    modifier = Modifier
-                                        .weight(1f),
-                                    item = item,
-                                    showLabels = showLabels,
-                                    highlight = item.key == highlightedItem?.key
-                                )
+                                if (item is Tag) {
+                                    // A pinned folder
+                                    FolderGridItem(
+                                        modifier = Modifier
+                                            .weight(1f),
+                                        folder = item,
+                                        showLabels = showLabels,
+                                    )
+                                } else {
+                                    GridItem(
+                                        modifier = Modifier
+                                            .weight(1f),
+                                        item = item,
+                                        showLabels = showLabels,
+                                        highlight = item.key == highlightedItem?.key
+                                    )
+                                }
                             }
                         } else {
                             Spacer(modifier = Modifier.weight(1f))

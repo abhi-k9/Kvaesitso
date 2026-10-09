@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import de.mm20.launcher2.data.customattrs.CustomAttributesRepository
 import de.mm20.launcher2.data.customattrs.utils.withCustomLabels
 import de.mm20.launcher2.preferences.search.FavoritesSettings
-import de.mm20.launcher2.preferences.search.FavoritesSettingsData
 import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.search.Tag
 import de.mm20.launcher2.searchable.PinnedLevel
@@ -18,6 +17,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
@@ -39,11 +39,17 @@ abstract class FavoritesVM : ViewModel(), KoinComponent {
     abstract val tagsExpanded: Flow<Boolean>
     abstract val compactTags: Flow<Boolean>
 
+    /**
+     * Tags that are shown as folders. Pinned folders are shown with the other favorites instead
+     * of as tag chips. Called during initialization.
+     */
+    protected open fun folderTags(): Flow<Set<String>> = flowOf(emptySet())
+
     val pinnedTags = favoritesService.getFavorites(
         includeTypes = listOf("tag"),
         minPinnedLevel = PinnedLevel.AutomaticallySorted,
-    ).map {
-        it.filterIsInstance<Tag>()
+    ).combine(folderTags()) { tags, folders ->
+        tags.filterIsInstance<Tag>().filter { it.tag !in folders }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
     open val favorites: Flow<List<SavableSearchable>> = selectedTag.flatMapLatest { tag ->
@@ -53,24 +59,30 @@ abstract class FavoritesVM : ViewModel(), KoinComponent {
             combine(
                 excludeCalendar,
                 settings,
-            ) { (a, b) -> a as Boolean to b as FavoritesSettingsData }
+                folderTags(),
+            ) { a, b, c -> Triple(a, b, c) }
                 .transformLatest {
 
                     val columns = it.second.columns
                     val excludeCalendar = it.first
                     val includeFrequentlyUsed = it.second.frequentlyUsed
                     val frequentlyUsedRows = it.second.frequentlyUsedRows
+                    val folders = it.third
 
                     val pinned = favoritesService.getFavorites(
-                        excludeTypes = if (excludeCalendar) listOf(
+                        excludeTypes = if (excludeCalendar) listOfNotNull(
                             "calendar",
                             "tasks.org",
-                            "tag",
+                            "tag".takeIf { folders.isEmpty() },
                             "plugin.calendar"
-                        ) else listOf("tag"),
+                        ) else listOf("tag").takeIf { folders.isEmpty() },
                         minPinnedLevel = PinnedLevel.AutomaticallySorted,
                         limit = 10 * columns,
-                    )
+                    ).map { items ->
+                        // Pinned folders are shown with the favorites, other tags as chips
+                        if (folders.isEmpty()) items
+                        else items.filter { item -> item !is Tag || item.tag in folders }
+                    }
                     if (includeFrequentlyUsed) {
                         emitAll(pinned.flatMapLatest { pinned ->
                             favoritesService.getFavorites(

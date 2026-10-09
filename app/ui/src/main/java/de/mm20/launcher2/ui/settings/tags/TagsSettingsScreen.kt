@@ -25,6 +25,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.component.ShapedLauncherIcon
+import de.mm20.launcher2.preferences.FolderStyle
+import de.mm20.launcher2.ui.component.preferences.ListPreference
 import de.mm20.launcher2.ui.component.preferences.Preference
 import de.mm20.launcher2.ui.component.preferences.PreferenceCategory
 import de.mm20.launcher2.ui.component.preferences.PreferenceScreen
@@ -40,6 +42,7 @@ fun TagsSettingsScreen() {
     val viewModel: TagsSettingsScreenVM = viewModel()
 
     val tags by remember { viewModel.tags }.collectAsState(emptyList())
+    val folderStyle by viewModel.folderStyle.collectAsState(FolderStyle.Popup)
 
     PreferenceScreen(
         title = stringResource(R.string.preference_screen_tags),
@@ -51,6 +54,7 @@ fun TagsSettingsScreen() {
                     var showMenu by remember { mutableStateOf(false) }
 
                     val icon by remember(tag) { viewModel.getIcon(tag) }.collectAsState(null)
+                    val isFolder by remember(tag) { viewModel.isFolder(tag) }.collectAsState(false)
 
                     Preference(
                         icon = {
@@ -60,6 +64,9 @@ fun TagsSettingsScreen() {
                             )
                         },
                         title = { Text(tag) },
+                        summary = if (isFolder) {
+                            { Text(stringResource(R.string.tag_is_folder)) }
+                        } else null,
                         onClick = {
                             viewModel.editTag.value = tag
                         },
@@ -122,6 +129,21 @@ fun TagsSettingsScreen() {
                         .size(ButtonDefaults.IconSize)
                 )
                 Text(stringResource(R.string.create_tag_title))
+            }
+        }
+        item {
+            PreferenceCategory(title = stringResource(R.string.preference_category_folders)) {
+                ListPreference(
+                    title = stringResource(R.string.preference_folders_style),
+                    items = listOf(
+                        stringResource(R.string.preference_folders_style_popup) to FolderStyle.Popup,
+                        stringResource(R.string.preference_folders_style_sheet) to FolderStyle.BottomSheet,
+                    ),
+                    value = folderStyle,
+                    onValueChanged = {
+                        if (it != null) viewModel.setFolderStyle(it)
+                    },
+                )
             }
         }
     }

@@ -4,8 +4,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.mm20.launcher2.data.customattrs.CustomAttributesRepository
+import de.mm20.launcher2.data.customattrs.TagFoldersRepository
 import de.mm20.launcher2.icons.IconService
 import de.mm20.launcher2.icons.LauncherIcon
+import de.mm20.launcher2.preferences.FolderStyle
+import de.mm20.launcher2.preferences.search.FolderSettings
 import de.mm20.launcher2.search.Tag
 import de.mm20.launcher2.services.tags.TagsService
 import kotlinx.coroutines.flow.Flow
@@ -17,6 +20,8 @@ import org.koin.core.component.inject
 class TagsSettingsScreenVM: ViewModel(), KoinComponent {
     private val tagsService: TagsService by inject()
     private val iconService: IconService by inject()
+    private val folderSettings: FolderSettings by inject()
+    private val tagFoldersRepository: TagFoldersRepository by inject()
 
     val tags = tagsService.getAllTags()
 
@@ -34,6 +39,14 @@ class TagsSettingsScreenVM: ViewModel(), KoinComponent {
             }
             tagsService.cloneTag(tag, newName)
         }
+    }
+
+    val folderStyle = folderSettings.style
+
+    fun isFolder(tag: String): Flow<Boolean> = tagFoldersRepository.isFolder(tag)
+
+    fun setFolderStyle(style: FolderStyle) {
+        folderSettings.setStyle(style)
     }
 
     fun deleteTag(tag: String) {

@@ -1,6 +1,7 @@
 package de.mm20.launcher2.services.tags.impl
 
 import de.mm20.launcher2.data.customattrs.CustomAttributesRepository
+import de.mm20.launcher2.data.customattrs.TagFoldersRepository
 import de.mm20.launcher2.searchable.SavableSearchableRepository
 import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.search.Tag
@@ -16,6 +17,7 @@ import kotlinx.coroutines.launch
 internal class TagsServiceImpl(
     private val customAttributesRepository: CustomAttributesRepository,
     private val searchableRepository: SavableSearchableRepository,
+    private val tagFoldersRepository: TagFoldersRepository,
 ) : TagsService {
     private val scope = CoroutineScope(Job() + Dispatchers.Default)
     override fun getAllTags(startsWith: String?): Flow<List<String>> {
@@ -25,6 +27,8 @@ internal class TagsServiceImpl(
     override fun deleteTag(tag: String) {
         searchableRepository.delete(Tag(tag))
         customAttributesRepository.deleteTag(tag)
+        // Otherwise a new tag with the same name would be a folder too
+        tagFoldersRepository.setFolder(tag, false)
     }
 
     override fun cloneTag(tag: String, newTag: String) {

@@ -70,6 +70,7 @@ data class LauncherSettingsData internal constructor(
     val favoritesFrequentlyUsedRows: Int = 1,
     val favoritesEditButton: Boolean = true,
     val favoritesCompactTags: Boolean = false,
+    val foldersStyle: FolderStyle = FolderStyle.Popup,
 
     val searchAllApps: Boolean = true,
     val appsShowDetails: Boolean = true,
@@ -500,4 +501,13 @@ enum class BatteryStatusVisibility {
     @SerialName("hide") Hide,
     @SerialName("show") Show,
     @SerialName("always") Always
+}
+
+/**
+ * How folders (tags shown as folders) open on the search screen
+ */
+@Serializable
+enum class FolderStyle {
+    @SerialName("popup") Popup,
+    @SerialName("sheet") BottomSheet,
 }

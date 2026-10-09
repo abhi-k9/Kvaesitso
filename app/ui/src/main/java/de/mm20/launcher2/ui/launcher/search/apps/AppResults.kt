@@ -28,11 +28,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.mm20.launcher2.profiles.Profile
 import de.mm20.launcher2.search.Application
+import de.mm20.launcher2.search.SavableSearchable
+import de.mm20.launcher2.search.Tag
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.launcher.search.common.grid.GridItem
 import de.mm20.launcher2.ui.launcher.search.common.grid.GridResults
 import de.mm20.launcher2.ui.launcher.search.common.list.ListItem
 import de.mm20.launcher2.ui.launcher.search.common.list.ListResults
+import de.mm20.launcher2.ui.launcher.search.folders.FolderGridItem
+import de.mm20.launcher2.ui.launcher.search.folders.FolderListItem
 import de.mm20.launcher2.ui.layout.BottomReversed
 import de.mm20.launcher2.ui.locals.LocalGridSettings
 
@@ -43,7 +47,8 @@ fun LazyListScope.AppResults(
     profileStates: Map<Profile.Type, Profile.State> = emptyMap(),
     showProfileLockControls: Boolean = false,
     onProfileLockChange: ((Profile, Boolean) -> Unit)? = null,
-    apps: List<Application>,
+    // Apps and folders (tags)
+    apps: List<SavableSearchable>,
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     highlightedItem: Application? = null,
@@ -216,14 +221,21 @@ fun LazyListScope.AppResults(
             before = before?.let { { it() } },
             selectedIndex = selectedIndex,
             itemContent = { app, showDetails, index ->
-                ListItem(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    item = app,
-                    showDetails = showDetails,
-                    onShowDetails = { onSelect(if(it) index else -1) },
-                    highlight = highlightedItem?.key == app.key
-                )
+                if (app is Tag) {
+                    FolderListItem(
+                        modifier = Modifier.fillMaxWidth(),
+                        folder = app,
+                    )
+                } else {
+                    ListItem(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        item = app,
+                        showDetails = showDetails,
+                        onShowDetails = { onSelect(if(it) index else -1) },
+                        highlight = highlightedItem?.key == app.key
+                    )
+                }
             },
             reverse = reverse,
         )
@@ -233,11 +245,18 @@ fun LazyListScope.AppResults(
             items = if (isProfileLocked) emptyList() else apps,
             before = before,
             itemContent = {
-                GridItem(
-                    item = it,
-                    showLabels = LocalGridSettings.current.showLabels,
-                    highlight = it.key == highlightedItem?.key
-                )
+                if (it is Tag) {
+                    FolderGridItem(
+                        folder = it,
+                        showLabels = LocalGridSettings.current.showLabels,
+                    )
+                } else {
+                    GridItem(
+                        item = it,
+                        showLabels = LocalGridSettings.current.showLabels,
+                        highlight = it.key == highlightedItem?.key
+                    )
+                }
             },
             reverse = reverse,
             columns = columns,

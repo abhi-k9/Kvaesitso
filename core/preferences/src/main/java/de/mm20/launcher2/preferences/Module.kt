@@ -7,6 +7,7 @@ import de.mm20.launcher2.preferences.media.MediaSettings
 import de.mm20.launcher2.preferences.search.CalculatorSearchSettings
 import de.mm20.launcher2.preferences.search.CalendarSearchSettings
 import de.mm20.launcher2.preferences.search.FavoritesSettings
+import de.mm20.launcher2.preferences.search.FolderSettings
 import de.mm20.launcher2.preferences.search.FileSearchSettings
 import de.mm20.launcher2.preferences.search.LocationSearchSettings
 import de.mm20.launcher2.preferences.search.RankingSettings
@@ -39,6 +40,7 @@ val preferencesModule = module {
     factory { UiSettings(get()) }
     factory { ShortcutSearchSettings(get()) }
     factory { FavoritesSettings(get()) }
+    factory { FolderSettings(get()) }
     factory { WikipediaSearchSettings(get()) }
     factory { IconSettings(get()) }
     factory { RankingSettings(get()) }

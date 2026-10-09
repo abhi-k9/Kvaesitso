@@ -794,6 +794,16 @@
     <string name="tag_name">Tag name</string>
     <string name="tag_icon_customicon">Icon</string>
     <string name="tag_icon_emoji">Emoji</string>
+    <string name="tag_show_as_folder">Show as folder</string>
+    <!-- Summary of a tag in the tag settings that is shown as a folder -->
+    <string name="tag_is_folder">Shown as folder</string>
+    <string name="tag_show_as_folder_summary">Group these items in a folder in the app list. Apps in a folder are only shown there and in search results.</string>
+    <string name="preference_category_folders">Folders</string>
+    <string name="preference_folders_style">Open folders as</string>
+    <string name="preference_folders_style_popup">Popup</string>
+    <string name="preference_folders_style_sheet">Bottom sheet</string>
+    <!-- Turns a folder back into a regular tag, its apps are shown in the app list again -->
+    <string name="folder_ungroup">Ungroup</string>
     <plurals name="tag_selected_items">
         <item quantity="one">%1$d item selected</item>
         <item quantity="other">%1$d items selected</item>
