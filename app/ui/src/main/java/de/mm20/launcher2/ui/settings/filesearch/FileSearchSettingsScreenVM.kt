@@ -55,6 +55,12 @@ class FileSearchSettingsScreenVM : ViewModel(), KoinComponent {
         fileSearchSettings.setLocalFiles(localFiles)
     }
 
+    val skipNoMediaFolders = fileSearchSettings.skipNoMediaFolders
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+    fun setSkipNoMediaFolders(skip: Boolean) {
+        fileSearchSettings.setSkipNoMediaFolders(skip)
+    }
+
     val nextcloud = fileSearchSettings.nextcloudFiles
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
     fun setNextcloud(nextcloud: Boolean) {

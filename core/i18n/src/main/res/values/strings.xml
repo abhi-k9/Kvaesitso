@@ -662,6 +662,9 @@
     <string name="preference_search_locations_summary">Search the local area for shops and other places</string>
     <string name="preference_search_localfiles">Local files</string>
     <string name="preference_search_localfiles_summary">Search documents, photos and other files stored on this device</string>
+    <!-- .nomedia is a file name, don't translate it -->
+    <string name="preference_search_localfiles_skip_nomedia">Skip .nomedia folders</string>
+    <string name="preference_search_localfiles_skip_nomedia_summary">Leave out files in folders that apps hide from galleries with a .nomedia file</string>
     <string name="preference_search_nextcloud">Nextcloud</string>
     <string name="preference_search_cloud_summary">Search %1$s\'s files</string>
     <string name="preference_search_owncloud">Owncloud</string>

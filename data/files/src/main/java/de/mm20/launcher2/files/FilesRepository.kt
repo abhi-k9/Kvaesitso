@@ -51,7 +51,11 @@ internal class FileRepository(
         val hasPermission = permissionsManager.hasPermission(PermissionGroup.ExternalStorage)
 
 
-        return combineTransform(settings.enabledProviders, hasPermission) { providerIds, permission ->
+        return combineTransform(
+            settings.enabledProviders,
+            hasPermission,
+            settings.skipNoMediaFolders,
+        ) { providerIds, permission, skipNoMediaFolders ->
             emit(persistentListOf())
             if (providerIds.isEmpty()) {
                 return@combineTransform
@@ -60,7 +64,8 @@ internal class FileRepository(
                 when (it) {
                     "local" -> if (permission) LocalFileProvider(
                         context,
-                        permissionsManager
+                        permissionsManager,
+                        skipNoMediaFolders,
                     ) else null
 
                     "nextcloud" -> NextcloudFileProvider(nextcloudClient)

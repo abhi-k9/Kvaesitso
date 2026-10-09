@@ -83,6 +83,17 @@ fun FileSearchSettingsScreen() {
                     )
                 }
 
+                val skipNoMediaFolders by viewModel.skipNoMediaFolders.collectAsState()
+                SwitchPreference(
+                    title = stringResource(R.string.preference_search_localfiles_skip_nomedia),
+                    summary = stringResource(R.string.preference_search_localfiles_skip_nomedia_summary),
+                    value = skipNoMediaFolders == true,
+                    onValueChanged = {
+                        viewModel.setSkipNoMediaFolders(it)
+                    },
+                    enabled = localFiles == true && hasFilePermission == true
+                )
+
                 val nextcloud by viewModel.nextcloud.collectAsState()
                 val nextcloudAccount by viewModel.nextcloudAccount
                 GuardedPreference(

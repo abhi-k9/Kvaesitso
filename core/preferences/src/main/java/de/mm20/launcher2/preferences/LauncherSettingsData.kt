@@ -76,6 +76,7 @@ data class LauncherSettingsData internal constructor(
     val appsShowDetails: Boolean = true,
 
     val fileSearchProviders: Set<String> = setOf("local"),
+    val fileSearchSkipNoMedia: Boolean = false,
 
     @Deprecated("Use contactSearchProviders `local` instead")
     val contactSearchEnabled: Boolean = true,

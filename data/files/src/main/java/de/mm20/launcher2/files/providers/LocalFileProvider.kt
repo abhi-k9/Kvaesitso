@@ -12,7 +12,8 @@ import kotlinx.coroutines.withContext
 
 internal class LocalFileProvider(
     private val context: Context,
-    private val permissionsManager: PermissionsManager
+    private val permissionsManager: PermissionsManager,
+    private val skipNoMediaFolders: Boolean = false,
 ): FileProvider {
     override suspend fun search(query: String, allowNetwork: Boolean): List<File> = withContext(Dispatchers.IO) {
         if (!permissionsManager.checkPermissionOnce(PermissionGroup.ExternalStorage)) {
@@ -21,7 +22,8 @@ internal class LocalFileProvider(
         if (query.length < 2 || query.isBlank()) return@withContext emptyList()
         val results = mutableListOf<LocalFile>()
         val uri = MediaStore.Files.getContentUri("external").buildUpon()
-            .appendQueryParameter("limit", "10").build()
+            // More than are shown, some may be left out below
+            .appendQueryParameter("limit", "30").build()
         val projection = arrayOf(
             MediaStore.Files.FileColumns.DISPLAY_NAME,
             MediaStore.Files.FileColumns._ID,
@@ -44,6 +46,7 @@ internal class LocalFileProvider(
             CrashReporter.logException(e)
             null
         } ?: return@withContext results
+        val noMediaFolders = mutableMapOf<String, Boolean>()
         while (cursor.moveToNext()) {
             if (results.size >= 10) {
                 break
@@ -51,6 +54,10 @@ internal class LocalFileProvider(
             val path = cursor.getStringOrNull(3) ?: continue
             if (!java.io.File(path).exists()) continue
             val directory = java.io.File(path).isDirectory
+            if (skipNoMediaFolders) {
+                val folder = if (directory) java.io.File(path) else java.io.File(path).parentFile
+                if (folder != null && hasNoMedia(folder, noMediaFolders)) continue
+            }
             val mimeType = (cursor.getStringOrNull(4).takeIf { it != "application/octet-stream" }
                 ?: if (directory) "resource/folder" else LocalFile.getMimetypeByFileExtension(
                     path.substringAfterLast(
@@ -69,5 +76,18 @@ internal class LocalFileProvider(
         }
         cursor.close()
         return@withContext results
+    }
+
+    /**
+     * Whether [folder] or a folder that contains it has a .nomedia file. The results are kept in
+     * [cache], by path.
+     */
+    private fun hasNoMedia(folder: java.io.File, cache: MutableMap<String, Boolean>): Boolean {
+        cache[folder.path]?.let { return it }
+        val parent = folder.parentFile
+        val hasNoMedia = java.io.File(folder, ".nomedia").exists() ||
+                parent != null && hasNoMedia(parent, cache)
+        cache[folder.path] = hasNoMedia
+        return hasNoMedia
     }
 }

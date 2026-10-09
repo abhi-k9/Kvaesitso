@@ -2,6 +2,7 @@ package de.mm20.launcher2.preferences.search
 
 import de.mm20.launcher2.preferences.LauncherDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 class FileSearchSettings internal constructor(
@@ -59,6 +60,19 @@ class FileSearchSettings internal constructor(
             } else {
                 it.copy(fileSearchProviders = it.fileSearchProviders - "owncloud")
             }
+        }
+    }
+
+    /**
+     * Leave out local files in folders that have a .nomedia file, i.e. that the app that made them
+     * wants to keep out of galleries and media players
+     */
+    val skipNoMediaFolders: Flow<Boolean>
+        get() = launcherDataStore.data.map { it.fileSearchSkipNoMedia }.distinctUntilChanged()
+
+    fun setSkipNoMediaFolders(skip: Boolean) {
+        launcherDataStore.update {
+            it.copy(fileSearchSkipNoMedia = skip)
         }
     }
 
