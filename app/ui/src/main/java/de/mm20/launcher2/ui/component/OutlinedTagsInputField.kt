@@ -60,6 +60,7 @@ fun OutlinedTagsInputField(
     label: @Composable (() -> Unit)? = null,
     placeholder: @Composable (() -> Unit)? = null,
     leadingIcon: @Composable (() -> Unit)? = null,
+    trailingIcon: @Composable (() -> Unit)? = null,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     textStyle: TextStyle = LocalTextStyle.current,
     textColor: Color = LocalContentColor.current,
@@ -137,6 +138,7 @@ fun OutlinedTagsInputField(
                 value = tags.joinToString() + value,
                 label = label,
                 leadingIcon = leadingIcon,
+                trailingIcon = trailingIcon,
                 innerTextField = {
                     Column {
                         Row(

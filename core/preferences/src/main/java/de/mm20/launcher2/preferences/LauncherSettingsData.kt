@@ -163,6 +163,7 @@ data class LauncherSettingsData internal constructor(
     val animationsCharging: Boolean = true,
 
     val stateTagsMultiline: Boolean = false,
+    val stateRecentTags: List<String> = emptyList(),
 
     val weatherProvider: String = "metno",
     val weatherAutoLocation: Boolean = true,

@@ -19,8 +19,10 @@ import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -120,28 +122,84 @@ fun CustomizeSearchableSheet(
             )
 
             var tags by remember { mutableStateOf(emptyList<String>()) }
+            // null until the saved tags and visibility have been loaded
+            var savedTags by remember { mutableStateOf<List<String>?>(null) }
             var visibility by remember { mutableStateOf(VisibilityLevel.Default) }
 
             LaunchedEffect(searchable.key) {
                 visibility = viewModel.getVisibility().first()
-                tags = viewModel.getTags().first()
+                val saved = viewModel.getTags().first()
+                tags = saved
+                savedTags = saved
             }
 
-            OutlinedTagsInputField(
+            val tagChoices by remember { viewModel.getTagChoices() }.collectAsState(null)
+            val hasTagChoices = tagChoices?.isEmpty() == false
+            var showTagsDropdown by remember {
+                mutableStateOf(false)
+            }
+
+            ExposedDropdownMenuBox(
+                expanded = showTagsDropdown && hasTagChoices,
+                onExpandedChange = { showTagsDropdown = it },
                 modifier = Modifier
                     .padding(top = 8.dp)
                     .fillMaxWidth(),
-                tags = tags, onTagsChange = { tags = it.distinct() },
-                label = {
-                    Text(stringResource(R.string.customize_item_tags))
-                },
-                onAutocomplete = {
-                    viewModel.autocompleteTags(it).minus(tags.toSet())
-                },
-                leadingIcon = {
-                    Icon(painterResource(R.drawable.tag_24px), null)
+            ) {
+                OutlinedTagsInputField(
+                    modifier = Modifier.fillMaxWidth(),
+                    tags = tags, onTagsChange = { tags = it.distinct() },
+                    label = {
+                        Text(stringResource(R.string.customize_item_tags))
+                    },
+                    onAutocomplete = {
+                        viewModel.autocompleteTags(it).minus(tags.toSet())
+                    },
+                    leadingIcon = {
+                        Icon(painterResource(R.drawable.tag_24px), null)
+                    },
+                    trailingIcon = if (hasTagChoices) {
+                        {
+                            ExposedDropdownMenuDefaults.TrailingIcon(
+                                expanded = showTagsDropdown,
+                                // Opens the list without focusing the text field
+                                modifier = Modifier.menuAnchor(
+                                    ExposedDropdownMenuAnchorType.SecondaryEditable
+                                ),
+                            )
+                        }
+                    } else null,
+                )
+                ExposedDropdownMenu(
+                    expanded = showTagsDropdown && hasTagChoices,
+                    onDismissRequest = {
+                        showTagsDropdown = false
+                    }
+                ) {
+                    val choices = tagChoices ?: return@ExposedDropdownMenu
+                    // Several tags can be selected, so the list stays open
+                    val onCheckedChange = { tag: String, checked: Boolean ->
+                        tags = if (checked) tags + tag else tags - tag
+                    }
+                    if (choices.recent.isNotEmpty()) {
+                        Text(
+                            stringResource(R.string.customize_item_tags_recent),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
+                        for (tag in choices.recent) {
+                            TagChoice(tag, checked = tag in tags, onCheckedChange = onCheckedChange)
+                        }
+                        if (choices.others.isNotEmpty()) {
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        }
+                    }
+                    for (tag in choices.others) {
+                        TagChoice(tag, checked = tag in tags, onCheckedChange = onCheckedChange)
+                    }
                 }
-            )
+            }
 
             var showDropdown by remember {
                 mutableStateOf(false)
@@ -272,7 +330,9 @@ fun CustomizeSearchableSheet(
             DisposableEffect(searchable.key) {
                 onDispose {
                     viewModel.setCustomLabel(customLabelValue)
-                    viewModel.setTags(tags)
+                    // If the sheet is closed before they are loaded, they must not be overwritten
+                    val saved = savedTags ?: return@onDispose
+                    viewModel.setTags(tags, saved)
                     viewModel.setVisibility(visibility)
                 }
             }
@@ -296,6 +356,26 @@ fun CustomizeSearchableSheet(
             )
         }
     }
+}
+
+@Composable
+private fun TagChoice(
+    tag: String,
+    checked: Boolean,
+    onCheckedChange: (tag: String, checked: Boolean) -> Unit,
+) {
+    DropdownMenuItem(
+        checked = checked,
+        onCheckedChange = { onCheckedChange(tag, it) },
+        shapes = MenuDefaults.itemShapes(),
+        text = { Text(tag) },
+        leadingIcon = {
+            Icon(painterResource(R.drawable.tag_24px), null)
+        },
+        checkedLeadingIcon = {
+            Icon(painterResource(R.drawable.check_24px), null)
+        },
+    )
 }
 
 @Composable

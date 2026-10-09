@@ -1043,6 +1043,8 @@
     <string name="poi_category_hackerspace">Hackerspace</string>
     <string name="customize_item_label">Label</string>
     <string name="customize_item_tags">Tags</string>
+    <!-- Heading above the tags that have last been added to items, in the list of tags to choose from -->
+    <string name="customize_item_tags_recent">Recently used</string>
     <string name="customize_item_visibility">Show in</string>
     <string name="item_visibility_app_default">App grid &amp; search results</string>
     <string name="item_visibility_calendar_default">Calendar widget &amp; search results</string>
