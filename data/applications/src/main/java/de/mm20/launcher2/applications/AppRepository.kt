@@ -306,7 +306,7 @@ internal class AppRepositoryImpl(
                 } else {
                     appResults.addAll(apps.mapNotNull { app ->
                         val cachedLabel = app.cachedNormalizerResult
-                        val score = ResultScore.from(
+                        val labelScore = ResultScore.from(
                             query = normalizedQuery,
                             primaryFields = listOf(
                                 if (cachedLabel?.first == normalizerId) {
@@ -317,6 +317,10 @@ internal class AppRepositoryImpl(
                                     }
                                 }
                             ),
+                        )
+                        val score = maxOf(
+                            labelScore,
+                            packageNameScore(query, app.componentName.packageName),
                         )
                         if (score.score < 0.8f) return@mapNotNull null
                         app.copy(
@@ -340,5 +344,19 @@ internal class AppRepositoryImpl(
         return lai?.let {
             LauncherApp(context, lai)
         }
+    }
+}
+
+/**
+ * How well [query] matches the package name of an app, e.g. "org.fdroid" for F-Droid. Only
+ * queries with a dot are compared, others like "com" would match nearly every app.
+ */
+internal fun packageNameScore(query: String, packageName: String): ResultScore {
+    val trimmedQuery = query.trim()
+    if ('.' !in trimmedQuery) return ResultScore.Zero
+    return when {
+        packageName.equals(trimmedQuery, ignoreCase = true) -> ResultScore(1f)
+        packageName.contains(trimmedQuery, ignoreCase = true) -> ResultScore(0.9f)
+        else -> ResultScore.Zero
     }
 }
