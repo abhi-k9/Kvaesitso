@@ -809,6 +809,15 @@
     <string name="preference_folders_style_sheet">Bottom sheet</string>
     <!-- Turns a folder back into a regular tag, its apps are shown in the app list again -->
     <string name="folder_ungroup">Ungroup</string>
+    <string name="preference_folders_from_categories">Create folders from app categories</string>
+    <string name="preference_folders_from_categories_summary">Sort apps into folders such as Games or Social, by the category that the apps declare</string>
+    <string name="folders_from_categories_message">Apps that aren\'t in a folder yet will be added to these folders. Tags with the same name become folders.</string>
+    <string name="folders_from_categories_none">There are no apps to sort. Only apps that declare a category are sorted, and only into folders with two or more apps.</string>
+    <!-- A folder that will be created, and how many apps it will contain -->
+    <plurals name="folders_from_categories_folder">
+        <item quantity="one">%1$s: %2$d app</item>
+        <item quantity="other">%1$s: %2$d apps</item>
+    </plurals>
     <string name="menu_open_file_location">Open file location</string>
     <string name="menu_add_to_folder">Add to folder</string>
     <string name="menu_new_folder">New folder…</string>
