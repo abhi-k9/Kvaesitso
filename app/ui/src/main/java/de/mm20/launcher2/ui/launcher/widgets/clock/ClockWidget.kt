@@ -150,6 +150,11 @@ fun ClockWidget(
                 ConfigureClockWidgetSheet(expanded = configure, onDismiss = { configure = false })
             }
         } else {
+            // A widget that replaces the clock handles its own taps. Taps that it doesn't handle,
+            // e.g. on its blank parts, shouldn't open the clock app, so that they work like on
+            // the rest of the home screen.
+            val opensClockApp =
+                clockStyle !is ClockWidgetStyle.Empty && clockStyle !is ClockWidgetStyle.Custom
             Column(modifier = modifier) {
                 Box(
                     modifier = Modifier
@@ -171,7 +176,7 @@ fun ClockWidget(
                             ) {
                                 Box(
                                     modifier = Modifier.clickable(
-                                        enabled = clockStyle !is ClockWidgetStyle.Empty,
+                                        enabled = opensClockApp,
                                         indication = null,
                                         interactionSource = remember { MutableInteractionSource() }
                                     ) {
@@ -218,7 +223,7 @@ fun ClockWidget(
                                 }
                                 Box(
                                     modifier = Modifier.clickable(
-                                        enabled = clockStyle !is ClockWidgetStyle.Empty,
+                                        enabled = opensClockApp,
                                         indication = null,
                                         interactionSource = remember { MutableInteractionSource() }
                                     ) {
