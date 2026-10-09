@@ -9,6 +9,9 @@ import de.mm20.launcher2.icons.StaticLauncherIcon
 import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.search.SearchableSerializer
 import de.mm20.launcher2.search.Tag
+import de.mm20.launcher2.searchable.SavableSearchableRepository
+import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -81,6 +84,10 @@ class TagFoldersTest {
         every { customAttrsDao() } returns dao
     }
     private val customAttributes = mockk<CustomAttributesRepository>()
+    private val searchables = mockk<SavableSearchableRepository>(relaxed = true) {
+        // No hidden items
+        every { getKeys(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(emptyList())
+    }
 
     @Test
     fun readsWhichTagsAreFolders() {
@@ -88,7 +95,7 @@ class TagFoldersTest {
         every { dao.getCustomAttributes(listOf("tag://Games", "tag://Social"), "folder") } returns
                 flowOf(listOf(CustomAttributeEntity(key = "tag://Games", type = "folder", value = "true")))
 
-        val repository = TagFoldersRepositoryImpl(database, customAttributes)
+        val repository = TagFoldersRepositoryImpl(database, customAttributes, searchables)
         assertEquals(setOf("Games"), runBlocking { repository.folderTags.first() })
     }
 
@@ -96,7 +103,7 @@ class TagFoldersTest {
     fun noTagsMeansNoFolders() {
         every { customAttributes.getAllTags(any()) } returns flowOf(emptyList())
 
-        val repository = TagFoldersRepositoryImpl(database, customAttributes)
+        val repository = TagFoldersRepositoryImpl(database, customAttributes, searchables)
         assertEquals(emptySet<String>(), runBlocking { repository.folderTags.first() })
         assertEquals(emptyMap<String, List<SavableSearchable>>(), runBlocking { repository.folders.first() })
     }
@@ -105,7 +112,7 @@ class TagFoldersTest {
     @Test
     fun renamedFolderMovesTheFlag() {
         every { customAttributes.getAllTags(any()) } returns flowOf(emptyList())
-        val repository = TagFoldersRepositoryImpl(database, customAttributes)
+        val repository = TagFoldersRepositoryImpl(database, customAttributes, searchables)
 
         repository.setFolder("New name", true, oldTag = "Old name")
 
@@ -122,11 +129,40 @@ class TagFoldersTest {
     @Test
     fun ungroupingRemovesTheFlag() {
         every { customAttributes.getAllTags(any()) } returns flowOf(emptyList())
-        val repository = TagFoldersRepositoryImpl(database, customAttributes)
+        val repository = TagFoldersRepositoryImpl(database, customAttributes, searchables)
 
         repository.setFolder("Games", false)
 
         verify(timeout = 5000) { dao.clearCustomAttribute("tag://Games", "folder") }
         verify(exactly = 0) { dao.setCustomAttribute(any()) }
+    }
+
+    // Like in the favorites
+    @Test
+    fun hiddenItemsAreLeftOutOfFolders() {
+        every { searchables.getKeys(any(), any(), any(), any(), any(), any(), any()) } returns
+                flowOf(listOf(chat.key))
+        every { customAttributes.getAllTags(any()) } returns flowOf(listOf("Social"))
+        every { dao.getCustomAttributes(listOf("tag://Social"), "folder") } returns
+                flowOf(listOf(CustomAttributeEntity(key = "tag://Social", type = "folder", value = "true")))
+        every { customAttributes.getItemsForTag("Social") } returns flowOf(listOf(chat, mail))
+
+        val repository = TagFoldersRepositoryImpl(database, customAttributes, searchables)
+        assertEquals(listOf(mail), runBlocking { repository.getItems("Social").first() })
+        assertEquals(mapOf("Social" to listOf(mail)), runBlocking { repository.folders.first() })
+    }
+
+    // A tag that was removed from its last item doesn't exist anymore, so a new tag with the same
+    // name must not be a folder
+    @Test
+    fun foldersOfUnusedTagsAreRemovedWhenTagsChange() {
+        val repository = CustomAttributesRepositoryImpl(database, searchables)
+        repository.setTags(camera, listOf("Photos"))
+
+        coVerify(timeout = 5000) { dao.deleteUnusedFolders() }
+        coVerifyOrder {
+            dao.setTags(camera.key, any())
+            dao.deleteUnusedFolders()
+        }
     }
 }

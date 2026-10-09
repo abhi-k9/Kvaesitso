@@ -120,6 +120,9 @@ internal class CustomAttributesRepositoryImpl(
             dao.setTags(searchable.key, tags.map {
                 CustomTag(it).toDatabaseEntity(searchable.key)
             })
+            // A tag that was removed from its last item doesn't exist anymore, so it isn't a
+            // folder anymore either
+            dao.deleteUnusedFolders()
         }
     }
 
@@ -254,6 +257,7 @@ internal class CustomAttributesRepositoryImpl(
         var removed = 0
         val job = scope.launch {
             removed = dao.cleanUp()
+            removed += appDatabase.customAttrsDao().deleteUnusedFolders()
         }
         job.join()
         return removed

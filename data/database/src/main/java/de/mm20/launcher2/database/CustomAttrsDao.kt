@@ -67,6 +67,12 @@ interface CustomAttrsDao {
     suspend fun deleteTag(tag: String)
 
     /**
+     * Removes the folder flags of tags that no item has anymore
+     */
+    @Query("DELETE FROM CustomAttributes WHERE type = 'folder' AND `key` NOT IN (SELECT 'tag://' || value FROM CustomAttributes WHERE type = 'tag')")
+    suspend fun deleteUnusedFolders(): Int
+
+    /**
      * Moves all attributes of an item to a new key. They replace the attributes already stored
      * for the new key, if any.
      */

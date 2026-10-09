@@ -4,6 +4,8 @@ import de.mm20.launcher2.database.AppDatabase
 import de.mm20.launcher2.database.entities.CustomAttributeEntity
 import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.search.Tag
+import de.mm20.launcher2.searchable.SavableSearchableRepository
+import de.mm20.launcher2.searchable.VisibilityLevel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -27,9 +29,15 @@ interface TagFoldersRepository {
     val folderTags: Flow<Set<String>>
 
     /**
-     * The items of each folder, by tag name.
+     * The items of each folder, by tag name, like [getItems].
      */
     val folders: Flow<Map<String, List<SavableSearchable>>>
+
+    /**
+     * The items in the folder [tag]. Like in the favorites, items that are set to hidden are left
+     * out.
+     */
+    fun getItems(tag: String): Flow<List<SavableSearchable>>
 
     fun isFolder(tag: String): Flow<Boolean>
 
@@ -44,9 +52,15 @@ interface TagFoldersRepository {
 internal class TagFoldersRepositoryImpl(
     private val appDatabase: AppDatabase,
     private val customAttributesRepository: CustomAttributesRepository,
+    searchableRepository: SavableSearchableRepository,
 ) : TagFoldersRepository {
     // One at a time, so that changes are written in order
     private val scope = CoroutineScope(Job() + Dispatchers.IO.limitedParallelism(1))
+
+    private val hiddenKeys: Flow<Set<String>> = searchableRepository.getKeys(
+        minVisibility = VisibilityLevel.Hidden,
+        maxVisibility = VisibilityLevel.Hidden,
+    ).map { it.toSet() }
 
     override val folderTags: Flow<Set<String>> = customAttributesRepository.getAllTags()
         .flatMapLatest { tags ->
@@ -68,7 +82,20 @@ internal class TagFoldersRepositoryImpl(
             combine(tags.map { tag ->
                 customAttributesRepository.getItemsForTag(tag).map { tag to it }
             }) { it.toMap() }
+                .combine(hiddenKeys) { folders, hidden ->
+                    folders.mapValues { (_, items) -> items.withoutHidden(hidden) }
+                }
         }
+
+    override fun getItems(tag: String): Flow<List<SavableSearchable>> {
+        return customAttributesRepository.getItemsForTag(tag)
+            .combine(hiddenKeys) { items, hidden -> items.withoutHidden(hidden) }
+    }
+
+    private fun List<SavableSearchable>.withoutHidden(hidden: Set<String>): List<SavableSearchable> {
+        if (hidden.isEmpty()) return this
+        return filterNot { it.key in hidden }
+    }
 
     override fun isFolder(tag: String): Flow<Boolean> {
         return appDatabase.customAttrsDao().getCustomAttribute(Tag(tag).key, FolderAttribute)

@@ -9,5 +9,5 @@ val customAttrsModule = module {
     factory<Backupable>(named<CustomAttributesRepository>()) { CustomAttributesRepositoryImpl(get(), get()) }
     factory<CustomAttributesRepository> { CustomAttributesRepositoryImpl(get(), get()) }
     single<SearchableKeyMigrator> { SearchableKeyMigratorImpl(get(), get()) }
-    single<TagFoldersRepository> { TagFoldersRepositoryImpl(get(), get()) }
+    single<TagFoldersRepository> { TagFoldersRepositoryImpl(get(), get(), get()) }
 }

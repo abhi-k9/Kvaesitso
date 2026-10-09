@@ -102,8 +102,8 @@ class FolderVM(private val tag: String) : ViewModel(), KoinComponent {
 
     private val folder = Tag(tag)
 
-    val items: StateFlow<List<SavableSearchable>> = customAttributesRepository
-        .getItemsForTag(tag)
+    val items: StateFlow<List<SavableSearchable>> = tagFoldersRepository
+        .getItems(tag)
         .withCustomLabels(customAttributesRepository)
         .map { it.sorted() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

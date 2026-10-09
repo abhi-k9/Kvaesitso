@@ -73,6 +73,7 @@ import de.mm20.launcher2.ui.launcher.search.location.LocationItemGridPopup
 import de.mm20.launcher2.ui.launcher.search.shortcut.ShortcutItemGridPopup
 import de.mm20.launcher2.ui.launcher.search.website.WebsiteItemGridPopup
 import de.mm20.launcher2.ui.launcher.search.wikipedia.ArticleItemGridPopup
+import de.mm20.launcher2.ui.launcher.sheets.LocalBottomSheetManager
 import de.mm20.launcher2.ui.launcher.transitions.EnterHomeTransitionParams
 import de.mm20.launcher2.ui.launcher.transitions.HandleEnterHomeTransition
 import de.mm20.launcher2.ui.locals.LocalGridSettings
@@ -232,6 +233,14 @@ fun ItemPopup(origin: IntRect, searchable: Searchable, onDismissRequest: () -> U
     }
     BackHandler {
         show.targetState = false
+    }
+
+    // Customizing the item opens a sheet over the popup, so the popup isn't needed anymore
+    val customizedItem = LocalBottomSheetManager.current.customizeSearchableSheetShown.value
+    LaunchedEffect(customizedItem) {
+        if (customizedItem != null && customizedItem.key == (searchable as? SavableSearchable)?.key) {
+            show.targetState = false
+        }
     }
 
     Overlay {
