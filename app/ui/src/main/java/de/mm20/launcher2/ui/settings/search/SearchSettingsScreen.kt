@@ -384,6 +384,17 @@ fun SearchSettingsScreen() {
                         viewModel.setLaunchOnEnter(it)
                     }
                 )
+                val launchActionOnEnter by viewModel.launchActionOnEnter.collectAsStateWithLifecycle(null)
+                SwitchPreference(
+                    title = stringResource(R.string.preference_search_bar_launch_action_on_enter),
+                    iconPadding = true,
+                    summary = stringResource(R.string.preference_search_bar_launch_action_on_enter_summary),
+                    value = launchActionOnEnter == true,
+                    enabled = launchOnEnter == true,
+                    onValueChanged = {
+                        viewModel.setLaunchActionOnEnter(it)
+                    }
+                )
             }
         }
         item {

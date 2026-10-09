@@ -135,6 +135,13 @@ class SearchSettingsScreenVM : ViewModel(), KoinComponent {
         searchUiSettings.setLaunchOnEnter(launchOnEnter)
     }
 
+    val launchActionOnEnter = searchUiSettings.launchActionOnEnter
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+
+    fun setLaunchActionOnEnter(launchActionOnEnter: Boolean) {
+        searchUiSettings.setLaunchActionOnEnter(launchActionOnEnter)
+    }
+
     val hasAppShortcutPermission = permissionsManager.hasPermission(PermissionGroup.AppShortcuts)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
     val appShortcuts = shortcutSearchSettings.enabled

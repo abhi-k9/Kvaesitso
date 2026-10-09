@@ -16,6 +16,18 @@ class SearchUiSettings internal constructor(
         }
     }
 
+    /**
+     * Whether enter starts the first search action (e.g. a web search) instead of the best match
+     */
+    val launchActionOnEnter
+        get() = launcherDataStore.data.map { it.searchLaunchActionOnEnter }.distinctUntilChanged()
+
+    fun setLaunchActionOnEnter(launchActionOnEnter: Boolean) {
+        launcherDataStore.update {
+            it.copy(searchLaunchActionOnEnter = launchActionOnEnter)
+        }
+    }
+
     val hiddenItemsButton
         get() = launcherDataStore.data.map { it.hiddenItemsShowButton }.distinctUntilChanged()
 

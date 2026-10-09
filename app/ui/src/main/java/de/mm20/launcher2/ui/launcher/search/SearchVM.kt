@@ -78,6 +78,8 @@ class SearchVM : ViewModel(), KoinComponent {
 
     val launchOnEnter = searchUiSettings.launchOnEnter
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    private val launchActionOnEnter = searchUiSettings.launchActionOnEnter
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     private val searchService: SearchService by inject()
     private val tagFoldersRepository: TagFoldersRepository by inject()
@@ -352,6 +354,7 @@ class SearchVM : ViewModel(), KoinComponent {
 
                         if (launchOnEnter.value) {
                             bestMatch.value = when {
+                                launchActionOnEnter.value && searchActionResults.isNotEmpty() -> searchActionResults.first()
                                 appResults.isNotEmpty() -> appResults.first()
                                 appShortcutResults.isNotEmpty() -> appShortcutResults.first()
                                 calendarResults.isNotEmpty() -> calendarResults.first()
