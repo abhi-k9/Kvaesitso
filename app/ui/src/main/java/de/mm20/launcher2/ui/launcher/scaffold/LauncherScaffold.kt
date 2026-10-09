@@ -113,6 +113,7 @@ import de.mm20.launcher2.ui.launcher.scaffold.components.SearchComponent
 import de.mm20.launcher2.ui.launcher.search.SearchVM
 import de.mm20.launcher2.ui.launcher.search.filters.KeyboardFilterBar
 import de.mm20.launcher2.ui.launcher.searchbar.LauncherSearchBar
+import de.mm20.launcher2.ui.overlays.LocalOverlayManager
 import de.mm20.launcher2.ui.theme.transparency.transparency
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.HazeBlurStyle
@@ -1124,10 +1125,12 @@ internal fun LauncherScaffold(
         }
 
         // Typing with a hardware keyboard while nothing has focus starts a search with the text
+        val overlayManager = LocalOverlayManager.current
         LaunchedEffect(state) {
             val activity = (activity as? SharedLauncherActivity) ?: return@LaunchedEffect
             activity.typedText.collect { text ->
-                if (state.isLocked) return@collect
+                // Not while a sheet or popup is open, the search would start behind it
+                if (state.isLocked || overlayManager.overlays.isNotEmpty()) return@collect
                 searchVM.search(searchVM.searchQuery.value + text)
                 state.isSearchBarFocused = true
                 state.onSearchBarTap()

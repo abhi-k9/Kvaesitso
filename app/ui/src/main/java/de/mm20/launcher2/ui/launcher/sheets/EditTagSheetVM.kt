@@ -17,6 +17,7 @@ import de.mm20.launcher2.search.SearchService
 import de.mm20.launcher2.search.Tag
 import de.mm20.launcher2.services.tags.TagsService
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
@@ -42,6 +43,7 @@ class EditTagSheetVM : ViewModel(), KoinComponent {
     var tagIcon = emptyFlow<LauncherIcon?>()
 
     var loading by mutableStateOf(true)
+    private var loadJob: Job? = null
 
     var page by mutableStateOf(EditTagSheetPage.CreateTag)
     var wasOnLastPage by mutableStateOf(false)
@@ -63,7 +65,10 @@ class EditTagSheetVM : ViewModel(), KoinComponent {
         this.wasOnLastPage = this.page == EditTagSheetPage.CustomizeTag
         this.taggedItems = emptyList()
         this.isFolder = false
-        viewModelScope.launch(Dispatchers.Default) {
+        // The sheet reuses this view model, so a tag that is still loading must not overwrite
+        // this one
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch(Dispatchers.Default) {
             allTags = tagService.getAllTags().first().toSet()
             isFolder = tag != null && tagFoldersRepository.isFolder(tag).first()
             val items = if (tag != null) tagService.getTaggedItems(tag).first() else emptyList()

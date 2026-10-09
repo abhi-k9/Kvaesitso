@@ -20,12 +20,13 @@ class WeatherLocationSearchDialogVM: ViewModel(), KoinComponent {
 
     private var debounceSearchJob: Job? = null
     suspend fun searchLocation(query: String) {
+        // Also when the query is cleared, so that the results of the old query don't show up
+        debounceSearchJob?.cancelAndJoin()
         if (query.isBlank()) {
             locationResults.value = emptyList()
             isSearchingLocation.value = false
             return
         }
-        debounceSearchJob?.cancelAndJoin()
         withContext(coroutineContext) {
             debounceSearchJob = launch {
                 isSearchingLocation.value = true
