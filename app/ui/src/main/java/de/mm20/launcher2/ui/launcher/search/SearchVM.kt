@@ -18,6 +18,7 @@ import de.mm20.launcher2.permissions.PermissionsManager
 import de.mm20.launcher2.preferences.search.CalendarSearchSettings
 import de.mm20.launcher2.preferences.search.ContactSearchSettings
 import de.mm20.launcher2.preferences.search.FileSearchSettings
+import de.mm20.launcher2.preferences.search.FolderSettings
 import de.mm20.launcher2.preferences.search.LocationSearchSettings
 import de.mm20.launcher2.preferences.search.SearchFilterSettings
 import de.mm20.launcher2.preferences.search.ShortcutSearchSettings
@@ -83,6 +84,7 @@ class SearchVM : ViewModel(), KoinComponent {
 
     private val searchService: SearchService by inject()
     private val tagFoldersRepository: TagFoldersRepository by inject()
+    private val folderSettings: FolderSettings by inject()
 
     val searchQuery = mutableStateOf("")
     val isSearchEmpty = mutableStateOf(true)
@@ -244,11 +246,14 @@ class SearchVM : ViewModel(), KoinComponent {
                             // Show the apps without folders instead of no apps
                             Log.e("SearchVM", "Failed to load folders", it)
                             emit(emptyMap())
+                        }.combine(folderSettings.appsInList) { folders, appsInList ->
+                            folders to appsInList
                         }
                     ) { (results, hiddenKeys), folders ->
                         Triple(results, hiddenKeys, folders)
                     }
-                    .collectLatest { (results, hiddenKeys, folders) ->
+                    .collectLatest { (results, hiddenKeys, foldersAndAppsInList) ->
+                        val (folders, appsInList) = foldersAndAppsInList
                         val hiddenItems = mutableListOf<SavableSearchable>()
 
                         val (hiddenApps, apps) = results.standardProfileApps.partition {
@@ -273,8 +278,8 @@ class SearchVM : ViewModel(), KoinComponent {
                         hiddenItems += hiddenPrivateApps
                         previousResults = SearchResults(apps = apps)
 
-                        // Apps in a folder are only shown in the folder
-                        val grouping = apps.groupIntoFolders(folders)
+                        // Apps in a folder are only shown in the folder, unless set otherwise
+                        val grouping = apps.groupIntoFolders(folders, keepGroupedItems = appsInList)
 
                         searchActionResults.clear()
                         appResults.updateItems(grouping.ungrouped)

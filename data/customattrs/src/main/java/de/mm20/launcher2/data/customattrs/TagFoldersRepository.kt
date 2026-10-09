@@ -135,13 +135,15 @@ data class FolderGrouping<T : SavableSearchable>(
 
 /**
  * Groups this list into [folders] (by tag name, as from [TagFoldersRepository.folders]): items in
- * a folder are only shown in the folder.
+ * a folder are only shown in the folder, or also in the list if [keepGroupedItems] is true.
  */
 fun <T : SavableSearchable> List<T>.groupIntoFolders(
     folders: Map<String, List<SavableSearchable>>,
+    keepGroupedItems: Boolean = false,
 ): FolderGrouping<T> {
     val nonEmptyFolders = folders.filterValues { it.isNotEmpty() }
     if (nonEmptyFolders.isEmpty()) return FolderGrouping(this, emptyList())
+    if (keepGroupedItems) return FolderGrouping(this, nonEmptyFolders.keys.map { Tag(it) })
     val groupedKeys = nonEmptyFolders.values.flatMapTo(HashSet()) { items -> items.map { it.key } }
     return FolderGrouping(
         ungrouped = filterNot { it.key in groupedKeys },

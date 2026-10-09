@@ -805,11 +805,13 @@
     <string name="tag_show_as_folder">Show as folder</string>
     <!-- Summary of a tag in the tag settings that is shown as a folder -->
     <string name="tag_is_folder">Shown as folder</string>
-    <string name="tag_show_as_folder_summary">Group these items in a folder in the app list. Apps in a folder are only shown there and in search results.</string>
+    <string name="tag_show_as_folder_summary">Group these items in a folder in the app list. By default, apps in a folder are only shown there and in search results.</string>
     <string name="preference_category_folders">Folders</string>
     <string name="preference_folders_style">Open folders as</string>
     <string name="preference_folders_style_popup">Popup</string>
     <string name="preference_folders_style_sheet">Bottom sheet</string>
+    <string name="preference_folders_apps_in_list">Apps in folders in the app list</string>
+    <string name="preference_folders_apps_in_list_summary">Show apps that are in a folder in the app list too, not only in the folder</string>
     <!-- Turns a folder back into a regular tag, its apps are shown in the app list again -->
     <string name="folder_ungroup">Ungroup</string>
     <string name="preference_folders_from_categories">Create folders from app categories</string>

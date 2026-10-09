@@ -15,4 +15,14 @@ class FolderSettings internal constructor(
     fun setStyle(style: FolderStyle) {
         dataStore.update { it.copy(foldersStyle = style) }
     }
+
+    /**
+     * Whether apps that are in a folder are shown in the app list too, not only in the folder
+     */
+    val appsInList: Flow<Boolean>
+        get() = dataStore.data.map { it.foldersAppsInList }.distinctUntilChanged()
+
+    fun setAppsInList(appsInList: Boolean) {
+        dataStore.update { it.copy(foldersAppsInList = appsInList) }
+    }
 }
