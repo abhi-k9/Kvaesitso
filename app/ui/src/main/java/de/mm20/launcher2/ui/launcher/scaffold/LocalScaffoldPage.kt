@@ -8,3 +8,9 @@ enum class ScaffoldPage {
 }
 
 val LocalScaffoldPage = compositionLocalOf<ScaffoldPage?> { null }
+
+/**
+ * False while the page is hidden behind another page. Hidden pages stay composed, so animations
+ * that never end should pause while this is false.
+ */
+val LocalScaffoldPageVisible = compositionLocalOf { true }

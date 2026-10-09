@@ -449,6 +449,13 @@ internal class LauncherScaffoldState(
         )
     }
 
+    /**
+     * False while another page fully covers the home page
+     */
+    val isHomePageVisible by derivedStateOf {
+        !isSettledOnSecondaryPage || currentProgress < 1f
+    }
+
     val currentAnimation by derivedStateOf {
         val dir = currentGesture ?: return@derivedStateOf null
         config[dir]?.animation
@@ -1318,6 +1325,7 @@ internal fun LauncherScaffold(
 
             CompositionLocalProvider(
                 LocalScaffoldPage provides ScaffoldPage.Home,
+                LocalScaffoldPageVisible provides state.isHomePageVisible,
             ) {
                 config.homeComponent.Component(
                     Modifier

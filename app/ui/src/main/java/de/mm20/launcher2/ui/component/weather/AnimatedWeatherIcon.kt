@@ -28,7 +28,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -38,10 +40,14 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import de.mm20.launcher2.ui.R
+import de.mm20.launcher2.ui.launcher.scaffold.LocalScaffoldPageVisible
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -53,15 +59,20 @@ fun AnimatedWeatherIcon(
     night: Boolean = false,
     colors: WeatherIconColors = WeatherIconDefaults.colors(),
 ) {
+    // Falling rain and snow redraw the screen on every frame, so they only move while they can be
+    // seen: not while the icon is scrolled out of view or its page is hidden behind another one
+    val pageVisible = LocalScaffoldPageVisible.current
+    var inWindow by remember { mutableStateOf(true) }
 
     Box(
         modifier = modifier
             .size(64.dp)
-            .clipToBounds(),
+            .clipToBounds()
+            .onGloballyPositioned { inWindow = !it.boundsInWindow().isEmpty },
         contentAlignment = Alignment.Center
     ) {
         SunMoon(icon, night, colors)
-        Precipitation(icon, colors)
+        Precipitation(icon, colors, animate = pageVisible && inWindow)
         LightningBolt(icon, colors)
         Cloud1(icon, colors)
         Cloud2(icon, colors)
@@ -476,7 +487,7 @@ fun AnimatedWeatherIconTestPanel() {
 }
 
 @Composable
-private fun Precipitation(icon: WeatherIcon, colors: WeatherIconColors) {
+private fun Precipitation(icon: WeatherIcon, colors: WeatherIconColors, animate: Boolean) {
 
     Box(
         modifier = Modifier
@@ -487,16 +498,11 @@ private fun Precipitation(icon: WeatherIcon, colors: WeatherIconColors) {
         Crossfade(icon) {
             when (it) {
                 WeatherIcon.LightRain, WeatherIcon.Rain -> {
-                    val anim = rememberInfiniteTransition()
-                    val animProgress by anim.animateFloat(
-                        initialValue = 0f, targetValue = 1f, animationSpec = InfiniteRepeatableSpec(
-                            tween(300, easing = LinearEasing)
-                        )
-                    )
+                    val progress = fallingProgress(300, animate)
                     Icon(
                         modifier = Modifier
                             .size(32.dp)
-                            .offset(y = 8.dp + 11.dp * animProgress),
+                            .falling(progress),
                         imageVector = WeatherLightRainAnimatable,
                         contentDescription = null,
                         tint = colors.rain
@@ -504,16 +510,11 @@ private fun Precipitation(icon: WeatherIcon, colors: WeatherIconColors) {
                 }
 
                 WeatherIcon.Hail -> {
-                    val anim = rememberInfiniteTransition()
-                    val animProgress by anim.animateFloat(
-                        initialValue = 0f, targetValue = 1f, animationSpec = InfiniteRepeatableSpec(
-                            tween(300, easing = LinearEasing)
-                        )
-                    )
+                    val progress = fallingProgress(300, animate)
                     Icon(
                         modifier = Modifier
                             .size(32.dp)
-                            .offset(y = 8.dp + 11.dp * animProgress),
+                            .falling(progress),
                         imageVector = WeatherHailAnimatable,
                         contentDescription = null,
                         tint = colors.hail,
@@ -521,19 +522,11 @@ private fun Precipitation(icon: WeatherIcon, colors: WeatherIconColors) {
                 }
 
                 WeatherIcon.Snow -> {
-                    val anim = rememberInfiniteTransition()
-                    val animProgress by anim.animateFloat(
-                        initialValue = 0f, targetValue = 1f, animationSpec = InfiniteRepeatableSpec(
-                            tween(1000, easing = LinearEasing)
-                        )
-                    )
+                    val progress = fallingProgress(1000, animate)
                     Icon(
                         modifier = Modifier
                             .size(32.dp)
-                            .offset(
-                                x = sin(animProgress * 2 * PI).dp,
-                                y = 8.dp + 11.dp * animProgress
-                            ),
+                            .falling(progress, sway = true),
                         imageVector = WeatherHailAnimatable,
                         contentDescription = null,
                         tint = colors.snow,
@@ -542,16 +535,11 @@ private fun Precipitation(icon: WeatherIcon, colors: WeatherIconColors) {
 
                 WeatherIcon.HeavyRain,
                 WeatherIcon.Thunderstorm -> {
-                    val anim = rememberInfiniteTransition()
-                    val animProgress by anim.animateFloat(
-                        initialValue = 0f, targetValue = 1f, animationSpec = InfiniteRepeatableSpec(
-                            tween(300, easing = LinearEasing)
-                        )
-                    )
+                    val progress = fallingProgress(300, animate)
                     Icon(
                         modifier = Modifier
                             .size(32.dp)
-                            .offset(y = 8.dp + 11.dp * animProgress),
+                            .falling(progress),
                         imageVector = WeatherRainAnimatable,
                         contentDescription = null,
                         tint = colors.rain,
@@ -559,16 +547,11 @@ private fun Precipitation(icon: WeatherIcon, colors: WeatherIconColors) {
                 }
 
                 WeatherIcon.Sleet -> {
-                    val anim = rememberInfiniteTransition()
-                    val animProgress by anim.animateFloat(
-                        initialValue = 0f, targetValue = 1f, animationSpec = InfiniteRepeatableSpec(
-                            tween(300, easing = LinearEasing)
-                        )
-                    )
+                    val progress = fallingProgress(300, animate)
                     Icon(
                         modifier = Modifier
                             .size(32.dp)
-                            .offset(y = 8.dp + 11.dp * animProgress),
+                            .falling(progress),
                         imageVector = WeatherSleetRainAnimatable,
                         contentDescription = null,
                         tint = colors.rain,
@@ -576,7 +559,7 @@ private fun Precipitation(icon: WeatherIcon, colors: WeatherIconColors) {
                     Icon(
                         modifier = Modifier
                             .size(32.dp)
-                            .offset(y = 8.dp + 11.dp * animProgress),
+                            .falling(progress),
                         imageVector = WeatherSleetSnowAnimatable,
                         contentDescription = null,
                         tint = colors.snow,
@@ -586,6 +569,37 @@ private fun Precipitation(icon: WeatherIcon, colors: WeatherIconColors) {
                 else -> {}
             }
         }
+    }
+}
+
+/**
+ * How far the drops or flakes have fallen, from 0 to 1, over and over. They only fall if [animate]
+ * is true.
+ */
+@Composable
+private fun fallingProgress(durationMillis: Int, animate: Boolean): State<Float> {
+    return if (animate) {
+        rememberInfiniteTransition().animateFloat(
+            initialValue = 0f, targetValue = 1f, animationSpec = InfiniteRepeatableSpec(
+                tween(durationMillis, easing = LinearEasing)
+            )
+        )
+    } else {
+        remember { mutableFloatStateOf(0f) }
+    }
+}
+
+/**
+ * Moves drops or flakes down by [progress]. It's read when the layout is placed, so that the icon
+ * isn't recomposed on every frame.
+ */
+private fun Modifier.falling(progress: State<Float>, sway: Boolean = false): Modifier {
+    return offset {
+        val p = progress.value
+        IntOffset(
+            x = if (sway) sin(p * 2 * PI).dp.roundToPx() else 0,
+            y = (8.dp + 11.dp * p).roundToPx(),
+        )
     }
 }
 
