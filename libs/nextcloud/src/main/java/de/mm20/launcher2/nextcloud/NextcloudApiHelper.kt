@@ -34,7 +34,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
-import javax.crypto.AEADBadTagException
 
 class NextcloudApiHelper(val context: Context) {
 

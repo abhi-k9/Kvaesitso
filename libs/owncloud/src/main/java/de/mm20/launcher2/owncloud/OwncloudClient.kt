@@ -27,7 +27,6 @@ import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CancellationException
 import java.io.IOException
-import javax.crypto.AEADBadTagException
 
 class OwncloudClient(val context: Context) {
 

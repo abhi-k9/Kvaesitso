@@ -4,6 +4,7 @@ import androidx.room3.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 import de.mm20.launcher2.database.ktx.bindTextOrNull
+import de.mm20.launcher2.database.ktx.getIntOrNull
 import de.mm20.launcher2.database.ktx.getTextOrNull
 import de.mm20.launcher2.ktx.jsonObjectOf
 
@@ -30,7 +31,7 @@ class Migration_18_19 : Migration(18, 19) {
             val data = websearches.getText(1)
             val color = 0
             val icon = websearches.getTextOrNull(3)
-            val encoding = websearches.getTextOrNull(4)
+            val encoding = websearches.getIntOrNull(4)
 
             val options = encoding?.let {
                 jsonObjectOf("encoding" to encoding).toString()
