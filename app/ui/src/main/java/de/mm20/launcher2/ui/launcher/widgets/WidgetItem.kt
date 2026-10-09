@@ -10,6 +10,9 @@ import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,6 +47,7 @@ import de.mm20.launcher2.widgets.CalendarWidget
 import de.mm20.launcher2.widgets.AppsWidget
 import de.mm20.launcher2.widgets.MusicWidget
 import de.mm20.launcher2.widgets.NotesWidget
+import de.mm20.launcher2.widgets.SpacerWidget
 import de.mm20.launcher2.widgets.WeatherWidget
 import de.mm20.launcher2.widgets.Widget
 
@@ -66,7 +70,8 @@ fun WidgetItem(
     val elevation by animateDpAsState(if (isDragged) 8.dp else 0.dp)
 
     val backgroundOpacity by animateFloatAsState(
-        if (widget is AppWidget && !widget.config.background && !editMode) 0f else MaterialTheme.transparency.surface,
+        if ((widget is AppWidget && !widget.config.background || widget is SpacerWidget) && !editMode) 0f
+        else MaterialTheme.transparency.surface,
         label = "widgetCardBackgroundOpacity",
     )
 
@@ -152,6 +157,14 @@ fun WidgetItem(
                             widget,
                             onWidgetUpdate = onWidgetUpdate,
                             onWidgetRemove = onWidgetRemove,
+                        )
+                    }
+
+                    is SpacerWidget -> {
+                        Spacer(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(widget.config.height.dp)
                         )
                     }
                 }

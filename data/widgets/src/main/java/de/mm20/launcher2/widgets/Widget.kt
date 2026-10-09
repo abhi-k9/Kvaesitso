@@ -67,6 +67,11 @@ sealed class Widget {
                             ?: NotesWidgetConfig()
                     NotesWidget(entity.id, config)
                 }
+                SpacerWidget.Type -> SpacerWidget(
+                    entity.id,
+                    Json.decodeFromStringOrNull(entity.config?.takeIf { it.isNotBlank() })
+                        ?: SpacerWidgetConfig(),
+                )
 
                 else -> null
             }
