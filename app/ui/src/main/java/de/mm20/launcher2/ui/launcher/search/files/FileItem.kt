@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import de.mm20.launcher2.search.File
 import de.mm20.launcher2.search.FileMetaType
 import de.mm20.launcher2.ui.R
@@ -40,6 +41,7 @@ import de.mm20.launcher2.ui.component.ShapedLauncherIcon
 import de.mm20.launcher2.ui.component.Toolbar
 import de.mm20.launcher2.ui.component.ToolbarAction
 import de.mm20.launcher2.ui.ktx.toPixels
+import de.mm20.launcher2.ui.launcher.search.SearchVM
 import de.mm20.launcher2.ui.launcher.search.common.SearchableItemVM
 import de.mm20.launcher2.ui.launcher.search.listItemViewModel
 import de.mm20.launcher2.ui.launcher.sheets.LocalBottomSheetManager
@@ -194,6 +196,7 @@ fun FileItem(
 
                     if (file.isDeletable) {
                         var showConfirmDialog by remember { mutableStateOf(false) }
+                        val searchVM: SearchVM = viewModel()
                         toolbarActions.add(
                             DefaultToolbarAction(
                                 label = stringResource(R.string.menu_delete),
@@ -207,7 +210,8 @@ fun FileItem(
                                 onDismissRequest = { showConfirmDialog = false },
                                 confirmButton = {
                                     TextButton(onClick = {
-                                        viewModel.delete(context)
+                                        // Otherwise the file stays in the results
+                                        viewModel.delete(context) { searchVM.refresh() }
                                         showConfirmDialog = false
                                     }) {
                                         Text(stringResource(android.R.string.ok))

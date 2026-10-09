@@ -172,6 +172,13 @@ class SearchVM : ViewModel(), KoinComponent {
         showFilters.value = false
     }
 
+    /**
+     * Searches again, e.g. after a result has been deleted
+     */
+    fun refresh() {
+        search(searchQuery.value, forceRestart = true)
+    }
+
     fun reset() {
         closeFilters()
         filters.value = defaultFilters.value

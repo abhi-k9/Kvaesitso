@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import de.mm20.launcher2.ktx.tryStartActivity
 import de.mm20.launcher2.search.AppShortcut
 import de.mm20.launcher2.ui.R
@@ -58,6 +59,7 @@ import de.mm20.launcher2.ui.component.ShapedLauncherIcon
 import de.mm20.launcher2.ui.component.Toolbar
 import de.mm20.launcher2.ui.component.ToolbarAction
 import de.mm20.launcher2.ui.ktx.toPixels
+import de.mm20.launcher2.ui.launcher.search.SearchVM
 import de.mm20.launcher2.ui.launcher.search.common.SearchableItemVM
 import de.mm20.launcher2.ui.launcher.search.listItemViewModel
 import de.mm20.launcher2.ui.launcher.sheets.LocalBottomSheetManager
@@ -336,12 +338,14 @@ fun AppShortcutItem(
     }
 
     if (requestDelete) {
+        val searchVM: SearchVM = viewModel()
         AlertDialog(
             onDismissRequest = { requestDelete = false },
             text = { Text(stringResource(R.string.alert_delete_shortcut, shortcut.label)) },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.delete(context)
+                    // Otherwise the shortcut stays in the results
+                    viewModel.delete(context) { searchVM.refresh() }
                     requestDelete = false
                 }) {
                     Text(stringResource(android.R.string.ok))

@@ -175,16 +175,21 @@ class SearchableItemVM : ListItemViewModel(), KoinComponent {
         }
     }
 
-    fun delete(context: Context) {
+    /**
+     * Deletes the item, then calls [onDeleted]
+     */
+    fun delete(context: Context, onDeleted: () -> Unit = {}) {
         val searchable = searchable.value ?: return
         if (searchable is File) {
             viewModelScope.launch {
                 searchable.delete(context.applicationContext)
+                onDeleted()
             }
         }
         if (searchable is AppShortcut) {
             viewModelScope.launch {
                 searchable.delete(context.applicationContext)
+                onDeleted()
             }
         }
         favoritesService.reset(searchable)
