@@ -1,6 +1,5 @@
 package de.mm20.launcher2.ui.launcher.widgets.calendar
 
-import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.provider.CalendarContract
@@ -136,13 +135,7 @@ class CalendarWidgetVM : ViewModel(), KoinComponent {
 
     fun openCalendarApp(context: Context) {
         val startMillis = selectedDate.value.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        val builder = CalendarContract.CONTENT_URI.buildUpon()
-        builder.appendPath("time")
-        ContentUris.appendId(builder, startMillis)
-        val intent = Intent(Intent.ACTION_VIEW)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            .setData(builder.build())
-        context.tryStartActivity(intent)
+        openCalendarAt(context, startMillis)
     }
 
     private fun updateEvents() {

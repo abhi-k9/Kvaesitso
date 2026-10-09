@@ -1,11 +1,8 @@
 package de.mm20.launcher2.ui.launcher.widgets.clock.parts
 
-import android.content.ContentUris
 import android.content.Context
-import android.content.Intent
 import android.icu.text.DateFormat
 import android.icu.util.ULocale
-import android.provider.CalendarContract
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.*
@@ -15,8 +12,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
-import de.mm20.launcher2.ktx.tryStartActivity
 import de.mm20.launcher2.ui.base.LocalTime
+import de.mm20.launcher2.ui.launcher.widgets.calendar.openCalendarAt
 import de.mm20.launcher2.ui.locals.LocalCalendarSystems
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -44,15 +41,7 @@ class DatePartProvider : PartProvider {
                 contentColor = LocalContentColor.current
             ),
             onClick = {
-                val startMillis = System.currentTimeMillis()
-                val builder = CalendarContract.CONTENT_URI.buildUpon()
-                builder.appendPath("time")
-                ContentUris.appendId(builder, startMillis)
-                val intent = Intent(Intent.ACTION_VIEW)
-                    .setData(builder.build())
-                    .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-
-                context.tryStartActivity(intent)
+                openCalendarAt(context, System.currentTimeMillis())
             }) {
             if (verticalLayout) {
                 Column(
