@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- MET Norway's terms ask apps to identify themselves with a way to contact the developer.
+         It's sent with each request, together with the package name and signing certificate. -->
+    <string name="metno_contact" translatable="false">https://github.com/abhi-k9/Kvaesitso</string>
+</resources>
