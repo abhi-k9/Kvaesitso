@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,7 +77,7 @@ import de.mm20.launcher2.icons.TransparentLayer
 import de.mm20.launcher2.icons.VectorLayer
 import de.mm20.launcher2.ktx.drawWithColorFilter
 import de.mm20.launcher2.preferences.IconShape
-import de.mm20.launcher2.ui.base.LocalTime
+import de.mm20.launcher2.ui.base.LocalTimeState
 import de.mm20.launcher2.ui.ktx.toPixels
 import de.mm20.launcher2.ui.locals.LocalDarkTheme
 import de.mm20.launcher2.ui.locals.LocalGridSettings
@@ -129,9 +130,16 @@ fun ShapedLauncherIcon(
     }
 
     if (_icon is DynamicLauncherIcon) {
-        val date = Instant.ofEpochMilli(LocalTime.current).atZone(ZoneId.systemDefault())
-        LaunchedEffect(date.dayOfYear, _icon) {
-            currentIcon = _icon.getIcon(date.toEpochSecond() * 1000L)
+        // Dynamic icons (e.g. calendars) only change with the day, so the icon is only composed
+        // again when the day changes, not every second
+        val timeState = LocalTimeState.current
+        val day by remember(timeState) {
+            derivedStateOf {
+                Instant.ofEpochMilli(timeState.value).atZone(ZoneId.systemDefault()).toLocalDate()
+            }
+        }
+        LaunchedEffect(day, _icon) {
+            currentIcon = _icon.getIcon(timeState.value)
         }
     }
 
@@ -267,13 +275,15 @@ private fun ClockLayer(
     tintColor: Color?,
     modifier: Modifier = Modifier,
 ) {
-    val time = Instant.ofEpochMilli(LocalTime.current).atZone(ZoneId.systemDefault())
-
-    val second = time.second
-    val minute = time.minute
-    val hour = time.hour
+    // The time is read while drawing, so that the hands move without composing the icon again
+    val timeState = LocalTimeState.current
 
     Canvas(modifier = modifier) {
+        val time = Instant.ofEpochMilli(timeState.value).atZone(ZoneId.systemDefault())
+        val second = time.second
+        val minute = time.minute
+        val hour = time.hour
+
         val colorFilter = tintColor?.let {
             PorterDuffColorFilter(tintColor.toArgb(), PorterDuff.Mode.SRC_IN)
         }

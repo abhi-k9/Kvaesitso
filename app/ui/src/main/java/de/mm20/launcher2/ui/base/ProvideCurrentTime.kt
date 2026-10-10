@@ -7,11 +7,13 @@ import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
@@ -31,7 +33,7 @@ fun ProvideCurrentTime(content: @Composable () -> Unit) {
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    var time by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    val time = remember { mutableLongStateOf(System.currentTimeMillis()) }
 
     LaunchedEffect(null) {
         val handler = Handler(Looper.getMainLooper())
@@ -39,7 +41,7 @@ fun ProvideCurrentTime(content: @Composable () -> Unit) {
             override fun run() {
                 val dateTime = Instant.now().atZone(ZoneId.systemDefault())
 
-                time = dateTime.toEpochSecond() * 1000
+                time.longValue = dateTime.toEpochSecond() * 1000
 
                 val millis = dateTime.nano / 1000000L
                 var next = 1000L - millis
@@ -60,9 +62,19 @@ fun ProvideCurrentTime(content: @Composable () -> Unit) {
     }
 
     CompositionLocalProvider(
-        LocalTime provides time,
+        LocalTime provides time.longValue,
+        LocalTimeState provides time,
         content = content
     )
 }
 
 val LocalTime = compositionLocalOf { System.currentTimeMillis() }
+
+/**
+ * The current time like [LocalTime], but as a state, so that it can be read where it's needed,
+ * e.g. while drawing or in a derived state. Unlike [LocalTime], it doesn't make a composable
+ * compose again every second, if it only needs to change e.g. once a day.
+ */
+val LocalTimeState = staticCompositionLocalOf<State<Long>> {
+    mutableLongStateOf(System.currentTimeMillis())
+}
