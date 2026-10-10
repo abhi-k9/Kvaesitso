@@ -19,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
@@ -298,6 +299,8 @@ internal class SavableSearchableRepositoryImpl(
         limit: Int
     ): Flow<List<String>> {
         val dao = database.searchableDao()
+        // The table changes after every app launch (launch counts and weights), but the keys
+        // rarely do. Those who use them, e.g. the app list, only need to know about the latter.
         return when {
             includeTypes == null && excludeTypes == null -> dao.getKeys(
                 manuallySorted = PinnedLevel.ManuallySorted in minPinnedLevel..maxPinnedLevel,
@@ -332,7 +335,7 @@ internal class SavableSearchableRepositoryImpl(
             )
 
             else -> throw IllegalArgumentException("Cannot specify both includeTypes and excludeTypes")
-        }
+        }.distinctUntilChanged()
     }
 
     override fun isPinned(searchable: SavableSearchable): Flow<Boolean> {
