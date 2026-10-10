@@ -98,8 +98,6 @@ class SearchableItemVM : ListItemViewModel(), KoinComponent {
         if (it == null) emptyFlow() else tagsService.getTags(it)
     }
 
-    val allTags = tagsService.getAllTags()
-
     /**
      * The names of all folders, sorted
      */
@@ -119,15 +117,6 @@ class SearchableItemVM : ListItemViewModel(), KoinComponent {
                 if (inFolder) (tags + folder).distinct() else tags - folder,
             )
         }
-    }
-
-    /**
-     * Adds the item to a new folder. If there already is a tag called [name], it's shown as a
-     * folder from now on.
-     */
-    fun addToNewFolder(name: String) {
-        setInFolder(name, true)
-        tagFoldersRepository.setFolder(name, true)
     }
 
     val notifications = searchable.flatMapLatest { searchable ->

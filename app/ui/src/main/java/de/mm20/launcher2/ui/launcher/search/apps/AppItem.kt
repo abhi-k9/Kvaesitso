@@ -63,7 +63,6 @@ import de.mm20.launcher2.ui.component.Toolbar
 import de.mm20.launcher2.ui.component.ToolbarAction
 import de.mm20.launcher2.ui.ktx.toPixels
 import de.mm20.launcher2.ui.launcher.search.common.SearchableItemVM
-import de.mm20.launcher2.ui.launcher.search.folders.NewFolderDialog
 import de.mm20.launcher2.ui.launcher.search.listItemViewModel
 import de.mm20.launcher2.ui.launcher.sheets.LocalBottomSheetManager
 import de.mm20.launcher2.ui.locals.LocalFavoritesEnabled
@@ -430,7 +429,6 @@ fun AppItem(
                     if (!app.isPrivate) {
                         val folders by viewModel.folders.collectAsState(emptyList())
                         val tags by viewModel.tags.collectAsState(emptyList())
-                        var showNewFolderDialog by remember { mutableStateOf(false) }
                         toolbarActions.add(
                             SubmenuToolbarAction(
                                 label = stringResource(R.string.menu_add_to_folder),
@@ -448,22 +446,10 @@ fun AppItem(
                                     label = stringResource(R.string.menu_new_folder),
                                     icon = R.drawable.add_24px,
                                 ) {
-                                    showNewFolderDialog = true
+                                    sheetManager.showNewFolderDialog(app)
                                 },
                             )
                         )
-                        if (showNewFolderDialog) {
-                            val allTags by viewModel.allTags.collectAsState(emptyList())
-                            NewFolderDialog(
-                                tags = allTags,
-                                folders = folders,
-                                onDismissRequest = { showNewFolderDialog = false },
-                                onCreate = {
-                                    showNewFolderDialog = false
-                                    viewModel.addToNewFolder(it)
-                                },
-                            )
-                        }
                     }
 
                     if (!app.isPrivate) {

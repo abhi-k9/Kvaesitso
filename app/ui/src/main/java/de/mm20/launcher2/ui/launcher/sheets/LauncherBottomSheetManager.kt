@@ -20,6 +20,11 @@ class LauncherBottomSheetManager(registryOwner: SavedStateRegistryOwner) :
     val editTagSheetShown = mutableStateOf<String?>(null)
     val failedGestureSheetShown = mutableStateOf<FailedGesture?>(null)
 
+    /**
+     * The item that a new folder is being made for
+     */
+    val newFolderDialogShown = mutableStateOf<SavableSearchable?>(null)
+
     init {
         registryOwner.lifecycle.addObserver(LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_CREATE) {
@@ -50,6 +55,14 @@ class LauncherBottomSheetManager(registryOwner: SavedStateRegistryOwner) :
 
     fun dismissCustomizeSearchableModal() {
         customizeSearchableSheetShown.value = null
+    }
+
+    fun showNewFolderDialog(item: SavableSearchable) {
+        newFolderDialogShown.value = item
+    }
+
+    fun dismissNewFolderDialog() {
+        newFolderDialogShown.value = null
     }
 
     fun showEditFavoritesSheet() {
