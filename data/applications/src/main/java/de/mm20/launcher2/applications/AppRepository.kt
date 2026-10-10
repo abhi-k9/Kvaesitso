@@ -40,6 +40,12 @@ interface AppRepository : SearchableRepository<Application> {
     ): Flow<Application?>
 
     fun findMany(): Flow<ImmutableList<Application>>
+
+    /**
+     * The apps of [packageName] for [user] from the apps that have been loaded already, without
+     * asking Android, or null if the apps of [user] haven't been loaded yet
+     */
+    fun getLoadedApps(packageName: String, user: UserHandle): List<Application>?
 }
 
 internal class AppRepositoryImpl(
@@ -292,6 +298,12 @@ internal class AppRepositoryImpl(
 
     override fun findMany(): Flow<ImmutableList<Application>> {
         return installedApps.map { it.toImmutableList() }
+    }
+
+    override fun getLoadedApps(packageName: String, user: UserHandle): List<Application>? {
+        val apps = installedApps.value
+        if (apps.none { it.user == user }) return null
+        return apps.filter { it.componentName.packageName == packageName && it.user == user }
     }
 
     override fun search(query: String, allowNetwork: Boolean): Flow<ImmutableList<LauncherApp>> {

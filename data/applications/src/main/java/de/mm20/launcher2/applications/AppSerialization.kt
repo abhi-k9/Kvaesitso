@@ -49,6 +49,7 @@ class LauncherAppSerializer : SearchableSerializer {
 class LauncherAppDeserializer(
     val context: Context,
     private val keyMigrator: SearchableKeyMigrator,
+    private val appRepository: AppRepository,
 ) : SearchableDeserializer {
     override suspend fun deserialize(serialized: String): SavableSearchable? {
         try {
@@ -88,18 +89,18 @@ class LauncherAppDeserializer(
             // wasn't running. Such an item can't be launched, and it would be shown next to the
             // app's current activity, e.g. twice in a folder. What's stored for it is moved to the
             // current activity instead.
-            val launcherActivities = withContext(Dispatchers.IO) {
-                launcherApps.getActivityList(pkg, user)
-            }
+            // The apps that are loaded already are used if possible, to not ask Android again
+            val launcherActivities = appRepository.getLoadedApps(pkg, user)
+                ?.filterIsInstance<LauncherApp>()
+                ?: withContext(Dispatchers.IO) {
+                    launcherApps.getActivityList(pkg, user).map { LauncherApp(context, it) }
+                }
             if (launcherActivities.isNotEmpty() &&
                 launcherActivities.none { it.componentName == componentName }
             ) {
                 val current = launcherActivities.singleOrNull()
                 if (current != null) {
-                    keyMigrator.merge(
-                        LauncherApp(context, launcherActivityInfo).key,
-                        LauncherApp(context, current),
-                    )
+                    keyMigrator.merge(LauncherApp(context, launcherActivityInfo).key, current)
                 }
                 return null
             }
