@@ -15,4 +15,14 @@ class FolderSettings internal constructor(
     fun setStyle(style: FolderStyle) {
         dataStore.update { it.copy(foldersStyle = style) }
     }
+
+    /**
+     * Whether folders whose name matches the search are shown in the search results
+     */
+    val showInSearch: Flow<Boolean>
+        get() = dataStore.data.map { it.foldersInSearch }.distinctUntilChanged()
+
+    fun setShowInSearch(showInSearch: Boolean) {
+        dataStore.update { it.copy(foldersInSearch = showInSearch) }
+    }
 }

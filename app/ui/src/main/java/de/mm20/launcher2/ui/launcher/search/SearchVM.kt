@@ -18,6 +18,7 @@ import de.mm20.launcher2.permissions.PermissionsManager
 import de.mm20.launcher2.preferences.search.CalendarSearchSettings
 import de.mm20.launcher2.preferences.search.ContactSearchSettings
 import de.mm20.launcher2.preferences.search.FileSearchSettings
+import de.mm20.launcher2.preferences.search.FolderSettings
 import de.mm20.launcher2.preferences.search.LocationSearchSettings
 import de.mm20.launcher2.preferences.search.SearchFilterSettings
 import de.mm20.launcher2.preferences.search.ShortcutSearchSettings
@@ -49,6 +50,7 @@ import de.mm20.launcher2.services.favorites.FavoritesService
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -83,6 +85,7 @@ class SearchVM : ViewModel(), KoinComponent {
 
     private val searchService: SearchService by inject()
     private val tagFoldersRepository: TagFoldersRepository by inject()
+    private val folderSettings: FolderSettings by inject()
 
     val searchQuery = mutableStateOf("")
     val isSearchEmpty = mutableStateOf(true)
@@ -292,19 +295,38 @@ class SearchVM : ViewModel(), KoinComponent {
                 val hiddenItemKeys = if (!filters.hiddenItems) searchableRepository.getKeys(
                     maxVisibility = VisibilityLevel.Hidden,
                 ) else flowOf(emptyList())
+                // Folders whose name matches the query are shown with the apps, if set
+                val matchingFolders: Flow<List<Tag>> = if (filters.apps) {
+                    combine(
+                        folderSettings.showInSearch,
+                        tagFoldersRepository.folderTags.catch { emit(emptySet()) },
+                    ) { show, folders ->
+                        if (!show) return@combine emptyList<Tag>()
+                        val trimmedQuery = query.trim()
+                        folders
+                            .filter { it.contains(trimmedQuery, ignoreCase = true) }
+                            .sortedWith(String.CASE_INSENSITIVE_ORDER)
+                            .map { Tag(it) }
+                    }
+                } else {
+                    flowOf(emptyList())
+                }
                 searchService.search(
                     query,
                     filters = filters,
                     previousResults,
                 )
                     .combine(hiddenItemKeys) { results, hiddenKeys -> results to hiddenKeys }
-                    .collectLatest { (results, hiddenKeys) ->
+                    .combine(matchingFolders) { (results, hiddenKeys), folders ->
+                        Triple(results, hiddenKeys, folders)
+                    }
+                    .collectLatest { (results, hiddenKeys, folders) ->
                         previousResults = results
 
                         hiddenResults.clear()
                         workAppResults.clear()
                         privateSpaceAppResults.clear()
-                        appFolders.clear()
+                        appFolders.updateItems(folders)
 
                         appResults.updateItems(
                             results.apps

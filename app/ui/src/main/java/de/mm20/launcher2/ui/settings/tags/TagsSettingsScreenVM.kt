@@ -64,6 +64,12 @@ class TagsSettingsScreenVM: ViewModel(), KoinComponent {
         folderSettings.setStyle(style)
     }
 
+    val foldersInSearch = folderSettings.showInSearch
+
+    fun setFoldersInSearch(showInSearch: Boolean) {
+        folderSettings.setShowInSearch(showInSearch)
+    }
+
     fun deleteTag(tag: String) {
         tagsService.deleteTag(tag)
     }

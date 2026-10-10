@@ -71,6 +71,7 @@ data class LauncherSettingsData internal constructor(
     val favoritesEditButton: Boolean = true,
     val favoritesCompactTags: Boolean = false,
     val foldersStyle: FolderStyle = FolderStyle.Popup,
+    val foldersInSearch: Boolean = true,
 
     val searchAllApps: Boolean = true,
     val appsShowDetails: Boolean = true,

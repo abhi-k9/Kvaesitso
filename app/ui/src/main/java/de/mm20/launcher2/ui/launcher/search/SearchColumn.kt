@@ -91,8 +91,14 @@ fun SearchColumn(
 
     val apps = viewModel.appResults
     val appFolders = viewModel.appFolders
-    // Folders are sorted in with the apps
-    val appsWithFolders by remember { derivedStateOf { mergeFolders(apps, appFolders) } }
+    // Folders are sorted in with the apps in the app list. Search results are sorted by how well
+    // they match, so matching folders come first there.
+    val appsWithFolders by remember {
+        derivedStateOf {
+            if (viewModel.isSearchEmpty.value) mergeFolders(apps, appFolders)
+            else appFolders + apps
+        }
+    }
     val workApps = viewModel.workAppResults
     val privateApps = viewModel.privateSpaceAppResults
     val profiles by viewModel.profiles.collectAsState(emptyList())
