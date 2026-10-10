@@ -235,14 +235,14 @@ fun ItemPopup(origin: IntRect, searchable: Searchable, onDismissRequest: () -> U
         show.targetState = false
     }
 
-    // Customizing the item or making a new folder for it opens a sheet or dialog over the popup,
-    // so the popup isn't needed anymore
+    // Customizing the item or putting it in folders opens a sheet or dialog over the popup, so
+    // the popup isn't needed anymore
     val sheetManager = LocalBottomSheetManager.current
     val customizedItem = sheetManager.customizeSearchableSheetShown.value
-    val newFolderItem = sheetManager.newFolderDialogShown.value
-    LaunchedEffect(customizedItem, newFolderItem) {
+    val folderDialogItem = sheetManager.addToFolderDialogShown.value
+    LaunchedEffect(customizedItem, folderDialogItem) {
         val key = (searchable as? SavableSearchable)?.key ?: return@LaunchedEffect
-        if (customizedItem?.key == key || newFolderItem?.key == key) {
+        if (customizedItem?.key == key || folderDialogItem?.key == key) {
             show.targetState = false
         }
     }

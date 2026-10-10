@@ -826,7 +826,6 @@
     </plurals>
     <string name="menu_open_file_location">Open file location</string>
     <string name="menu_add_to_folder">Add to folder</string>
-    <string name="menu_new_folder">New folder…</string>
     <string name="new_folder_title">New folder</string>
     <string name="folder_name">Folder name</string>
     <!-- Shown when the name of a new folder is the name of an existing tag -->

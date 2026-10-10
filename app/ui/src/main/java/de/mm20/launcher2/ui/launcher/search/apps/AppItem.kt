@@ -427,27 +427,11 @@ fun AppItem(
                     }
 
                     if (!app.isPrivate) {
-                        val folders by viewModel.folders.collectAsState(emptyList())
-                        val tags by viewModel.tags.collectAsState(emptyList())
                         toolbarActions.add(
-                            SubmenuToolbarAction(
+                            DefaultToolbarAction(
                                 label = stringResource(R.string.menu_add_to_folder),
                                 icon = R.drawable.folder_24px,
-                                children = folders.map { folder ->
-                                    // Tapping a folder the app is in removes it from there
-                                    val inFolder = folder in tags
-                                    DefaultToolbarAction(
-                                        label = folder,
-                                        icon = if (inFolder) R.drawable.check_24px else R.drawable.folder_24px,
-                                    ) {
-                                        viewModel.setInFolder(folder, !inFolder)
-                                    }
-                                } + DefaultToolbarAction(
-                                    label = stringResource(R.string.menu_new_folder),
-                                    icon = R.drawable.add_24px,
-                                ) {
-                                    sheetManager.showNewFolderDialog(app)
-                                },
+                                action = { sheetManager.showAddToFolderDialog(app) }
                             )
                         )
                     }

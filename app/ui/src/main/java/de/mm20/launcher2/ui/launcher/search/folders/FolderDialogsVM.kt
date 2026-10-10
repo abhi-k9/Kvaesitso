@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import de.mm20.launcher2.data.customattrs.CustomAttributesRepository
 import de.mm20.launcher2.data.customattrs.TagFoldersRepository
 import de.mm20.launcher2.search.SavableSearchable
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -30,15 +31,31 @@ class FolderDialogsVM : ViewModel(), KoinComponent {
         folders.sortedWith(Collator.getInstance().apply { strength = Collator.SECONDARY })
     }
 
+    fun getTags(item: SavableSearchable): Flow<List<String>> {
+        return customAttributesRepository.getTags(item)
+    }
+
     /**
-     * Adds [item] to a new folder. If there already is a tag called [name], it's shown as a
-     * folder from now on.
+     * Puts [item] in the folders [inFolders] and takes it out of the other [folders]. Its other
+     * tags stay. If [newFolder] isn't empty, the item is put in a new folder with that name too;
+     * if there already is a tag with that name, it's shown as a folder from now on.
      */
-    fun addToNewFolder(item: SavableSearchable, name: String) {
+    fun setFolders(
+        item: SavableSearchable,
+        folders: List<String>,
+        inFolders: Set<String>,
+        newFolder: String,
+    ) {
         viewModelScope.launch {
             val tags = customAttributesRepository.getTags(item).first()
-            customAttributesRepository.setTags(item, (tags + name).distinct())
-            tagFoldersRepository.setFolder(name, true)
+            val selected = if (newFolder.isNotEmpty()) inFolders + newFolder else inFolders
+            val newTags = (tags.filterNot { it in folders } + selected).distinct()
+            if (newTags.toSet() != tags.toSet()) {
+                customAttributesRepository.setTags(item, newTags)
+            }
+            if (newFolder.isNotEmpty()) {
+                tagFoldersRepository.setFolder(newFolder, true)
+            }
         }
     }
 }
