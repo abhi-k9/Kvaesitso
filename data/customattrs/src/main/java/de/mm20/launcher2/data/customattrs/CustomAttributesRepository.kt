@@ -13,10 +13,13 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 import org.json.JSONArray
 import org.json.JSONException
 import java.io.File
@@ -52,12 +55,25 @@ internal class CustomAttributesRepositoryImpl(
 ) : CustomAttributesRepository {
     private val scope = CoroutineScope(Job() + Dispatchers.Default)
 
-    override fun getCustomIcon(searchable: SavableSearchable): Flow<CustomIcon?> {
-        val dao = appDatabase.customAttrsDao()
-        return dao.getCustomAttribute(searchable.key, CustomAttributeType.Icon.value)
-            .map {
-                CustomAttribute.fromDatabaseEntity(it) as? CustomIcon
+    /**
+     * The custom icons of all items, by key. Every icon that is shown asks for its custom icon,
+     * so one query for all of them replaces one query per icon, which all ran again whenever any
+     * custom attribute changed, e.g. a tag.
+     */
+    private val customIcons: Flow<Map<String, CustomIcon>> by lazy {
+        appDatabase.customAttrsDao()
+            .getCustomAttributesOfType(CustomAttributeType.Icon.value)
+            .map { entities ->
+                entities.mapNotNull { entity ->
+                    (CustomAttribute.fromDatabaseEntity(entity) as? CustomIcon)
+                        ?.let { entity.key to it }
+                }.toMap()
             }
+            .shareIn(scope, SharingStarted.WhileSubscribed(5000), 1)
+    }
+
+    override fun getCustomIcon(searchable: SavableSearchable): Flow<CustomIcon?> {
+        return customIcons.map { it[searchable.key] }.distinctUntilChanged()
     }
 
     override fun setCustomIcon(searchable: SavableSearchable, icon: CustomIcon?) {

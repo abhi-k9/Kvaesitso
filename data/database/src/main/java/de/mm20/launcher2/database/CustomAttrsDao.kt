@@ -27,6 +27,9 @@ interface CustomAttrsDao {
     @Query("SELECT DISTINCT `key` FROM CustomAttributes WHERE type = :type")
     fun getKeysWithAttribute(type: String): Flow<List<String>>
 
+    @Query("SELECT * FROM CustomAttributes WHERE type = :type")
+    fun getCustomAttributesOfType(type: String): Flow<List<CustomAttributeEntity>>
+
     @Query("SELECT DISTINCT `key` FROM CustomAttributes WHERE (type = 'label' OR type = 'tag') AND value LIKE :query")
     fun search(query: String): Flow<List<String>>
 
