@@ -283,10 +283,11 @@ internal class SavableSearchableRepositoryImpl(
         }
 
         // Deserializing items can ask other apps or the system (e.g. if an app still exists), so
-        // it's kept off the thread that collects, which is often the main thread
+        // it's kept off the thread that collects, which is often the main thread. The items are
+        // loaded again after every app launch, but only sent on if they changed.
         return entities.map {
             it.mapNotNull { fromDatabaseEntity(it).searchable }
-        }.flowOn(Dispatchers.IO)
+        }.distinctUntilChanged().flowOn(Dispatchers.IO)
     }
 
     override fun getKeys(
@@ -490,10 +491,11 @@ internal class SavableSearchableRepositoryImpl(
                     }
             }) { results ->
                 results.flatMap { it }
-            }.flowOn(Dispatchers.IO)
+            }.distinctUntilChanged().flowOn(Dispatchers.IO)
         }
         return dao.getByKeys(keys)
             .map { it.mapNotNull { fromDatabaseEntity(it).searchable } }
+            .distinctUntilChanged()
             .flowOn(Dispatchers.IO)
     }
 
