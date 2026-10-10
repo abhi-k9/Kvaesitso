@@ -7,16 +7,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
-import de.mm20.launcher2.ui.base.LocalTime
+import de.mm20.launcher2.ui.base.LocalTimeState
 import de.mm20.launcher2.ui.launcher.widgets.calendar.openCalendarAt
 import de.mm20.launcher2.ui.locals.LocalCalendarSystems
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import java.time.Instant
+import java.time.ZoneId
 import java.util.*
 
 class DatePartProvider : PartProvider {
@@ -26,8 +31,14 @@ class DatePartProvider : PartProvider {
 
     @Composable
     override fun Component(compactLayout: Boolean) {
-        val time = LocalTime.current
-        val date = Date(time)
+        // The date only changes once a day, so it's only formatted again then, not every second
+        val timeState = LocalTimeState.current
+        val day by remember(timeState) {
+            derivedStateOf {
+                Instant.ofEpochMilli(timeState.value).atZone(ZoneId.systemDefault()).toLocalDate()
+            }
+        }
+        val date = remember(day) { Date.from(day.atStartOfDay(ZoneId.systemDefault()).toInstant()) }
         val verticalLayout = !compactLayout
         val context = LocalContext.current
 
