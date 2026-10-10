@@ -267,21 +267,43 @@ internal class AppRepositoryImpl(
         if (packageName == context.packageName) return emptyList()
 
         return try {
-            launcherApps.getActivityList(packageName, userHandle)
-                .mapNotNull { getApplication(it) }
+            val activities = launcherApps.getActivityList(packageName, userHandle)
+            // When all apps are loaded, getting all version names at once is faster than getting
+            // them one app at a time
+            val versionNames = if (packageName == null) getVersionNames() else null
+            activities.mapNotNull { getApplication(it, versionNames) }
         } catch (e: SecurityException) {
             emptyList()
         }
     }
 
+    /**
+     * The version names of the packages that are installed for the launcher's user, by package
+     * name, or null if they can't be listed
+     */
+    @Suppress("DEPRECATION")
+    private fun getVersionNames(): Map<String, String?>? {
+        return try {
+            context.packageManager.getInstalledPackages(0)
+                .associate { it.packageName to it.versionName }
+        } catch (e: Exception) {
+            // e.g. the list is too large to be sent on some devices
+            null
+        }
+    }
 
     private fun getApplication(
-        launcherActivityInfo: LauncherActivityInfo
+        launcherActivityInfo: LauncherActivityInfo,
+        versionNames: Map<String, String?>? = null,
     ): LauncherApp? {
-        if (launcherActivityInfo.applicationInfo.packageName == context.packageName && !context.packageName.endsWith(
+        val packageName = launcherActivityInfo.applicationInfo.packageName
+        if (packageName == context.packageName && !context.packageName.endsWith(
                 ".debug"
             )
         ) return null
+        if (versionNames != null && packageName in versionNames) {
+            return LauncherApp(context, launcherActivityInfo, versionName = versionNames[packageName])
+        }
         return LauncherApp(context, launcherActivityInfo)
     }
 

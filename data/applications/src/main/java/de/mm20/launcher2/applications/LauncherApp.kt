@@ -61,12 +61,13 @@ internal data class LauncherApp(
         context: Context,
         launcherActivityInfo: LauncherActivityInfo,
         score: ResultScore = ResultScore.Unspecified,
-    ) : this(
-        launcherActivityInfo,
-        versionName = getPackageVersionName(
+        versionName: String? = getPackageVersionName(
             context,
             launcherActivityInfo.applicationInfo.packageName
         ),
+    ) : this(
+        launcherActivityInfo,
+        versionName = versionName,
         isSuspended = launcherActivityInfo.applicationInfo.flags and ApplicationInfo.FLAG_SUSPENDED != 0,
         userSerialNumber = launcherActivityInfo.user.getSerialNumber(context),
         score = score,
