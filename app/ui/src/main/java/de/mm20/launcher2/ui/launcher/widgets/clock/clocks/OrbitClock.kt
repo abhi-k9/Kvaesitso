@@ -16,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.center
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toOffset
 import de.mm20.launcher2.ktx.TWO_PI
+import de.mm20.launcher2.ui.launcher.scaffold.LocalScaffoldPageVisible
 import de.mm20.launcher2.ui.locals.LocalDarkTheme
 import palettes.TonalPalette
 import java.time.Instant
@@ -71,9 +73,13 @@ fun OrbitClock(
     val minsAngleStart = minute / 60f * Float.TWO_PI + secsAngleStart / 60f
     val hourAngleStart = hour % 12 / 12f * Float.TWO_PI + minsAngleStart / 12f
 
-    val infiniteTransition = rememberInfiniteTransition(label = "timeInfiniteTransition")
+    // The orbits move on every frame, so they only move while the clock's page is shown, not
+    // e.g. while the search covers it
+    val infiniteTransition = if (LocalScaffoldPageVisible.current) {
+        rememberInfiniteTransition(label = "timeInfiniteTransition")
+    } else null
 
-    val animatedSecs by infiniteTransition.animateFloat(
+    val animatedSecs by infiniteTransition?.animateFloat(
         initialValue = secsAngleStart,
         targetValue = secsAngleStart + Float.TWO_PI,
         animationSpec = infiniteRepeatable(
@@ -83,8 +89,8 @@ fun OrbitClock(
             )
         ),
         label = "secondsAnimation"
-    )
-    val animatedMins by infiniteTransition.animateFloat(
+    ) ?: rememberUpdatedState(secsAngleStart)
+    val animatedMins by infiniteTransition?.animateFloat(
         initialValue = minsAngleStart,
         targetValue = minsAngleStart + Float.TWO_PI,
         animationSpec = infiniteRepeatable(
@@ -94,8 +100,8 @@ fun OrbitClock(
             )
         ),
         label = "minutesAnimation"
-    )
-    val animatedHrs by infiniteTransition.animateFloat(
+    ) ?: rememberUpdatedState(minsAngleStart)
+    val animatedHrs by infiniteTransition?.animateFloat(
         initialValue = hourAngleStart,
         targetValue = hourAngleStart + Float.TWO_PI,
         animationSpec = infiniteRepeatable(
@@ -105,7 +111,7 @@ fun OrbitClock(
             )
         ),
         label = "hoursAnimation"
-    )
+    ) ?: rememberUpdatedState(hourAngleStart)
 
     val fgTone = if (!darkColors) 10 else 90
     val bgTone = if (!darkColors) 90 else 30
