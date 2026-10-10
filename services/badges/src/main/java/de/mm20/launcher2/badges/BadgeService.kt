@@ -69,6 +69,8 @@ internal class BadgeServiceImpl(
             if (providers.isEmpty()) return@flatMapLatest flowOf(null)
             combine(providers.map { it.getBadge(searchable) }) { it.filterNotNull() }
                 .map { it.combine() }
+                // Badges are compared by value, so an icon is only updated if its badge changed
+                .distinctUntilChanged()
                 .flowOn(Dispatchers.Default)
         }
     }
