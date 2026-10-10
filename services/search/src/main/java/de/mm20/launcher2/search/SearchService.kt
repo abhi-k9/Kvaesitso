@@ -39,6 +39,13 @@ interface SearchService {
     fun getAllApps(): Flow<AllAppsResults>
 }
 
+/**
+ * Contacts, calendar events and files are searched this much later, as they ask other apps or the
+ * storage. A newer query cancels the search before that, so they don't run for every letter while
+ * typing.
+ */
+private const val TypingDelayMillis = 150L
+
 internal class SearchServiceImpl(
     private val appRepository: SearchableRepository<Application>,
     private val appShortcutRepository: SearchableRepository<AppShortcut>,
@@ -168,6 +175,7 @@ internal class SearchServiceImpl(
             }
             if (filters.contacts) {
                 launch {
+                    delay(TypingDelayMillis)
                     contactRepository.search(query, filters.allowNetwork)
                         .combine(customAttrResults) { contacts, customAttrs ->
                             if (customAttrs.contacts != null) contacts + customAttrs.contacts
@@ -183,6 +191,7 @@ internal class SearchServiceImpl(
             }
             if (filters.events) {
                 launch {
+                    delay(TypingDelayMillis)
                     calendarRepository.search(query, filters.allowNetwork)
                         .combine(customAttrResults) { calendars, customAttrs ->
                             if (customAttrs.calendars != null) calendars + customAttrs.calendars
@@ -264,6 +273,7 @@ internal class SearchServiceImpl(
             }
             if (filters.files) {
                 launch {
+                    delay(TypingDelayMillis)
                     fileRepository.search(
                         query,
                         filters.allowNetwork
