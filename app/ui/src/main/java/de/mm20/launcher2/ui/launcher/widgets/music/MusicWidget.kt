@@ -46,6 +46,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,7 +73,10 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntRect
 import androidx.core.content.res.ResourcesCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
@@ -82,6 +86,7 @@ import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.component.MissingPermissionBanner
 import de.mm20.launcher2.ui.component.Tooltip
 import de.mm20.launcher2.ui.ktx.conditional
+import de.mm20.launcher2.ui.launcher.scaffold.LocalScaffoldPageVisible
 import de.mm20.launcher2.ui.launcher.transitions.EnterHomeTransitionParams
 import de.mm20.launcher2.ui.launcher.transitions.HandleEnterHomeTransition
 import de.mm20.launcher2.ui.locals.LocalWindowSize
@@ -100,7 +105,17 @@ fun MusicWidget(widget: MusicWidget) {
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle(PlaybackState.Stopped)
     // null until the state is known, so that the media doesn't flash
     val knownPlaybackState by viewModel.playbackState.collectAsStateWithLifecycle<PlaybackState?>(null)
-    val position by viewModel.position.collectAsStateWithLifecycle(null)
+    // The position moves every second while music plays. It's only followed while the widget's page
+    // is shown, not e.g. while the search covers it, and keeps its last value meanwhile.
+    val pageVisible = LocalScaffoldPageVisible.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var position by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(pageVisible, lifecycleOwner) {
+        if (!pageVisible) return@LaunchedEffect
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.position.collect { position = it }
+        }
+    }
     val duration by viewModel.duration.collectAsStateWithLifecycle(null)
 
     val supportedActions by viewModel.supportedActions.collectAsStateWithLifecycle(SupportedActions())
