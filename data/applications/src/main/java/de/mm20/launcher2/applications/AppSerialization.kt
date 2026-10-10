@@ -8,6 +8,7 @@ import android.os.Process
 import android.os.UserManager
 import android.util.Log
 import androidx.core.content.getSystemService
+import de.mm20.launcher2.ktx.getSerialNumber
 import de.mm20.launcher2.ktx.isAtLeastApiLevel
 import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.search.SearchableDeserializer
@@ -57,14 +58,21 @@ class LauncherAppDeserializer(
             val launcherApps = context.getSystemService<LauncherApps>()!!
             val userManager = context.getSystemService<UserManager>()!!
             val userSerial = json.optLong("user", -1L)
-            val user = if (userSerial == -1L) Process.myUserHandle() else (userManager.getUserForSerialNumber(userSerial) ?: return null)
+            // The serial number of the launcher's own user is cached, so most apps don't need to
+            // ask Android for their user
+            val myUser = Process.myUserHandle()
+            val user = when (userSerial) {
+                -1L, myUser.getSerialNumber(context) -> myUser
+                else -> userManager.getUserForSerialNumber(userSerial) ?: return null
+            }
 
             val pkg = json.getString("package")
             val activity = json.getString("activity")
 
             val componentName = ComponentName(pkg, activity)
 
-            if (isAtLeastApiLevel(35)) {
+            // The launcher's own user is never a private space
+            if (isAtLeastApiLevel(35) && user != myUser) {
                 val launcherUser = launcherApps.getLauncherUserInfo(user) ?: return null
                 if (launcherUser.userType == UserManager.USER_TYPE_PROFILE_PRIVATE && userManager.isQuietModeEnabled(
                         user
@@ -79,6 +87,12 @@ class LauncherAppDeserializer(
                 }
             }
 
+            // Saved apps are loaded again whenever the item database changes, e.g. after every app
+            // launch. Apps that the launcher has loaded already are used as they are, so that
+            // Android isn't asked for each of them again.
+            val loaded = appRepository.getLoadedApps(pkg, user)?.filterIsInstance<LauncherApp>()
+            loaded?.firstOrNull { it.componentName == componentName }?.let { return it }
+
             val intent = Intent().also {
                 it.component = componentName
             }
@@ -89,12 +103,9 @@ class LauncherAppDeserializer(
             // wasn't running. Such an item can't be launched, and it would be shown next to the
             // app's current activity, e.g. twice in a folder. What's stored for it is moved to the
             // current activity instead.
-            // The apps that are loaded already are used if possible, to not ask Android again
-            val launcherActivities = appRepository.getLoadedApps(pkg, user)
-                ?.filterIsInstance<LauncherApp>()
-                ?: withContext(Dispatchers.IO) {
-                    launcherApps.getActivityList(pkg, user).map { LauncherApp(context, it) }
-                }
+            val launcherActivities = loaded ?: withContext(Dispatchers.IO) {
+                launcherApps.getActivityList(pkg, user).map { LauncherApp(context, it) }
+            }
             if (launcherActivities.isNotEmpty() &&
                 launcherActivities.none { it.componentName == componentName }
             ) {
