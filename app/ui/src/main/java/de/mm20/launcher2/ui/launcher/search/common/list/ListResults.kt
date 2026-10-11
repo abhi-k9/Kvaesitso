@@ -24,6 +24,10 @@ import de.mm20.launcher2.ui.ktx.animateShapeAsState
 import de.mm20.launcher2.ui.layout.BottomReversed
 import de.mm20.launcher2.ui.theme.transparency.transparency
 
+/**
+ * @param separateFrom if set, the items from this index on are shown apart from the ones before
+ * them, in a box of their own
+ */
 fun <T : SavableSearchable> LazyListScope.ListResults(
     key: String,
     items: List<T>,
@@ -32,6 +36,7 @@ fun <T : SavableSearchable> LazyListScope.ListResults(
     after: @Composable (ColumnScope.() -> Unit)? = null,
     reverse: Boolean = false,
     selectedIndex: Int = -1,
+    separateFrom: Int = -1,
 ) {
     if (before != null) {
         item(
@@ -49,6 +54,7 @@ fun <T : SavableSearchable> LazyListScope.ListResults(
         }
     }
     val rows = items.size
+    val split = separateFrom.takeIf { it in 1 until items.size }
     items(
         items.size,
         key = {
@@ -60,8 +66,8 @@ fun <T : SavableSearchable> LazyListScope.ListResults(
         val showDetails = it == selectedIndex
 
         ListItemSurface(
-            isFirst = it == 0 && before == null,
-            isLast = it == rows - 1 && after == null,
+            isFirst = it == 0 && before == null || it == split,
+            isLast = it == rows - 1 && after == null || split != null && it == split - 1,
             reverse = reverse,
             isExpanded = showDetails,
             isBeforeExpanded = selectedIndex - 1 == it,

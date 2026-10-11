@@ -101,6 +101,20 @@ fun SearchColumn(
             else appFolders + apps
         }
     }
+    val separateFolders by viewModel.separateFolders.collectAsState(false)
+    // If set, folders before or after the apps are shown apart from them: this is where the
+    // second of them starts in the app list
+    val foldersSeparateFrom by remember {
+        derivedStateOf {
+            if (!separateFolders || !viewModel.isSearchEmpty.value) return@derivedStateOf -1
+            if (apps.isEmpty() || appFolders.isEmpty()) return@derivedStateOf -1
+            when (folderPosition) {
+                FolderPosition.First -> appFolders.size
+                FolderPosition.Last -> apps.size
+                FolderPosition.Mixed -> -1
+            }
+        }
+    }
     val workApps = viewModel.workAppResults
     val privateApps = viewModel.privateSpaceAppResults
     val profiles by viewModel.profiles.collectAsState(emptyList())
@@ -236,6 +250,10 @@ fun SearchColumn(
                             Profile.Type.Work -> workApps
                             else -> appsWithFolders
                         },
+                        separateFrom = when (selectedProfile?.type) {
+                            Profile.Type.Private, Profile.Type.Work -> -1
+                            else -> foldersSeparateFrom
+                        },
                         highlightedItem = bestMatch as? Application,
                         profiles = visibleProfiles,
                         profileStates = profileStates,
@@ -257,6 +275,7 @@ fun SearchColumn(
                 } else if (!isSearchEmpty || allAppsEnabled) {
                     AppResults(
                         apps = appsWithFolders,
+                        separateFrom = foldersSeparateFrom,
                         highlightedItem = bestMatch as? Application,
                         columns = columns,
                         reverse = reverse,

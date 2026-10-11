@@ -815,6 +815,9 @@
     <string name="preference_folders_position_mixed">Sorted in with the apps</string>
     <string name="preference_folders_position_first">Before the apps</string>
     <string name="preference_folders_position_last">After the apps</string>
+    <!-- Switch: a gap between the folders and the apps in the app list -->
+    <string name="preference_folders_separate">Separate folders and apps</string>
+    <string name="preference_folders_separate_summary">Show a gap between the folders and the apps when the folders are before or after the apps</string>
     <string name="preference_folders_in_search">Folders in search results</string>
     <string name="preference_folders_in_search_summary">Show folders whose name matches the search with the apps</string>
     <!-- Switch in the customize sheet of an app that is in a folder -->

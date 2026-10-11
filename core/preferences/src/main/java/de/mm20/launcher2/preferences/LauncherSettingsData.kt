@@ -73,6 +73,7 @@ data class LauncherSettingsData internal constructor(
     val foldersStyle: FolderStyle = FolderStyle.Popup,
     val foldersInSearch: Boolean = true,
     val foldersPosition: FolderPosition = FolderPosition.Mixed,
+    val foldersSeparate: Boolean = false,
 
     val searchAllApps: Boolean = true,
     val appsShowDetails: Boolean = true,

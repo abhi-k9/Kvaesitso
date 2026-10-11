@@ -36,4 +36,15 @@ class FolderSettings internal constructor(
     fun setPosition(position: FolderPosition) {
         dataStore.update { it.copy(foldersPosition = position) }
     }
+
+    /**
+     * Whether there is a gap between the folders and the apps in the app list, when the folders
+     * are shown before or after the apps
+     */
+    val separate: Flow<Boolean>
+        get() = dataStore.data.map { it.foldersSeparate }.distinctUntilChanged()
+
+    fun setSeparate(separate: Boolean) {
+        dataStore.update { it.copy(foldersSeparate = separate) }
+    }
 }

@@ -71,6 +71,12 @@ class TagsSettingsScreenVM: ViewModel(), KoinComponent {
         folderSettings.setPosition(position)
     }
 
+    val separateFolders = folderSettings.separate
+
+    fun setSeparateFolders(separate: Boolean) {
+        folderSettings.setSeparate(separate)
+    }
+
     val foldersInSearch = folderSettings.showInSearch
 
     fun setFoldersInSearch(showInSearch: Boolean) {

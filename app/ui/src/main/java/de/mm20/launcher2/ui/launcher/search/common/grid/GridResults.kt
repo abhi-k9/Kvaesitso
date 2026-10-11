@@ -16,6 +16,10 @@ import de.mm20.launcher2.ui.ktx.withCorners
 import de.mm20.launcher2.ui.theme.transparency.transparency
 import kotlin.math.ceil
 
+/**
+ * @param separateFrom if set, the items from this index on are shown apart from the ones before
+ * them, in a box of their own that starts on a new row
+ */
 fun <T : SavableSearchable> LazyListScope.GridResults(
     key: String,
     items: List<T>,
@@ -24,6 +28,7 @@ fun <T : SavableSearchable> LazyListScope.GridResults(
     after: @Composable (() -> Unit)? = null,
     columns: Int,
     reverse: Boolean = false,
+    separateFrom: Int = -1,
 ) {
     if (before != null) {
         item(
@@ -53,7 +58,11 @@ fun <T : SavableSearchable> LazyListScope.GridResults(
         }
     }
 
-    val rows = ceil(items.size / columns.toFloat()).toInt()
+    val split = separateFrom.takeIf { it in 1 until items.size }
+    val sections = if (split == null) listOf(items)
+    else listOf(items.subList(0, split), items.subList(split, items.size))
+    val sectionRows = sections.map { ceil(it.size / columns.toFloat()).toInt() }
+    val rows = sectionRows.sum()
     items(
         rows,
         key = {
@@ -61,11 +70,17 @@ fun <T : SavableSearchable> LazyListScope.GridResults(
         },
         contentType = { key }
     ) {
+        val section = if (it < sectionRows[0]) 0 else 1
+        val row = if (section == 0) it else it - sectionRows[0]
+        val sectionItems = sections[section]
+        val isFirstOfSection = row == 0
+        val isLastOfSection = row == sectionRows[section] - 1
 
-        val isFirst = it == 0 && before == null
-        val isLast = it == rows - 1 && after == null
-        val isTopRow = if (reverse) it == rows - 1 else it == 0
-        val isBottomRow = if (reverse) it == 0 else it == rows - 1
+        // The box of the first section ends where the second one begins
+        val isFirst = isFirstOfSection && (section == 1 || before == null)
+        val isLast = isLastOfSection && (section == 0 && split != null || after == null)
+        val isTopRow = if (reverse) isLastOfSection else isFirstOfSection
+        val isBottomRow = if (reverse) isFirstOfSection else isLastOfSection
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -91,7 +106,7 @@ fun <T : SavableSearchable> LazyListScope.GridResults(
         ) {
             Row {
                 for (i in 0 until columns) {
-                    val item = items.getOrNull(it * columns + i)
+                    val item = sectionItems.getOrNull(row * columns + i)
                     if (item != null) {
                         Box(
                             modifier = Modifier

@@ -118,6 +118,11 @@ class SearchVM : ViewModel(), KoinComponent {
      * Where [appFolders] are shown in the app list
      */
     val folderPosition = folderSettings.position
+
+    /**
+     * Whether [appFolders] are shown apart from the apps, if they're before or after them
+     */
+    val separateFolders = folderSettings.separate
     val workAppResults = mutableStateListOf<Application>()
     val privateSpaceAppResults = mutableStateListOf<Application>()
 

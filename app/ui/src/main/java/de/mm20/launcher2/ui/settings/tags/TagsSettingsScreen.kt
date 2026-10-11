@@ -171,6 +171,16 @@ fun TagsSettingsScreen() {
                         if (it != null) viewModel.setFolderPosition(it)
                     },
                 )
+                val separateFolders by viewModel.separateFolders.collectAsState(false)
+                SwitchPreference(
+                    title = stringResource(R.string.preference_folders_separate),
+                    summary = stringResource(R.string.preference_folders_separate_summary),
+                    value = separateFolders,
+                    enabled = folderPosition != FolderPosition.Mixed,
+                    onValueChanged = {
+                        viewModel.setSeparateFolders(it)
+                    },
+                )
                 val foldersInSearch by viewModel.foldersInSearch.collectAsState(true)
                 SwitchPreference(
                     title = stringResource(R.string.preference_folders_in_search),
