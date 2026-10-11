@@ -89,6 +89,8 @@ import de.mm20.launcher2.ui.settings.filesearch.FileSearchSettingsRoute
 import de.mm20.launcher2.ui.settings.filesearch.FileSearchSettingsScreen
 import de.mm20.launcher2.ui.settings.filterbar.FilterBarSettingsRoute
 import de.mm20.launcher2.ui.settings.filterbar.FilterBarSettingsScreen
+import de.mm20.launcher2.ui.settings.folders.FoldersSettingsRoute
+import de.mm20.launcher2.ui.settings.folders.FoldersSettingsScreen
 import de.mm20.launcher2.ui.settings.gestures.GestureSettingsScreen
 import de.mm20.launcher2.ui.settings.gestures.GesturesSettingsRoute
 import de.mm20.launcher2.ui.settings.hiddenitems.HiddenItemsSettingsRoute
@@ -256,6 +258,9 @@ class SettingsActivity : BaseActivity() {
             }
             entry<TagsSettingsRoute> {
                 TagsSettingsScreen()
+            }
+            entry<FoldersSettingsRoute> {
+                FoldersSettingsScreen()
             }
             entry<FilterBarSettingsRoute> {
                 FilterBarSettingsScreen()

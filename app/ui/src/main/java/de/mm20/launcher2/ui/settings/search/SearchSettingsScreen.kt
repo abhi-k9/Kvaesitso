@@ -41,6 +41,7 @@ import de.mm20.launcher2.ui.settings.contacts.ContactsSettingsRoute
 import de.mm20.launcher2.ui.settings.favorites.FavoritesSettingsRoute
 import de.mm20.launcher2.ui.settings.filesearch.FileSearchSettingsRoute
 import de.mm20.launcher2.ui.settings.filterbar.FilterBarSettingsRoute
+import de.mm20.launcher2.ui.settings.folders.FoldersSettingsRoute
 import de.mm20.launcher2.ui.settings.hiddenitems.HiddenItemsSettingsRoute
 import de.mm20.launcher2.ui.settings.locations.LocationsSettingsRoute
 import de.mm20.launcher2.ui.settings.searchactions.SearchActionsSettingsRoute
@@ -117,6 +118,14 @@ fun SearchSettingsScreen() {
                     },
                     onClick = {
                         backStack.add(AppSearchSettingsRoute)
+                    }
+                )
+                Preference(
+                    title = stringResource(R.string.preference_screen_folders),
+                    summary = stringResource(R.string.preference_screen_folders_summary),
+                    icon = R.drawable.folder_24px,
+                    onClick = {
+                        backStack.add(FoldersSettingsRoute)
                     }
                 )
             }

@@ -8,9 +8,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 import de.mm20.launcher2.ui.R
+import de.mm20.launcher2.ui.component.preferences.Preference
 import de.mm20.launcher2.ui.component.preferences.PreferenceCategory
 import de.mm20.launcher2.ui.component.preferences.PreferenceScreen
 import de.mm20.launcher2.ui.component.preferences.SwitchPreference
+import de.mm20.launcher2.ui.locals.LocalBackStack
+import de.mm20.launcher2.ui.settings.folders.FoldersSettingsRoute
+import de.mm20.launcher2.ui.settings.icons.IconsSettingsRoute
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -25,6 +29,7 @@ fun AppSearchSettingsScreen() {
     val showAppDetails by viewModel.showAppDetails.collectAsStateWithLifecycle()
     val showList by viewModel.showList.collectAsStateWithLifecycle()
     val showListIcons by viewModel.showListIcons.collectAsStateWithLifecycle()
+    val backStack = LocalBackStack.current
 
     PreferenceScreen(
         title = stringResource(R.string.preference_search_apps)
@@ -51,7 +56,7 @@ fun AppSearchSettingsScreen() {
             }
         }
         item {
-            PreferenceCategory {
+            PreferenceCategory(stringResource(R.string.preference_category_layout)) {
                 SwitchPreference(
                     title = stringResource(R.string.preference_grid_list_style),
                     summary = stringResource(R.string.preference_grid_list_style_summary),
@@ -70,6 +75,21 @@ fun AppSearchSettingsScreen() {
                         }
                     )
                 }
+                // The grid is set up with the icons, it's shared with the favorites
+                Preference(
+                    title = stringResource(R.string.preference_category_grid),
+                    summary = stringResource(R.string.preference_apps_grid_summary),
+                    onClick = {
+                        backStack.add(IconsSettingsRoute)
+                    }
+                )
+                Preference(
+                    title = stringResource(R.string.preference_screen_folders),
+                    summary = stringResource(R.string.preference_screen_folders_summary),
+                    onClick = {
+                        backStack.add(FoldersSettingsRoute)
+                    }
+                )
             }
         }
     }
