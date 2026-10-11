@@ -1,66 +1,92 @@
-# Kvaesitso
+# Kvaesitso (abhi-k9 fork)
 
 <img src="https://raw.githubusercontent.com/MM2-0/Kvaesitso/main/assets/icons/ic_launcher.png" width="128">
 
-Kvaesitso is a search focused, free and open source launcher for Android.
+Kvaesitso is a search focused, free and open source launcher for Android. This is a fork of
+[MM2-0/Kvaesitso](https://github.com/MM2-0/Kvaesitso) with folders, more app list options, MET
+Norway weather, performance work and many bug fixes. It follows upstream and merges its changes.
 
-[Website and documentation](https://kvaesitso.mm20.de)
+[Upstream website and documentation](https://kvaesitso.mm20.de)
 
 ## Installation
 
-### Using an F-Droid client and MM20's repo
+Download the APK of the [latest release](https://github.com/abhi-k9/Kvaesitso/releases/latest)
+and install it. Releases are built by GitHub Actions from this repository. Each release says what
+changed; they aren't tested on a device before they're published.
 
-The preferred way of installation is using the [F-Droid](https://f-droid.org) application. That way
-you will always be notified about updates. Kvaesitso is available in the official F-Droid
-repository, but all features depending on non-foss external APIs were removed.
-For feature-complete builds you can add [MM20's repository](https://fdroid.mm20.de). Just scan the code below or open
-the link on your phone:
+The APK is signed with this fork's key, so it can't be installed over Kvaesitso from F-Droid,
+IzzyOnDroid or the upstream releases. To switch:
 
-<img src="https://fdroid.mm20.de/repo/index.png" width="150" alt="QR code">
+1. Back up your settings in Settings > Backup
+2. Uninstall the other Kvaesitso
+3. Install this APK and restore the backup
 
-https://fdroid.mm20.de/repo/
+Releases of this fork install over each other.
 
-The same version is also available in [IzzyOnDroid's repository](https://apt.izzysoft.de/fdroid/index/apk/de.mm20.launcher2.release).
+## What's different
 
-### Manual installation
+### Folders
 
-You can also download the latest release from
-the [releases page](https://github.com/MM2-0/Kvaesitso/releases/latest) and install it manually.
+- Any tag can be shown as a folder in the app list: turn on "Show as folder" in the tag editor
+- "Add to folder" in an app's long-press menu puts it in one or more folders, or a new one
+- "Create folders from app categories" sorts apps into folders such as Games or Social
+- Apps in a folder are only shown in the folder. Per app, "Also show in the app list" shows it in
+  both
+- Folders can be sorted in with the apps, or shown before or after them, optionally with a gap
+  between folders and apps
+- Folders open as a popup or a bottom sheet, can be pinned to the favorites, and folders whose
+  name matches the search are shown in the search results
+- All folder settings are in Settings > Search > Folders
+
+### Search and app list
+
+- Apps can be found by their package name, files by their full name or extension (e.g. ".pdf")
+- Tags can be picked from a list in the customize sheet, and are sorted alphabetically
+- "Search on enter" starts the first search action, such as a web search
+- Up to 8 rows of frequently used apps
+- "Open file location" for local files, and "Skip .nomedia folders" for file search
+- Website search only looks up queries that look like web addresses
+
+### Widgets and weather
+
+- MET Norway weather, with free forecasts for the whole world. It's the default provider
+- Spacer widget, and "Clear when playback stops" for the music widget
+
+### Fixes and performance
+
+- Many crashes and bugs fixed, including ones reported on the
+  [upstream issue tracker](https://github.com/MM2-0/Kvaesitso/issues). Each
+  [release](https://github.com/abhi-k9/Kvaesitso/releases) lists them, with the upstream issue
+  numbers
+- Favorites, pinned and hidden items are no longer deleted while they're only temporarily
+  unavailable, e.g. while the work profile is paused
+- Safer backup restore and other hardening of input from other apps and files
+- Less work after app launches, while typing and while the home page is covered, so the launcher
+  stutters less and uses less battery
 
 ## Report issues
 
-If you notice any bugs or issues create a new issue in
-the [issue tracker](https://github.com/MM2-0/Kvaesitso/issues). Before you do, please search the
-existing issues for any similar issues. Please include any relevant information such as steps to
-reproduce, stack traces, logs, and device information. These information can be founder under
-Settings > Debug > Crash reporter and Settings > Debug > Export debug information.
+Report bugs in this fork's [issue tracker](https://github.com/abhi-k9/Kvaesitso/issues). The
+"report" button on the crash report screen opens an issue there. Please include steps to
+reproduce and, if you can, the crash report (Settings > Debug > Crash reporter) and debug
+information (Settings > Debug > Export debug information).
 
-## Feature requests
+Bugs that also happen in upstream Kvaesitso can be reported
+[upstream](https://github.com/MM2-0/Kvaesitso/issues).
 
-If you have an idea for a new feature, just create a new issue. However, there is no guarantee that
-they will be implemented. If it's important for you, consider implementing it yourself,
-see [contribute](#contribute).
+## Translations
 
-
-## Contribute
-
-Contributions are always welcome. If you want to fix any existing issues or implement smaller new
-features just create a new pull request. If you plan to implement any (bigger) new features, please
-create an issue first so we can discuss if and how this feature should be implemented.
-
-If you want to help translating, see [how to translate the project.](https://kvaesitso.mm20.de/docs/contributor-guide/i18n)
-
-<a href="https://i18n.mm20.de/engage/kvaesitso/">
-<img src="https://i18n.mm20.de/widgets/kvaesitso/-/287x66-grey.png" alt ="Translation Status">
-</a>
+New strings in this fork are in English only for now. To help translate Kvaesitso, see
+[how to translate the project](https://kvaesitso.mm20.de/docs/contributor-guide/i18n).
 
 ## Links
 
 - User guide: https://kvaesitso.mm20.de/docs/user-guide
-- F-Droid-Repository: https://fdroid.mm20.de
+- Upstream repository: https://github.com/MM2-0/Kvaesitso
 
 ## Thanks to
 
+- [MM2-0](https://github.com/MM2-0) and the Kvaesitso contributors for Kvaesitso
 - [@EliotAku](https://github.com/EliotAku) for the app icon
 - All [translators and code contributors](https://github.com/MM2-0/Kvaesitso/graphs/contributors)
 
