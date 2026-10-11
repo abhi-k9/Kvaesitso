@@ -1,5 +1,6 @@
 package de.mm20.launcher2.ui.launcher.search.folders
 
+import android.view.WindowManager
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,10 +24,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.ui.R
@@ -60,6 +63,15 @@ fun AddToFolderDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(R.string.menu_add_to_folder)) },
         text = {
+            // A dialog's window is moved up when the keyboard covers its focused text field. Each
+            // typed letter moved it again, only as far as the cursor, and then back, so the dialog
+            // shook. Resized instead, the window fits above the keyboard and stays still, and the
+            // list of folders gets shorter.
+            val window = (LocalView.current.parent as? DialogWindowProvider)?.window
+            LaunchedEffect(window) {
+                @Suppress("DEPRECATION")
+                window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+            }
             Column {
                 if (loadedFolders != null && loadedSelection != null) {
                     Column(
