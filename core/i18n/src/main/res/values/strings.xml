@@ -810,6 +810,11 @@
     <string name="preference_folders_style">Open folders as</string>
     <string name="preference_folders_style_popup">Popup</string>
     <string name="preference_folders_style_sheet">Bottom sheet</string>
+    <!-- Where folders are shown in the app list -->
+    <string name="preference_folders_position">Folders in the app list</string>
+    <string name="preference_folders_position_mixed">Sorted in with the apps</string>
+    <string name="preference_folders_position_first">Before the apps</string>
+    <string name="preference_folders_position_last">After the apps</string>
     <string name="preference_folders_in_search">Folders in search results</string>
     <string name="preference_folders_in_search_summary">Show folders whose name matches the search with the apps</string>
     <!-- Switch in the customize sheet of an app that is in a folder -->

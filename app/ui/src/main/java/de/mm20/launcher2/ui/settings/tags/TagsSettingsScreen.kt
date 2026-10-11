@@ -32,6 +32,7 @@ import androidx.navigation3.runtime.NavKey
 import de.mm20.launcher2.search.Application
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.component.ShapedLauncherIcon
+import de.mm20.launcher2.preferences.FolderPosition
 import de.mm20.launcher2.preferences.FolderStyle
 import de.mm20.launcher2.ui.component.preferences.ListPreference
 import de.mm20.launcher2.ui.component.preferences.Preference
@@ -155,6 +156,19 @@ fun TagsSettingsScreen() {
                     value = folderStyle,
                     onValueChanged = {
                         if (it != null) viewModel.setFolderStyle(it)
+                    },
+                )
+                val folderPosition by viewModel.folderPosition.collectAsState(FolderPosition.Mixed)
+                ListPreference(
+                    title = stringResource(R.string.preference_folders_position),
+                    items = listOf(
+                        stringResource(R.string.preference_folders_position_mixed) to FolderPosition.Mixed,
+                        stringResource(R.string.preference_folders_position_first) to FolderPosition.First,
+                        stringResource(R.string.preference_folders_position_last) to FolderPosition.Last,
+                    ),
+                    value = folderPosition,
+                    onValueChanged = {
+                        if (it != null) viewModel.setFolderPosition(it)
                     },
                 )
                 val foldersInSearch by viewModel.foldersInSearch.collectAsState(true)

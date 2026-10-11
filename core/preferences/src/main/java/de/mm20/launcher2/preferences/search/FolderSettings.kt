@@ -1,5 +1,6 @@
 package de.mm20.launcher2.preferences.search
 
+import de.mm20.launcher2.preferences.FolderPosition
 import de.mm20.launcher2.preferences.FolderStyle
 import de.mm20.launcher2.preferences.LauncherDataStore
 import kotlinx.coroutines.flow.Flow
@@ -24,5 +25,15 @@ class FolderSettings internal constructor(
 
     fun setShowInSearch(showInSearch: Boolean) {
         dataStore.update { it.copy(foldersInSearch = showInSearch) }
+    }
+
+    /**
+     * Whether folders are sorted in with the apps in the app list, or shown before or after them
+     */
+    val position: Flow<FolderPosition>
+        get() = dataStore.data.map { it.foldersPosition }.distinctUntilChanged()
+
+    fun setPosition(position: FolderPosition) {
+        dataStore.update { it.copy(foldersPosition = position) }
     }
 }

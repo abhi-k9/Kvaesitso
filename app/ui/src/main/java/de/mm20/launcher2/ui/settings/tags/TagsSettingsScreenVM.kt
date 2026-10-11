@@ -12,6 +12,7 @@ import de.mm20.launcher2.data.customattrs.TagFoldersRepository
 import de.mm20.launcher2.icons.IconService
 import de.mm20.launcher2.icons.LauncherIcon
 import de.mm20.launcher2.ktx.getApplicationInfoOrNull
+import de.mm20.launcher2.preferences.FolderPosition
 import de.mm20.launcher2.preferences.FolderStyle
 import de.mm20.launcher2.preferences.search.FolderSettings
 import de.mm20.launcher2.search.Application
@@ -62,6 +63,12 @@ class TagsSettingsScreenVM: ViewModel(), KoinComponent {
 
     fun setFolderStyle(style: FolderStyle) {
         folderSettings.setStyle(style)
+    }
+
+    val folderPosition = folderSettings.position
+
+    fun setFolderPosition(position: FolderPosition) {
+        folderSettings.setPosition(position)
     }
 
     val foldersInSearch = folderSettings.showInSearch

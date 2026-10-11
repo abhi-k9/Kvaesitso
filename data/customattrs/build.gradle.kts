@@ -50,6 +50,7 @@ dependencies {
     implementation(project(":core:base"))
     implementation(project(":core:ktx"))
     implementation(project(":core:crashreporter"))
+    implementation(project(":core:preferences"))
     implementation(project(":data:searchable"))
 
     testImplementation(libs.bundles.tests)

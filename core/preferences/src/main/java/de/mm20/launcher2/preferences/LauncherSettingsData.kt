@@ -72,6 +72,7 @@ data class LauncherSettingsData internal constructor(
     val favoritesCompactTags: Boolean = false,
     val foldersStyle: FolderStyle = FolderStyle.Popup,
     val foldersInSearch: Boolean = true,
+    val foldersPosition: FolderPosition = FolderPosition.Mixed,
 
     val searchAllApps: Boolean = true,
     val appsShowDetails: Boolean = true,
@@ -514,4 +515,17 @@ enum class BatteryStatusVisibility {
 enum class FolderStyle {
     @SerialName("popup") Popup,
     @SerialName("sheet") BottomSheet,
+}
+
+/**
+ * Where folders are shown in the app list
+ */
+@Serializable
+enum class FolderPosition {
+    /**
+     * Sorted in with the apps by name
+     */
+    @SerialName("mixed") Mixed,
+    @SerialName("first") First,
+    @SerialName("last") Last,
 }

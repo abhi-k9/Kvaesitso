@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.mm20.launcher2.data.customattrs.mergeFolders
+import de.mm20.launcher2.preferences.FolderPosition
 import de.mm20.launcher2.profiles.Profile
 import de.mm20.launcher2.search.AppShortcut
 import de.mm20.launcher2.search.Application
@@ -91,11 +92,12 @@ fun SearchColumn(
 
     val apps = viewModel.appResults
     val appFolders = viewModel.appFolders
-    // Folders are sorted in with the apps in the app list. Search results are sorted by how well
-    // they match, so matching folders come first there.
+    val folderPosition by viewModel.folderPosition.collectAsState(FolderPosition.Mixed)
+    // Folders are sorted in with the apps in the app list, or shown before or after them, as set.
+    // Search results are sorted by how well they match, so matching folders come first there.
     val appsWithFolders by remember {
         derivedStateOf {
-            if (viewModel.isSearchEmpty.value) mergeFolders(apps, appFolders)
+            if (viewModel.isSearchEmpty.value) mergeFolders(apps, appFolders, folderPosition)
             else appFolders + apps
         }
     }

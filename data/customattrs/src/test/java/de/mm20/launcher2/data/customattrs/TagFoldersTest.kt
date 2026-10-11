@@ -6,6 +6,7 @@ import de.mm20.launcher2.database.AppDatabase
 import de.mm20.launcher2.database.CustomAttrsDao
 import de.mm20.launcher2.database.entities.CustomAttributeEntity
 import de.mm20.launcher2.icons.StaticLauncherIcon
+import de.mm20.launcher2.preferences.FolderPosition
 import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.search.SearchableSerializer
 import de.mm20.launcher2.search.Tag
@@ -81,6 +82,26 @@ class TagFoldersTest {
     fun foldersAreSortedInWithTheApps() {
         val merged = mergeFolders(listOf(camera, maps), listOf(Tag("Games"), Tag("Banking")))
         assertEquals(listOf("Banking", "Camera", "Games", "Maps"), merged.map { it.label })
+    }
+
+    @Test
+    fun foldersCanComeBeforeTheApps() {
+        val merged = mergeFolders(
+            listOf(camera, maps),
+            listOf(Tag("Games"), Tag("Banking")),
+            FolderPosition.First,
+        )
+        assertEquals(listOf("Banking", "Games", "Camera", "Maps"), merged.map { it.label })
+    }
+
+    @Test
+    fun foldersCanComeAfterTheApps() {
+        val merged = mergeFolders(
+            listOf(camera, maps),
+            listOf(Tag("Games"), Tag("Banking")),
+            FolderPosition.Last,
+        )
+        assertEquals(listOf("Camera", "Maps", "Banking", "Games"), merged.map { it.label })
     }
 
     @Test

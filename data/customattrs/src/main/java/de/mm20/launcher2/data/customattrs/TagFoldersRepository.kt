@@ -2,6 +2,7 @@ package de.mm20.launcher2.data.customattrs
 
 import de.mm20.launcher2.database.AppDatabase
 import de.mm20.launcher2.database.entities.CustomAttributeEntity
+import de.mm20.launcher2.preferences.FolderPosition
 import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.search.Tag
 import de.mm20.launcher2.searchable.SavableSearchableRepository
@@ -193,9 +194,18 @@ fun <T : SavableSearchable> List<T>.groupIntoFolders(
 }
 
 /**
- * [items] with [folders] sorted in by label, like the app list is sorted.
+ * [items] with [folders] sorted in by label, like the app list is sorted, or, depending on
+ * [position], with the folders, sorted by label, before or after the items.
  */
-fun mergeFolders(items: List<SavableSearchable>, folders: List<Tag>): List<SavableSearchable> {
+fun mergeFolders(
+    items: List<SavableSearchable>,
+    folders: List<Tag>,
+    position: FolderPosition = FolderPosition.Mixed,
+): List<SavableSearchable> {
     if (folders.isEmpty()) return items
-    return (items + folders).sorted()
+    return when (position) {
+        FolderPosition.Mixed -> (items + folders).sorted()
+        FolderPosition.First -> folders.sorted() + items
+        FolderPosition.Last -> items + folders.sorted()
+    }
 }

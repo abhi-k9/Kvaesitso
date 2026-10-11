@@ -113,6 +113,11 @@ class SearchVM : ViewModel(), KoinComponent {
      * Folders shown in the app list, the apps in them aren't in [appResults]
      */
     val appFolders = mutableStateListOf<Tag>()
+
+    /**
+     * Where [appFolders] are shown in the app list
+     */
+    val folderPosition = folderSettings.position
     val workAppResults = mutableStateListOf<Application>()
     val privateSpaceAppResults = mutableStateListOf<Application>()
 
