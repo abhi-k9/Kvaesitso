@@ -21,6 +21,8 @@ android {
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = System.getenv("VERSION_CODE_OVERRIDE")?.toIntOrNull() ?: 1
         versionName = "1.0"
+        // Re-signed with the fork's key by the release workflow, like the launcher
+        signingConfig = signingConfigs.getByName("debug")
     }
 
     buildTypes {
