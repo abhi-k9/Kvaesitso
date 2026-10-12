@@ -326,7 +326,9 @@ internal class PluginServiceImpl(
 
     companion object {
         private val VERIFIED_PLUGIN_SIGNATURES = mapOf(
-            "MM2-0" to setOf("rx1fSnL7r5/OMoFC0e1KPqTndXQ=")
+            "MM2-0" to setOf("rx1fSnL7r5/OMoFC0e1KPqTndXQ="),
+            // This fork's plugins (plugins/ in its repository), signed with the fork's key
+            "abhi-k9" to setOf("hDhaLolVigu/+EBkqF9MHD55ImU="),
         )
     }
 }
