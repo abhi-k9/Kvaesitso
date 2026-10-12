@@ -17,6 +17,14 @@ data class CalendarWidgetConfig(
     @SerialName("excludedCalendars")
     val excludedCalendarIds: List<String>? = null,
     val completedTasks: Boolean = true,
+    /**
+     * Show open tasks that are overdue on today's page
+     */
+    val overdueTasks: Boolean = true,
+    /**
+     * Show open tasks without a due date on today's page
+     */
+    val undatedTasks: Boolean = false,
     val upcomingEventsCount: Int = 3,
     val upcomingTaskCount: Int = 3,
 )

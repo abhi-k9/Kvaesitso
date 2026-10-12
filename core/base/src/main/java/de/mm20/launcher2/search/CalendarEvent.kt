@@ -13,7 +13,10 @@ import java.text.SimpleDateFormat
 interface CalendarEvent : SavableSearchable {
     val color: Int?
     val startTime: Long?
-    val endTime: Long
+    /**
+     * The end of the event, or the due date of a task. Null for a task without a due date.
+     */
+    val endTime: Long?
     val allDay: Boolean
     val description: String?
     val calendarName: String?
@@ -34,7 +37,7 @@ interface CalendarEvent : SavableSearchable {
         val df = SimpleDateFormat("dd")
         return StaticLauncherIcon(
             foregroundLayer = TextLayer(
-                text = df.format(startTime ?: endTime),
+                text = (startTime ?: endTime)?.let { df.format(it) } ?: "",
                 color = color ?: 0,
             ),
             backgroundLayer = ColorLayer(color ?: 0)

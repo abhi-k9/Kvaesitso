@@ -348,6 +348,11 @@ fun CalendarItem(
                                 ),
                             text = calendar.getSummary(context, timeFormat, LocalCalendarSystemIds.current.first()),
                             style = MaterialTheme.typography.bodySmall,
+                            color = if (calendar.isOverdue()) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                Color.Unspecified
+                            },
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -388,6 +393,11 @@ fun CalendarItemGridPopup(
     }
 }
 
+private fun CalendarEvent.isOverdue(): Boolean {
+    val endTime = endTime ?: return false
+    return isCompleted == false && endTime < System.currentTimeMillis()
+}
+
 private fun CalendarEvent.formatTime(
     context: Context,
     timeFormat: TimeFormat,
@@ -402,6 +412,7 @@ private fun CalendarEvent.formatTime(
     }
 
     val startTime = startTime
+    val endTime = endTime ?: return context.getString(R.string.task_no_due_date)
     if (startTime == null || isTask) {
         if (allDay) {
             return DateFormat.getInstanceForSkeleton("EEE, MMMM d yyyy", locale)
@@ -435,6 +446,7 @@ private fun CalendarEvent.getSummary(
     }
 
     val startTime = startTime
+    val endTime = endTime ?: return context.getString(R.string.task_no_due_date)
     if (isTask || startTime == null) {
         val isToday = DateUtils.isToday(endTime)
         if (isToday) {

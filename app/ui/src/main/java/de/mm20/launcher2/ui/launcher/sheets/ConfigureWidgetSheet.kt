@@ -930,6 +930,10 @@ fun ColumnScope.ConfigureCalendarWidget(
     val hasTasks = remember(calendars) {
         calendars?.any { it.types.contains(CalendarListType.Tasks) } == true
     }
+    // Overdue and undated tasks are only supported for Tasks.org
+    val hasTasksApp = remember(calendars) {
+        calendars?.any { it.providerId == "tasks.org" } == true
+    }
 
     if (hasTasks) {
         OutlinedCard {
@@ -944,6 +948,28 @@ fun ColumnScope.ConfigureCalendarWidget(
                         onWidgetUpdated(widget.copy(config = widget.config.copy(completedTasks = !it)))
                     }
                 )
+                if (hasTasksApp) {
+                    HorizontalDivider()
+                    SwitchPreference(
+                        title = stringResource(R.string.preference_calendar_overdue_tasks),
+                        summary = stringResource(R.string.preference_calendar_overdue_tasks_summary),
+                        iconPadding = false,
+                        value = widget.config.overdueTasks,
+                        onValueChanged = {
+                            onWidgetUpdated(widget.copy(config = widget.config.copy(overdueTasks = it)))
+                        }
+                    )
+                    HorizontalDivider()
+                    SwitchPreference(
+                        title = stringResource(R.string.preference_calendar_undated_tasks),
+                        summary = stringResource(R.string.preference_calendar_undated_tasks_summary),
+                        iconPadding = false,
+                        value = widget.config.undatedTasks,
+                        onValueChanged = {
+                            onWidgetUpdated(widget.copy(config = widget.config.copy(undatedTasks = it)))
+                        }
+                    )
+                }
             }
         }
     }

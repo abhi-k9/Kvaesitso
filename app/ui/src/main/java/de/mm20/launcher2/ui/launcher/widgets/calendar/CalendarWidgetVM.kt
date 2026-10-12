@@ -45,6 +45,10 @@ class CalendarWidgetVM : ViewModel(), KoinComponent {
             minPinnedLevel = PinnedLevel.AutomaticallySorted,
         ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
     val nextEvents = mutableStateOf<List<CalendarEvent>>(emptyList())
+    /**
+     * Open tasks without a due date, shown on today's page
+     */
+    val undatedTasks = mutableStateOf<List<CalendarEvent>>(emptyList())
     var availableDates = listOf(LocalDate.now())
 
     private val permissionsManager: PermissionsManager by inject()
@@ -53,6 +57,7 @@ class CalendarWidgetVM : ViewModel(), KoinComponent {
 
     private var showRunningPastDayEvents = false
     private var showRunningTasks = false
+    private var showOverdueTasks = true
     val hiddenPastEvents = mutableStateOf(0)
     val hiddenRunningTasks = mutableStateOf(0)
 
@@ -65,13 +70,17 @@ class CalendarWidgetVM : ViewModel(), KoinComponent {
     private var upcomingEvents: List<CalendarEvent> = emptyList()
         set(value) {
             field = value
+            val now = System.currentTimeMillis()
             val dates = value.flatMap {
+                val end = it.endTime
+                // Overdue tasks and tasks without a due date are shown on today's page
+                if (end == null || it.isOverdue(now)) return@flatMap listOf(LocalDate.now())
                 val startDate =
                     it.startTime?.let {
                         Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
                     }
                 val endDate =
-                    Instant.ofEpochMilli(it.endTime).atZone(ZoneId.systemDefault()).toLocalDate()
+                    Instant.ofEpochMilli(end).atZone(ZoneId.systemDefault()).toLocalDate()
                 return@flatMap listOfNotNull(
                     startDate,
                     endDate
@@ -146,13 +155,17 @@ class CalendarWidgetVM : ViewModel(), KoinComponent {
         val zone = ZoneId.systemDefault()
         val dayStart = max(now, date.atStartOfDay(zone).toInstant().toEpochMilli())
         val dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val isToday = date == LocalDate.now()
         var events = upcomingEvents.filter {
+            val end = it.endTime ?: return@filter false
+            if (it.isOverdue(now)) return@filter isToday && showOverdueTasks
             if (it.isTask && it.isCompleted == true) {
-                it.endTime >= dayStart && it.endTime < dayEnd
+                end >= dayStart && end < dayEnd
             } else {
-                it.endTime >= dayStart && (it.startTime ?: 0L) < dayEnd
+                end >= dayStart && (it.startTime ?: 0L) < dayEnd
             }
         }
+        undatedTasks.value = if (isToday) upcomingEvents.filter { it.endTime == null } else emptyList()
 
         val startOfDay = date.atStartOfDay(zone).toInstant().toEpochMilli()
         val startOfNextDay = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
@@ -163,7 +176,7 @@ class CalendarWidgetVM : ViewModel(), KoinComponent {
 
             events = events.filter {
                 ((it.startTime != null && it.startTime!! >= startOfDay) ||
-                        it.endTime < startOfNextDay) || it.isTask
+                        (it.endTime ?: 0L) < startOfNextDay) || it.isTask
             }
 
             val hiddenCount = totalCount - events.size
@@ -176,7 +189,7 @@ class CalendarWidgetVM : ViewModel(), KoinComponent {
 
             events = events.filter {
                 ((it.startTime != null && it.startTime!! >= startOfDay) ||
-                        it.endTime < startOfNextDay) || !it.isTask
+                        (it.endTime ?: 0L) < startOfNextDay) || !it.isTask
             }
 
             val hiddenCount = totalCount - events.size
@@ -189,8 +202,9 @@ class CalendarWidgetVM : ViewModel(), KoinComponent {
         val e = this.upcomingEvents
         if (events.isEmpty() && e.isNotEmpty()) {
             nextEvents.value = listOfNotNull(
-                e.sortedBy { if (it.isTask) it.endTime else (it.startTime ?: 0L) }
-                    .find { now < if (it.isTask) it.endTime else (it.startTime ?: 0L) }
+                e.filter { it.endTime != null }
+                    .sortedBy { if (it.isTask) it.endTime!! else (it.startTime ?: 0L) }
+                    .find { now < if (it.isTask) it.endTime!! else (it.startTime ?: 0L) }
             )
         } else {
             nextEvents.value = emptyList()
@@ -200,12 +214,15 @@ class CalendarWidgetVM : ViewModel(), KoinComponent {
     suspend fun onActive() {
         selectDate(LocalDate.now())
         widgetConfig.collectLatest { config ->
+            showOverdueTasks = config.overdueTasks
             calendarRepository.findMany(
                 from = System.currentTimeMillis(),
                 to = System.currentTimeMillis() + 14 * 24 * 60 * 60 * 1000L,
                 excludeAllDayEvents = !config.allDayEvents,
                 excludeCalendars = config.excludedCalendarIds
                     ?: config.legacyExcludedCalendarIds?.map { "local:$it" } ?: emptyList(),
+                includeOverdueTasks = config.overdueTasks,
+                includeUndatedTasks = config.undatedTasks,
             ).collectLatest { events ->
                 searchableRepository.getKeys(
                     includeTypes = listOf("calendar", "tasks.org", "plugin.calendar"),
@@ -215,11 +232,16 @@ class CalendarWidgetVM : ViewModel(), KoinComponent {
                     upcomingEvents = events
                         .filter {
                             !hidden.contains(it.key) && !(!config.completedTasks && it.isCompleted == true)
-                        }.sortedBy { it.startTime ?: it.endTime }
+                        }.sortedBy { it.startTime ?: it.endTime ?: Long.MAX_VALUE }
                 }
             }
 
         }
+    }
+
+    private fun CalendarEvent.isOverdue(now: Long): Boolean {
+        val end = endTime ?: return false
+        return isTask && isCompleted != true && end < now
     }
 
     fun requestCalendarPermission(context: AppCompatActivity) {

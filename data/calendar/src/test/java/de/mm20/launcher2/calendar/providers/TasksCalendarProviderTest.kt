@@ -7,6 +7,7 @@ import android.database.MatrixCursor
 import android.net.Uri
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -88,7 +89,7 @@ class TasksCalendarProviderTest {
         "cdl_name" to list,
     )
 
-    private fun search() = runBlocking {
+    private fun search(provider: TasksCalendarProvider = this.provider) = runBlocking {
         provider.search(
             query = null,
             from = Due - 1000L,
@@ -138,6 +139,45 @@ class TasksCalendarProviderTest {
 
         runBlocking { provider.get(1) }
         assertTrue(FakeTasksProvider.selections.last()!!.contains("tasks.deleted = 0"))
+    }
+
+    @Test
+    fun aTaskWithoutADueDateHasNoEndTime() {
+        FakeTasksProvider.rows = listOf(task(1, due = 0L), task(2, due = Due))
+        val tasks = search(TasksCalendarProvider(RuntimeEnvironment.getApplication(), includeUndated = true))
+        assertEquals(listOf(null, Due), tasks.map { it.endTime })
+        assertEquals(false, tasks[0].allDay)
+        assertEquals(false, tasks[0].isCompleted)
+    }
+
+    @Test
+    fun undatedAndOverdueTasksAreOnlyAskedForWhenWanted() {
+        search()
+        val plain = FakeTasksProvider.selections.last()!!
+        assertFalse(plain.contains("dueDate = 0"))
+        assertFalse(plain.contains("dueDate > 0"))
+
+        search(TasksCalendarProvider(RuntimeEnvironment.getApplication(), includeUndated = true))
+        val undated = FakeTasksProvider.selections.last()!!
+        assertTrue(undated.contains("(completed = 0 AND (dueDate = 0 OR dueDate IS NULL)"))
+        assertFalse(undated.contains("dueDate > 0"))
+
+        search(TasksCalendarProvider(RuntimeEnvironment.getApplication(), includeOverdue = true))
+        val overdue = FakeTasksProvider.selections.last()!!
+        assertTrue(overdue.contains("(completed = 0 AND dueDate > 0)"))
+        assertFalse(overdue.contains("dueDate = 0"))
+    }
+
+    @Test
+    fun allDayTasksEndAtTheEndOfTheirDay() {
+        val noon = java.time.LocalDate.of(2027, 3, 4).atTime(12, 0)
+            .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        FakeTasksProvider.rows = listOf(task(1, due = noon))
+        val task = search(TasksCalendarProvider(RuntimeEnvironment.getApplication(), includeOverdue = true)).single()
+        assertTrue(task.allDay)
+        val endOfDay = java.time.LocalDate.of(2027, 3, 5)
+            .atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
+        assertEquals(endOfDay, task.endTime)
     }
 
     companion object {

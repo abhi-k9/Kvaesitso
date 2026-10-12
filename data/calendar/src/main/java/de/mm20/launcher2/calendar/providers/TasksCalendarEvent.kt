@@ -16,7 +16,7 @@ data class TasksCalendarEvent(
     val id: Long,
     override val color: Int?,
     override val startTime: Long?,
-    override val endTime: Long,
+    override val endTime: Long?,
     override val allDay: Boolean,
     override val isCompleted: Boolean?,
     override val description: String?,

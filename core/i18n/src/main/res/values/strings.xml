@@ -304,6 +304,8 @@
     <!-- Headline used in calendar widget for the next event, if there is no event today -->
     <string name="calendar_widget_next_events">Next event</string>
     <string name="calendar_widget_no_events">No events today</string>
+    <!-- Headline used in calendar widget for open tasks without a due date, shown on today's page -->
+    <string name="calendar_widget_undated_tasks">No due date</string>
     <!--
         In the calendar widget, only events that start or end at the selected date are shown.
         If an event runs for three days, it won't be listed if the second day is selected.
@@ -323,6 +325,7 @@
     <string name="task_due_time">Due at %1$s</string>
     <string name="task_due_date">Due on %1$s</string>
     <string name="task_due_today">Due today</string>
+    <string name="task_no_due_date">No due date</string>
     <!-- Default title that is shown in the music widget if the app that is playing media did not publish a title -->
     <string name="music_widget_default_title">%1$s is playing media</string>
     <string name="music_widget_no_data">No media has been played yet</string>
@@ -670,6 +673,10 @@
     <string name="preference_search_owncloud">Owncloud</string>
     <string name="preference_calendar_calendars">Calendars</string>
     <string name="preference_calendar_hide_completed">Hide completed tasks</string>
+    <string name="preference_calendar_overdue_tasks">Overdue tasks</string>
+    <string name="preference_calendar_overdue_tasks_summary">Show open tasks that are past their due date today</string>
+    <string name="preference_calendar_undated_tasks">Tasks without a due date</string>
+    <string name="preference_calendar_undated_tasks_summary">Show open tasks without a due date today</string>
     <string name="preference_screen_buildinfo">Build information</string>
     <string name="preference_screen_buildinfo_summary">More information about this build of this app</string>
     <string name="preference_search_bar_style">Style</string>

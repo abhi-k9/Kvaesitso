@@ -36,6 +36,14 @@ interface CalendarRepository : SearchableRepository<CalendarEvent> {
         to: Long = from + 14 * 24 * 60 * 60 * 1000L,
         excludeCalendars: List<String> = emptyList(),
         excludeAllDayEvents: Boolean = false,
+        /**
+         * Also return open tasks that were due before [from]
+         */
+        includeOverdueTasks: Boolean = false,
+        /**
+         * Also return open tasks without a due date
+         */
+        includeUndatedTasks: Boolean = false,
     ): Flow<ImmutableList<CalendarEvent>>
 
     fun getCalendars(providerId: String? = null): Flow<List<CalendarList>>
@@ -69,7 +77,10 @@ internal class CalendarRepositoryImpl(
             val providers = providerIds.mapNotNull {
                 when (it) {
                     "local" -> if (calPerm) AndroidCalendarProvider(context) else null
-                    "tasks.org" -> if (taskPerm) TasksCalendarProvider(context) else null
+                    // Open tasks are found whenever they are due, or if they have no due date
+                    "tasks.org" -> if (taskPerm) {
+                        TasksCalendarProvider(context, includeOverdue = true, includeUndated = true)
+                    } else null
                     else -> PluginCalendarProvider(context, it)
                 }
             }
@@ -94,6 +105,8 @@ internal class CalendarRepositoryImpl(
         to: Long,
         excludeCalendars: List<String>,
         excludeAllDayEvents: Boolean,
+        includeOverdueTasks: Boolean,
+        includeUndatedTasks: Boolean,
     ): Flow<ImmutableList<CalendarEvent>> {
         val hasCalendarPermission = permissionsManager.hasPermission(PermissionGroup.Calendar)
         val hasTasksPermission = permissionsManager.hasPermission(PermissionGroup.Tasks)
@@ -104,7 +117,13 @@ internal class CalendarRepositoryImpl(
         return combineTransform(hasCalendarPermission, hasTasksPermission, plugins) { calPerm, taskPerm, plugins ->
             val providers = buildList {
                 if (calPerm) add(AndroidCalendarProvider(context)) else null
-                if (taskPerm) add(TasksCalendarProvider(context)) else null
+                if (taskPerm) add(
+                    TasksCalendarProvider(
+                        context,
+                        includeOverdue = includeOverdueTasks,
+                        includeUndated = includeUndatedTasks,
+                    )
+                ) else null
                 addAll(
                     plugins.map {
                         PluginCalendarProvider(context, it.authority)

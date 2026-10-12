@@ -12,8 +12,14 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
 
+/**
+ * @param includeOverdue also return open tasks that were due before the requested interval
+ * @param includeUndated also return open tasks without a due date (that aren't hidden until later)
+ */
 internal class TasksCalendarProvider(
     private val context: Context,
+    private val includeOverdue: Boolean = false,
+    private val includeUndated: Boolean = false,
 ) : CalendarProvider {
     override suspend fun search(
         query: String?,
@@ -35,7 +41,16 @@ internal class TasksCalendarProvider(
                 selection = buildList {
                     add("tasks.deleted = 0")
                     add("($to >= hideUntil OR hideUntil IS NULL)")
-                    add("($from <= dueDate OR ($startOfDay <= dueDate AND dueDate % 60000 <= 0))")
+                    add(buildList {
+                        add("$from <= dueDate")
+                        add("($startOfDay <= dueDate AND dueDate % 60000 <= 0)")
+                        if (includeOverdue) {
+                            add("(completed = 0 AND dueDate > 0)")
+                        }
+                        if (includeUndated) {
+                            add("(completed = 0 AND (dueDate = 0 OR dueDate IS NULL) AND (hideUntil <= ${System.currentTimeMillis()} OR hideUntil IS NULL))")
+                        }
+                    }.joinToString(" OR ", prefix = "(", postfix = ")"))
                     if (excludedCalendars.isNotEmpty()) {
                         add("cdl_id NOT IN (${excludedCalendars.joinToString()})")
                     }
@@ -110,12 +125,15 @@ internal class TasksCalendarProvider(
                 val id = cursor.getLongOrNull(idIndex) ?: continue
                 val isMovedAway = (cursor.getLongOrNull(membershipDeletedIndex) ?: 0L) > 0L
                 if (id in results && (isMovedAway || id !in movedAway)) continue
-                val dueDate = cursor.getLongOrNull(dueIndex)?.takeIf { it > 0L } ?: continue
+                // Null for a task without a due date
+                val dueDate = cursor.getLongOrNull(dueIndex)?.takeIf { it > 0L }
 
                 // https://github.com/tasks/tasks/blob/13d4c029e855fd32ec91e4d4ec5f740ec506136e/data/src/commonMain/kotlin/org/tasks/data/entity/Task.kt#L345
-                val isAllDay = dueDate % 60000 <= 0
+                val isAllDay = dueDate != null && dueDate % 60000 <= 0
 
-                val endTime = if (isAllDay) {
+                val endTime = if (dueDate == null) {
+                    null
+                } else if (isAllDay) {
                     Instant.ofEpochMilli(dueDate)
                         .atZone(ZoneId.systemDefault())
                         .withHour(23)
