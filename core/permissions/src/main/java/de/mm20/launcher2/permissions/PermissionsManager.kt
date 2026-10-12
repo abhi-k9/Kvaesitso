@@ -70,6 +70,10 @@ enum class PermissionGroup {
     ManageProfiles,
     Call,
     LocalNetwork,
+    /**
+     * Change tasks in the Tasks app. Separate from [Tasks], which only reads them.
+     */
+    TasksWrite,
 }
 
 internal class PermissionsManagerImpl(
@@ -83,6 +87,9 @@ internal class PermissionsManagerImpl(
     )
     private val tasksPermissionState = MutableStateFlow(
         checkPermissionOnce(PermissionGroup.Tasks)
+    )
+    private val tasksWritePermissionState = MutableStateFlow(
+        checkPermissionOnce(PermissionGroup.TasksWrite)
     )
     private val contactsPermissionState = MutableStateFlow(
         checkPermissionOnce(PermissionGroup.Contacts)
@@ -122,6 +129,14 @@ internal class PermissionsManagerImpl(
                 ActivityCompat.requestPermissions(
                     context,
                     taskPermissions,
+                    permissionGroup.ordinal
+                )
+            }
+
+            PermissionGroup.TasksWrite -> {
+                ActivityCompat.requestPermissions(
+                    context,
+                    taskWritePermissions,
                     permissionGroup.ordinal
                 )
             }
@@ -218,6 +233,10 @@ internal class PermissionsManagerImpl(
                 taskPermissions.all { context.checkPermission(it) }
             }
 
+            PermissionGroup.TasksWrite -> {
+                taskWritePermissions.all { context.checkPermission(it) }
+            }
+
             PermissionGroup.Location -> {
                 locationPermissions.any { context.checkPermission(it) }
             }
@@ -274,6 +293,7 @@ internal class PermissionsManagerImpl(
             PermissionGroup.ManageProfiles -> manageProfilesPermissionState
             PermissionGroup.Call -> callPermissionState
             PermissionGroup.LocalNetwork -> localNetworkPermissionState
+            PermissionGroup.TasksWrite -> tasksWritePermissionState
         }
     }
 
@@ -298,6 +318,7 @@ internal class PermissionsManagerImpl(
             PermissionGroup.ManageProfiles -> manageProfilesPermissionState.value = granted
             PermissionGroup.Call -> callPermissionState.value = granted
             PermissionGroup.LocalNetwork -> localNetworkPermissionState.value = granted
+            PermissionGroup.TasksWrite -> tasksWritePermissionState.value = granted
         }
     }
 
@@ -308,6 +329,7 @@ internal class PermissionsManagerImpl(
         // Runtime permissions can also be granted in the system settings while the app is running
         calendarPermissionState.value = checkPermissionOnce(PermissionGroup.Calendar)
         tasksPermissionState.value = checkPermissionOnce(PermissionGroup.Tasks)
+        tasksWritePermissionState.value = checkPermissionOnce(PermissionGroup.TasksWrite)
         contactsPermissionState.value = checkPermissionOnce(PermissionGroup.Contacts)
         locationPermissionState.value = checkPermissionOnce(PermissionGroup.Location)
         callPermissionState.value = checkPermissionOnce(PermissionGroup.Call)
@@ -325,6 +347,7 @@ internal class PermissionsManagerImpl(
     companion object {
         private val calendarPermissions = arrayOf(Manifest.permission.READ_CALENDAR)
         private val taskPermissions = arrayOf("org.tasks.permission.READ_TASKS")
+        private val taskWritePermissions = arrayOf("org.tasks.permission.WRITE_TASKS")
         private val locationPermissions = arrayOf(
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.ACCESS_FINE_LOCATION

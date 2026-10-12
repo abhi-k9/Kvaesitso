@@ -1,5 +1,6 @@
 package de.mm20.launcher2.ui.settings.tasks
 
+import android.content.Context
 import android.content.Intent
 import android.os.Process
 import androidx.appcompat.app.AppCompatActivity
@@ -12,6 +13,7 @@ import de.mm20.launcher2.ktx.tryStartActivity
 import de.mm20.launcher2.permissions.PermissionGroup
 import de.mm20.launcher2.permissions.PermissionsManager
 import de.mm20.launcher2.preferences.search.CalendarSearchSettings
+import de.mm20.launcher2.tasks.TasksApp
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -27,6 +29,7 @@ class TasksSettingsScreenVM : ViewModel(), KoinComponent {
     private val permissionsManager: PermissionsManager by inject()
     private val iconService: IconService by inject()
     private val calendarSearchSettings: CalendarSearchSettings by inject()
+    private val context: Context by inject()
 
     val tasksApp = appRepository.findOne("org.tasks", Process.myUserHandle())
         .shareIn(viewModelScope, SharingStarted.WhileSubscribed(), 1)
@@ -40,6 +43,20 @@ class TasksSettingsScreenVM : ViewModel(), KoinComponent {
 
     fun requestTasksPermission(activity: AppCompatActivity) {
         permissionsManager.requestPermission(activity, PermissionGroup.Tasks)
+    }
+
+    val hasTasksWritePermission = permissionsManager.hasPermission(PermissionGroup.TasksWrite)
+        .shareIn(viewModelScope, SharingStarted.WhileSubscribed(), 1)
+
+    /**
+     * Whether the installed version of Tasks lets other apps change tasks
+     */
+    val canTasksAppBeChanged = tasksApp
+        .map { it != null && TasksApp.hasApi(context) }
+        .shareIn(viewModelScope, SharingStarted.WhileSubscribed(), 1)
+
+    fun requestTasksWritePermission(activity: AppCompatActivity) {
+        permissionsManager.requestPermission(activity, PermissionGroup.TasksWrite)
     }
 
     fun downloadTasksApp(activity: AppCompatActivity) {

@@ -71,6 +71,7 @@ interface SearchActionBuilder {
                 "website" -> return OpenUrlActionBuilder(context)
                 "websearch" -> return WebsearchActionBuilder(context)
                 "share" -> return ShareActionBuilder(context)
+                "task" -> return AddTaskActionBuilder(context)
                 else -> return null
             }
         }

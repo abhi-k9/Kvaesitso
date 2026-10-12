@@ -24,6 +24,7 @@ import de.mm20.launcher2.ui.component.preferences.PreferenceScreen
 import de.mm20.launcher2.ui.component.preferences.PreferenceWithSwitch
 import de.mm20.launcher2.ui.locals.LocalBackStack
 import de.mm20.launcher2.ui.settings.calendarsearch.CalendarProviderSettingsRoute
+import de.mm20.launcher2.ui.settings.searchactions.SearchActionsSettingsRoute
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -38,6 +39,8 @@ fun TasksIntegrationSettingsScreen() {
     val isTasksInstalled by viewModel.isTasksAppInstalled.collectAsStateWithLifecycle(null)
     val hasTasksPermission by viewModel.hasTasksPermission.collectAsStateWithLifecycle(null)
     val isTasksSearchEnabled by viewModel.isTasksSearchEnabled.collectAsStateWithLifecycle(false)
+    val hasTasksWritePermission by viewModel.hasTasksWritePermission.collectAsStateWithLifecycle(null)
+    val canTasksAppBeChanged by viewModel.canTasksAppBeChanged.collectAsStateWithLifecycle(null)
 
     PreferenceScreen(
         title = stringResource(R.string.preference_tasks_integration)
@@ -99,6 +102,28 @@ fun TasksIntegrationSettingsScreen() {
                             onClick = {
                                 backStack.add(CalendarProviderSettingsRoute(providerId = "tasks.org"))
                             }
+                        )
+                    }
+                    GuardedPreference(
+                        locked = hasTasksPermission == true && canTasksAppBeChanged == true &&
+                                hasTasksWritePermission == false,
+                        onUnlock = {
+                            viewModel.requestTasksWritePermission(activity as AppCompatActivity)
+                        },
+                        description = stringResource(R.string.missing_permission_tasks_write),
+                    ) {
+                        Preference(
+                            icon = R.drawable.task_alt_24px,
+                            title = stringResource(R.string.preference_tasks_change),
+                            summary = stringResource(
+                                if (canTasksAppBeChanged == false) R.string.preference_tasks_change_unsupported
+                                else R.string.preference_tasks_change_summary
+                            ),
+                            enabled = hasTasksPermission == true && canTasksAppBeChanged == true &&
+                                    hasTasksWritePermission == true,
+                            onClick = {
+                                backStack.add(SearchActionsSettingsRoute)
+                            },
                         )
                     }
                     Preference(

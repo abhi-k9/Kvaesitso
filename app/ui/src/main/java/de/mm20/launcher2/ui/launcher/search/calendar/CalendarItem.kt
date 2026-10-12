@@ -7,6 +7,8 @@ import android.icu.util.DateInterval
 import android.icu.util.ULocale
 import android.text.Html
 import android.text.format.DateUtils
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
@@ -23,6 +25,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,17 +34,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
+import de.mm20.launcher2.calendar.CalendarRepository
+import de.mm20.launcher2.calendar.TaskChangeResult
+import de.mm20.launcher2.permissions.PermissionGroup
+import de.mm20.launcher2.permissions.PermissionsManager
 import de.mm20.launcher2.preferences.TimeFormat
 import de.mm20.launcher2.search.CalendarEvent
 import de.mm20.launcher2.ui.R
@@ -57,7 +71,12 @@ import de.mm20.launcher2.ui.locals.LocalFavoritesEnabled
 import de.mm20.launcher2.ui.locals.LocalGridSettings
 import de.mm20.launcher2.ui.locals.LocalTimeFormat
 import de.mm20.launcher2.ui.utils.isTwentyFourHours
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import org.koin.compose.koinInject
 import palettes.TonalPalette
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun CalendarItem(
@@ -73,6 +92,62 @@ fun CalendarItem(
 
     LaunchedEffect(calendar) {
         viewModel.init(calendar, iconSize.toInt())
+    }
+
+    val calendarRepository: CalendarRepository = koinInject()
+    val permissionsManager: PermissionsManager = koinInject()
+    val scope = rememberCoroutineScope()
+    // Shown until the changed task is loaded again
+    var completedOverride by remember(calendar) { mutableStateOf<Boolean?>(null) }
+    val isCompleted = completedOverride ?: calendar.isCompleted
+    val canChangeCompletion = remember(calendar) {
+        calendarRepository.canChangeCompletion(calendar)
+    }
+
+    fun setCompleted(completed: Boolean) {
+        completedOverride = completed
+        scope.launch {
+            var result = calendarRepository.setTaskCompleted(calendar, completed)
+            if (result == TaskChangeResult.NoPermission) {
+                val activity = context as? AppCompatActivity
+                if (activity != null) {
+                    permissionsManager.requestPermission(activity, PermissionGroup.TasksWrite)
+                    // Finish what the user wanted to do once the permission has been granted
+                    val granted = withTimeoutOrNull(60.seconds) {
+                        permissionsManager.hasPermission(PermissionGroup.TasksWrite).first { it }
+                    }
+                    if (granted == true) {
+                        result = calendarRepository.setTaskCompleted(calendar, completed)
+                    }
+                }
+            }
+            when (result) {
+                TaskChangeResult.Changed -> {}
+                TaskChangeResult.NoPermission -> completedOverride = null
+                TaskChangeResult.NotSupported -> {
+                    completedOverride = null
+                    Toast.makeText(context, R.string.task_change_unsupported, Toast.LENGTH_LONG)
+                        .show()
+                    viewModel.launch(context)
+                }
+                TaskChangeResult.Failed -> {
+                    completedOverride = null
+                    Toast.makeText(context, R.string.task_change_failed, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    val completionToggle = if (canChangeCompletion && isCompleted != null) {
+        Modifier
+            .clip(CircleShape)
+            .toggleable(
+                value = isCompleted,
+                role = Role.Checkbox,
+                onValueChange = { setCompleted(it) },
+            )
+    } else {
+        Modifier
     }
 
     val darkMode = LocalDarkTheme.current
@@ -95,7 +170,7 @@ fun CalendarItem(
                     ) {
                         Icon(
                             painterResource(
-                                when (calendar.isCompleted) {
+                                when (isCompleted) {
                                     true -> R.drawable.check_circle_24px_filled
                                     false -> R.drawable.radio_button_unchecked_24px
                                     null -> R.drawable.circle_24px_filled
@@ -105,6 +180,7 @@ fun CalendarItem(
                             modifier = Modifier
                                 .padding(horizontal = 14.dp, vertical = 20.dp)
                                 .size(24.dp)
+                                .then(completionToggle)
                                 .sharedElement(
                                     rememberSharedContentState("color"),
                                     this@AnimatedContent
@@ -124,7 +200,7 @@ fun CalendarItem(
                                 text = calendar.labelOverride ?: calendar.label,
                                 style = MaterialTheme.typography.titleMedium,
                                 maxLines = 1,
-                                textDecoration = if (calendar.isCompleted == true) {
+                                textDecoration = if (isCompleted == true) {
                                     TextDecoration.LineThrough
                                 } else {
                                     TextDecoration.None
@@ -308,7 +384,7 @@ fun CalendarItem(
                 ) {
                     Icon(
                         painterResource(
-                            when (calendar.isCompleted) {
+                            when (isCompleted) {
                                 true -> R.drawable.check_circle_24px_filled
                                 false -> R.drawable.radio_button_unchecked_24px
                                 null -> R.drawable.circle_24px_filled
@@ -318,6 +394,7 @@ fun CalendarItem(
                         modifier = Modifier
                             .padding(end = 16.dp)
                             .size(20.dp)
+                            .then(completionToggle)
                             .sharedElement(
                                 rememberSharedContentState("color"),
                                 this@AnimatedContent
@@ -333,7 +410,7 @@ fun CalendarItem(
                             text = calendar.labelOverride ?: calendar.label,
                             style = MaterialTheme.typography.titleSmall,
                             maxLines = 1,
-                            textDecoration = if (calendar.isCompleted == true) {
+                            textDecoration = if (isCompleted == true) {
                                 TextDecoration.LineThrough
                             } else {
                                 TextDecoration.None
@@ -348,7 +425,7 @@ fun CalendarItem(
                                 ),
                             text = calendar.getSummary(context, timeFormat, LocalCalendarSystemIds.current.first()),
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (calendar.isOverdue()) {
+                            color = if (isCompleted == false && calendar.isOverdue()) {
                                 MaterialTheme.colorScheme.error
                             } else {
                                 Color.Unspecified
@@ -395,7 +472,7 @@ fun CalendarItemGridPopup(
 
 private fun CalendarEvent.isOverdue(): Boolean {
     val endTime = endTime ?: return false
-    return isCompleted == false && endTime < System.currentTimeMillis()
+    return isTask && endTime < System.currentTimeMillis()
 }
 
 private fun CalendarEvent.formatTime(

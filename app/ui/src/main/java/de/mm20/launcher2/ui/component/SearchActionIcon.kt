@@ -128,5 +128,6 @@ fun getSearchActionIconVector(icon: SearchActionIcon): Int {
         SearchActionIcon.Note -> R.drawable.sticky_note_2_24px
         SearchActionIcon.Share -> R.drawable.share_24px
         SearchActionIcon.PrivateSpace -> R.drawable.encrypted_24px
+        SearchActionIcon.Task -> R.drawable.task_alt_24px
     }
 }

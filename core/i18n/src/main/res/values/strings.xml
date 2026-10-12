@@ -326,6 +326,8 @@
     <string name="task_due_date">Due on %1$s</string>
     <string name="task_due_today">Due today</string>
     <string name="task_no_due_date">No due date</string>
+    <string name="task_change_unsupported">Update the Tasks app to complete tasks from here</string>
+    <string name="task_change_failed">Couldn\'t change the task</string>
     <!-- Default title that is shown in the music widget if the app that is playing media did not publish a title -->
     <string name="music_widget_default_title">%1$s is playing media</string>
     <string name="music_widget_no_data">No media has been played yet</string>
@@ -399,6 +401,7 @@
     <string name="missing_permission_calendar_search_settings">Calendar permission is required to search calendar</string>
     <string name="missing_permission_tasks_search_settings">Tasks permission is required to search tasks in the Tasks app</string>
     <string name="missing_permission_tasks_integration">Tasks permission is required to use the Tasks integration</string>
+    <string name="missing_permission_tasks_write">Allow changing tasks to complete them in the launcher and to add new ones from the search</string>
     <!-- Missing calendar permission in calendar widget settings screen -->
     <string name="missing_permission_calendar_widget_settings">This widget requires the calendar permission</string>
     <string name="widget_config_calendar_missing_calendars_hint">Can\'t find your calendars?</string>
@@ -719,6 +722,9 @@
     <string name="preference_tasks_integration_description">Tasks is a free and open source to-do list and reminders app. If installed, %1$s can display and search your tasks from the Tasks app.</string>
     <string name="preference_tasks_integration_ready">Tasks integration is fully set up and ready to use.</string>
     <string name="preference_launch_tasks_app">Open Tasks app</string>
+    <string name="preference_tasks_change">Complete and add tasks</string>
+    <string name="preference_tasks_change_summary">Tap a task\'s circle to complete it. To add tasks from the search, add the “Add task” quick action.</string>
+    <string name="preference_tasks_change_unsupported">Needs version 15.12 of the Tasks app or newer</string>
     <string name="preference_breezyweather_integration">Breezy Weather</string>
     <string name="preference_breezyweather_integration_description">Breezy Weather is a free and open source weather app. If installed, %1$s can use Breezy Weather as a data source for weather data.</string>
     <string name="preference_breezyweather_integration_instructions">To use Breezy Weather as weather provider:\n\n1. Go to Breezy Weather &gt; Settings &gt; Widgets &amp; Live wallpaper &gt; Send Gadgetbridge data &gt; Enable %1$s\n\n2. In %1$s, select Breezy Weather as weather provider</string>
@@ -783,6 +789,9 @@
     <string name="search_action_contact">Add to contacts</string>
     <string name="search_action_open_url">View website</string>
     <string name="search_action_event">Schedule event</string>
+    <string name="search_action_task">Add task</string>
+    <!-- Shown after a task was added with the "Add task" search action. %1$s is the task's title -->
+    <string name="search_action_task_added">Added to Tasks: %1$s</string>
     <string name="search_query_private_space">Private space</string>
     <string name="search_action_private_space_lock">Lock private space</string>
     <string name="search_action_private_space_unlock">Unlock private space</string>

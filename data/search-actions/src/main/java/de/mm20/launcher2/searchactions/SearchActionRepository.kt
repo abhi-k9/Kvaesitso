@@ -6,6 +6,7 @@ import de.mm20.launcher2.crashreporter.CrashReporter
 import de.mm20.launcher2.database.AppDatabase
 import de.mm20.launcher2.database.entities.SearchActionEntity
 import de.mm20.launcher2.ktx.jsonObjectOf
+import de.mm20.launcher2.searchactions.builders.AddTaskActionBuilder
 import de.mm20.launcher2.searchactions.builders.CallActionBuilder
 import de.mm20.launcher2.searchactions.builders.CreateContactActionBuilder
 import de.mm20.launcher2.searchactions.builders.PrivateSpaceLockActionBuilder
@@ -18,6 +19,7 @@ import de.mm20.launcher2.searchactions.builders.SetAlarmActionBuilder
 import de.mm20.launcher2.searchactions.builders.ShareActionBuilder
 import de.mm20.launcher2.searchactions.builders.TimerActionBuilder
 import de.mm20.launcher2.searchactions.builders.WebsearchActionBuilder
+import de.mm20.launcher2.tasks.TasksApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -63,6 +65,10 @@ internal class SearchActionRepositoryImpl(
             ShareActionBuilder(context),
         )
 
+        // Only offered if the Tasks app is installed
+        if (TasksApp.isInstalled(context)) {
+            return allActions + AddTaskActionBuilder(context)
+        }
         return allActions
     }
 

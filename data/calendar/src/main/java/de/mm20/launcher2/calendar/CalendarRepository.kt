@@ -1,10 +1,13 @@
 package de.mm20.launcher2.calendar
 
 import android.content.Context
+import android.database.ContentObserver
+import android.util.Log
 import de.mm20.launcher2.calendar.providers.AndroidCalendarProvider
 import de.mm20.launcher2.calendar.providers.CalendarList
 import de.mm20.launcher2.calendar.providers.CalendarProvider
 import de.mm20.launcher2.calendar.providers.PluginCalendarProvider
+import de.mm20.launcher2.calendar.providers.TasksCalendarEvent
 import de.mm20.launcher2.calendar.providers.TasksCalendarProvider
 import de.mm20.launcher2.permissions.PermissionGroup
 import de.mm20.launcher2.permissions.PermissionsManager
@@ -13,10 +16,18 @@ import de.mm20.launcher2.plugin.PluginType
 import de.mm20.launcher2.preferences.search.CalendarSearchSettings
 import de.mm20.launcher2.search.CalendarEvent
 import de.mm20.launcher2.search.SearchableRepository
+import de.mm20.launcher2.tasks.TasksApp
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.combineTransform
@@ -28,6 +39,7 @@ import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.days
 
 interface CalendarRepository : SearchableRepository<CalendarEvent> {
@@ -47,6 +59,26 @@ interface CalendarRepository : SearchableRepository<CalendarEvent> {
     ): Flow<ImmutableList<CalendarEvent>>
 
     fun getCalendars(providerId: String? = null): Flow<List<CalendarList>>
+
+    /**
+     * Whether [event] is a task that can be completed (or reopened) from the launcher
+     */
+    fun canChangeCompletion(event: CalendarEvent): Boolean
+
+    suspend fun setTaskCompleted(event: CalendarEvent, completed: Boolean): TaskChangeResult
+}
+
+enum class TaskChangeResult {
+    Changed,
+    /**
+     * The permission to change tasks hasn't been granted
+     */
+    NoPermission,
+    /**
+     * The task can't be changed from the launcher, e.g. because the Tasks app is too old
+     */
+    NotSupported,
+    Failed,
 }
 
 internal class CalendarRepositoryImpl(
@@ -72,8 +104,9 @@ internal class CalendarRepositoryImpl(
             hasCalendarPermission,
             hasTasksPermission,
             providerIds,
-            excludedCalendars
-        ) { calPerm, taskPerm, providerIds, excludedCalendars ->
+            excludedCalendars,
+            tasksChanges(),
+        ) { calPerm, taskPerm, providerIds, excludedCalendars, _ ->
             val providers = providerIds.mapNotNull {
                 when (it) {
                     "local" -> if (calPerm) AndroidCalendarProvider(context) else null
@@ -114,7 +147,12 @@ internal class CalendarRepositoryImpl(
             type = PluginType.Calendar,
             enabled = true,
         )
-        return combineTransform(hasCalendarPermission, hasTasksPermission, plugins) { calPerm, taskPerm, plugins ->
+        return combineTransform(
+            hasCalendarPermission,
+            hasTasksPermission,
+            plugins,
+            tasksChanges(),
+        ) { calPerm, taskPerm, plugins, _ ->
             val providers = buildList {
                 if (calPerm) add(AndroidCalendarProvider(context)) else null
                 if (taskPerm) add(
@@ -142,6 +180,50 @@ internal class CalendarRepositoryImpl(
                     allowNetwork = false,
                 ).debounce(500)
             )
+        }
+    }
+
+    /**
+     * Emits once, and again whenever a task changes in the Tasks app. Only versions of Tasks that
+     * can change tasks for other apps tell about changes; for older versions, this emits once.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun tasksChanges(): Flow<Unit> {
+        return permissionsManager.hasPermission(PermissionGroup.Tasks).flatMapLatest { granted ->
+            if (!granted || !TasksApp.hasApi(context)) return@flatMapLatest flowOf(Unit)
+            callbackFlow {
+                val observer = object : ContentObserver(null) {
+                    override fun onChange(selfChange: Boolean) {
+                        trySend(Unit)
+                    }
+                }
+                try {
+                    context.contentResolver.registerContentObserver(TasksApp.ApiUri, true, observer)
+                } catch (e: SecurityException) {
+                    Log.e("CalendarRepository", "Couldn't watch the Tasks app for changes", e)
+                }
+                send(Unit)
+                awaitClose { context.contentResolver.unregisterContentObserver(observer) }
+            }.conflate()
+        }
+    }
+
+    override fun canChangeCompletion(event: CalendarEvent): Boolean {
+        return event is TasksCalendarEvent
+    }
+
+    override suspend fun setTaskCompleted(
+        event: CalendarEvent,
+        completed: Boolean
+    ): TaskChangeResult {
+        if (event !is TasksCalendarEvent) return TaskChangeResult.NotSupported
+        return withContext(Dispatchers.IO) {
+            when {
+                !TasksApp.hasApi(context) -> TaskChangeResult.NotSupported
+                !permissionsManager.checkPermissionOnce(PermissionGroup.TasksWrite) -> TaskChangeResult.NoPermission
+                TasksApp.setCompleted(context, event.id, completed) -> TaskChangeResult.Changed
+                else -> TaskChangeResult.Failed
+            }
         }
     }
 
