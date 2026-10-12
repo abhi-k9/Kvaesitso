@@ -1,6 +1,7 @@
 package de.mm20.launcher2.ui.launcher.search.calendar
 
 import android.content.Context
+import android.content.Intent
 import android.icu.text.DateFormat
 import android.icu.text.DateIntervalFormat
 import android.icu.util.DateInterval
@@ -47,12 +48,25 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import de.mm20.launcher2.calendar.CalendarRepository
+import de.mm20.launcher2.calendar.FormattedText
+import de.mm20.launcher2.calendar.Markdown
 import de.mm20.launcher2.calendar.TaskChangeResult
+import de.mm20.launcher2.calendar.providers.TasksCalendarEvent
+import de.mm20.launcher2.ktx.tryStartActivity
 import de.mm20.launcher2.permissions.PermissionGroup
 import de.mm20.launcher2.permissions.PermissionsManager
 import de.mm20.launcher2.preferences.TimeFormat
@@ -270,11 +284,28 @@ fun CalendarItem(
                                 painter = painterResource(R.drawable.notes_24px),
                                 contentDescription = null
                             )
+                            val linkColor = MaterialTheme.colorScheme.primary
+                            val description = remember(calendar.description, linkColor) {
+                                if (calendar is TasksCalendarEvent) {
+                                    // Tasks stores notes as Markdown
+                                    Markdown.parse(calendar.description!!)
+                                        .toAnnotatedString(linkColor) { url ->
+                                            context.tryStartActivity(
+                                                Intent(Intent.ACTION_VIEW, url.toUri())
+                                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            )
+                                        }
+                                } else {
+                                    AnnotatedString(
+                                        Html.fromHtml(
+                                            calendar.description!!,
+                                            Html.FROM_HTML_MODE_COMPACT
+                                        ).toString()
+                                    )
+                                }
+                            }
                             Text(
-                                text = Html.fromHtml(
-                                    calendar.description!!,
-                                    Html.FROM_HTML_MODE_COMPACT
-                                ).toString(),
+                                text = description,
                                 style = MaterialTheme.typography.bodySmall,
                                 maxLines = 8,
                                 overflow = TextOverflow.Ellipsis,
@@ -467,6 +498,40 @@ fun CalendarItemGridPopup(
             showDetails = true,
             onBack = onDismiss
         )
+    }
+}
+
+private fun FormattedText.toAnnotatedString(
+    linkColor: Color,
+    onOpenLink: (String) -> Unit,
+): AnnotatedString = buildAnnotatedString {
+    append(text)
+    for (span in spans) {
+        when (val style = span.style) {
+            FormattedText.Style.Bold ->
+                addStyle(SpanStyle(fontWeight = FontWeight.Bold), span.start, span.end)
+
+            FormattedText.Style.Italic ->
+                addStyle(SpanStyle(fontStyle = FontStyle.Italic), span.start, span.end)
+
+            FormattedText.Style.Strikethrough ->
+                addStyle(SpanStyle(textDecoration = TextDecoration.LineThrough), span.start, span.end)
+
+            FormattedText.Style.Code ->
+                addStyle(SpanStyle(fontFamily = FontFamily.Monospace), span.start, span.end)
+
+            is FormattedText.Style.Link -> addLink(
+                LinkAnnotation.Url(
+                    url = style.url,
+                    styles = TextLinkStyles(
+                        SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)
+                    ),
+                    linkInteractionListener = { onOpenLink(style.url) },
+                ),
+                span.start,
+                span.end,
+            )
+        }
     }
 }
 
