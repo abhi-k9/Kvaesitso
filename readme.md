@@ -52,6 +52,17 @@ Releases of this fork install over each other.
 - MET Norway weather, with free forecasts for the whole world. It's the default provider
 - Spacer widget, and "Clear when playback stops" for the music widget
 
+### Plugins
+
+Optional plugins are released with the launcher, as separate APKs on the releases page. Install
+them, then turn them on in Settings > Plugins.
+
+- **Open-Meteo**: free weather forecasts for the whole world, without an API key, from the best
+  weather model for each place. Choose it in Settings > Integrations > Weather
+- **Calendar feeds**: events from calendar subscriptions (.ics or webcal links), e.g. holidays,
+  sports schedules or school calendars, in the search and the calendar widget. Add the feeds in
+  the plugin's settings
+
 ### Fixes and performance
 
 - Many crashes and bugs fixed, including ones reported on the
