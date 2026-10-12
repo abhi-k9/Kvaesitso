@@ -123,6 +123,7 @@ fun CalendarItem(
         scope.launch {
             var result = calendarRepository.setTaskCompleted(calendar, completed)
             if (result == TaskChangeResult.NoPermission) {
+                completedOverride = null
                 val activity = context as? AppCompatActivity
                 if (activity != null) {
                     permissionsManager.requestPermission(activity, PermissionGroup.TasksWrite)
@@ -131,6 +132,7 @@ fun CalendarItem(
                         permissionsManager.hasPermission(PermissionGroup.TasksWrite).first { it }
                     }
                     if (granted == true) {
+                        completedOverride = completed
                         result = calendarRepository.setTaskCompleted(calendar, completed)
                     }
                 }
