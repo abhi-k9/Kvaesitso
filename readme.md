@@ -47,6 +47,15 @@ Releases of this fork install over each other.
 - "Open file location" for local files, and "Skip .nomedia folders" for file search
 - Website search only looks up queries that look like web addresses
 
+### Tasks (with the Tasks.org app)
+
+- Tap a task's circle in the calendar widget or the search to complete it (Tasks 15.12 or newer)
+- "Add task" quick action, to add the search text as a task
+- Overdue tasks and tasks without a due date are found in the search, and can be shown in the
+  calendar widget
+- Notes are formatted (Markdown), and tasks no longer show up twice after moving them to another
+  list
+
 ### Widgets and weather
 
 - MET Norway weather, with free forecasts for the whole world. It's the default provider
