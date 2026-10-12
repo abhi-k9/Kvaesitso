@@ -64,6 +64,7 @@ include(":services:favorites")
 
 include(":plugins:sdk")
 include(":plugins:openmeteo")
+include(":plugins:calendarfeeds")
 include(":data:locations")
 include(":services:plugins")
 include(":core:devicepose")

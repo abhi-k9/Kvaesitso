@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Calendar feeds for Kvaesitso</string>
+    <string name="plugin_label">Calendar feeds</string>
+    <string name="plugin_description">Events from calendar subscriptions (.ics or webcal links), e.g. holidays, sports schedules or school calendars</string>
+    <string name="setup_message">Add a calendar feed</string>
+    <plurals name="state_ready">
+        <item quantity="one">%d calendar feed</item>
+        <item quantity="other">%d calendar feeds</item>
+    </plurals>
+    <string name="untitled_event">Untitled event</string>
+
+    <string name="feeds_intro">The events of these calendars are shown in the launcher\'s search and calendar widget. Each calendar is downloaded from its address, and again every 6 hours while the launcher shows its events.</string>
+    <string name="no_feeds">No calendar feeds yet</string>
+    <string name="add_feed">Add calendar feed</string>
+    <string name="edit_feed">Calendar feed</string>
+    <string name="feed_url_hint">Address, e.g. https://… or webcal://…</string>
+    <string name="feed_name_hint">Name (optional)</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="checking">Checking…</string>
+    <string name="update_now">Update now</string>
+    <!-- %s is a relative time, e.g. "5 minutes ago" -->
+    <string name="feed_updated">Updated %s</string>
+    <string name="feed_not_updated">Not downloaded yet</string>
+    <string name="feeds_updated">Calendar feeds updated</string>
+    <!-- %s are the names of the feeds -->
+    <string name="feeds_not_updated">Couldn\'t update: %s</string>
+    <!-- %s is the name of the feed -->
+    <string name="delete_feed_message">Delete %s?</string>
+
+    <string name="error_invalid_url">Enter an address that starts with https://, http:// or webcal://</string>
+    <!-- %s is the error -->
+    <string name="error_could_not_load">Couldn\'t load the calendar: %s</string>
+    <string name="error_not_a_calendar">This address doesn\'t have a calendar</string>
+    <string name="error_network">Network error</string>
+</resources>
