@@ -43,8 +43,7 @@
         <!-- Opened from the launcher's plugin settings -->
         <activity
             android:name=".FeedsActivity"
-            android:exported="true"
-            android:label="@string/app_name">
+            android:exported="true">
             <intent-filter>
                 <action android:name="de.mm20.launcher2.action.PLUGIN_SETTINGS" />
                 <category android:name="android.intent.category.DEFAULT" />
