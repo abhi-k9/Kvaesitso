@@ -33,6 +33,7 @@ internal class TasksCalendarProvider(
                 .toInstant().toEpochMilli()
             queryTasks(
                 selection = buildList {
+                    add("tasks.deleted = 0")
                     add("($to >= hideUntil OR hideUntil IS NULL)")
                     add("($from <= dueDate OR ($startOfDay <= dueDate AND dueDate % 60000 <= 0))")
                     if (excludedCalendars.isNotEmpty()) {
@@ -87,7 +88,11 @@ internal class TasksCalendarProvider(
         val uri = "content://org.tasks/todoagenda".toUri()
         val cursor = context.contentResolver.query(uri, arrayOf(), selection, selectionArgs, null)
 
-        val results = mutableListOf<CalendarEvent>()
+        // The query joins each task with its list memberships. Tasks.org keeps the old membership
+        // of a task that was moved to another list (marked as deleted) until it has synced, so a
+        // task can come up more than once: keep the row of its current list.
+        val results = LinkedHashMap<Long, TasksCalendarEvent>()
+        val movedAway = mutableSetOf<Long>()
 
         cursor?.use {
             val idIndex = cursor.getColumnIndex("_id")
@@ -98,10 +103,13 @@ internal class TasksCalendarProvider(
             val notesIndex = cursor.getColumnIndex("notes")
             val colorIndex = cursor.getColumnIndex("cdl_color")
             val calendarNameIndex = cursor.getColumnIndex("cdl_name")
+            val membershipDeletedIndex = cursor.getColumnIndex("cd_deleted")
 
             while (cursor.moveToNext()) {
 
                 val id = cursor.getLongOrNull(idIndex) ?: continue
+                val isMovedAway = (cursor.getLongOrNull(membershipDeletedIndex) ?: 0L) > 0L
+                if (id in results && (isMovedAway || id !in movedAway)) continue
                 val dueDate = cursor.getLongOrNull(dueIndex)?.takeIf { it > 0L } ?: continue
 
                 // https://github.com/tasks/tasks/blob/13d4c029e855fd32ec91e4d4ec5f740ec506136e/data/src/commonMain/kotlin/org/tasks/data/entity/Task.kt#L345
@@ -120,7 +128,7 @@ internal class TasksCalendarProvider(
                     dueDate
                 }
 
-                results += TasksCalendarEvent(
+                results[id] = TasksCalendarEvent(
                     id = id,
                     label = cursor.getStringOrNull(titleIndex) ?: continue,
                     description = cursor.getStringOrNull(notesIndex),
@@ -131,16 +139,17 @@ internal class TasksCalendarProvider(
                     allDay = isAllDay,
                     isCompleted = (cursor.getLongOrNull(completedIndex) ?: 0L) != 0L,
                 )
+                if (isMovedAway) movedAway += id else movedAway -= id
             }
         }
 
-        return results
+        return results.values.toList()
     }
 
     suspend fun get(id: Long): CalendarEvent? {
         return withContext(Dispatchers.IO) {
             queryTasks(
-                selection = "_id = $id",
+                selection = "_id = $id AND tasks.deleted = 0",
             ).firstOrNull()
         }
     }
