@@ -63,6 +63,7 @@ include(":services:widgets")
 include(":services:favorites")
 
 include(":plugins:sdk")
+include(":plugins:openmeteo")
 include(":data:locations")
 include(":services:plugins")
 include(":core:devicepose")
