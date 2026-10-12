@@ -241,7 +241,7 @@ abstract class WeatherProvider(
 
         val dmsLat = "$dLat°$mLat'${if (lat >= 0) "N" else "S"}"
 
-        val dmsLon = "$dLon°$mLon'${if (lat >= 0) "E" else "W"}"
+        val dmsLon = "$dLon°$mLon'${if (lon >= 0) "E" else "W"}"
 
         return "$dmsLat $dmsLon"
     }
