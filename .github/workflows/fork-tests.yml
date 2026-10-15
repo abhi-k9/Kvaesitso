@@ -1,13 +1,12 @@
-# Smoke tests: runs the unit tests on every push, without building the APK. They cover the
-# regressions fixed in the fork and some core features (search, icons, backups, calculator).
-# The release workflow runs them too, before publishing anything.
+# Smoke tests: runs the unit tests, without building the APK. They cover the regressions fixed in
+# the fork and some core features (search, icons, backups, calculator).
+# Only started by hand, to save Actions time: the release workflow runs them too, before
+# publishing anything.
 # Run them locally with .github/scripts/unit-tests.sh
 # This file only exists in the fork, so it never conflicts with upstream changes.
 name: Smoke tests (fork)
 
 on:
-  push:
-    branches: ['**']
   workflow_dispatch:
 
 permissions:
@@ -20,6 +19,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
 
