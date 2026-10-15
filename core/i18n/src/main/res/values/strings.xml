@@ -846,6 +846,9 @@
     <!-- Switch in the customize sheet of an app that is in a folder -->
     <string name="customize_item_in_app_list">Also show in the app list</string>
     <string name="customize_item_in_app_list_summary">Show this app outside its folder too</string>
+    <!-- First item of the "Add to folder" checklist: the app is shown in the app list, outside the folders. -->
+    <string name="add_to_folder_app_list">App list</string>
+    <string name="add_to_folder_app_list_summary">Outside any folder</string>
     <!-- Turns a folder back into a regular tag, its apps are shown in the app list again -->
     <string name="folder_ungroup">Ungroup</string>
     <string name="preference_folders_from_categories">Create folders from app categories</string>

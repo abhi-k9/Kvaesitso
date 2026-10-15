@@ -30,8 +30,8 @@ Releases of this fork install over each other.
 - Any tag can be shown as a folder in the app list: turn on "Show as folder" in the tag editor
 - "Add to folder" in an app's long-press menu puts it in one or more folders, or a new one
 - "Create folders from app categories" sorts apps into folders such as Games or Social
-- Apps in a folder are only shown in the folder. Per app, "Also show in the app list" shows it in
-  both
+- Apps in a folder are only shown in the folder. Per app, "App list" in "Add to folder" (or "Also
+  show in the app list" in the customize sheet) shows it in both
 - Folders can be sorted in with the apps, or shown before or after them, optionally with a gap
   between folders and apps
 - Folders open as a popup or a bottom sheet, can be pinned to the favorites, and folders whose

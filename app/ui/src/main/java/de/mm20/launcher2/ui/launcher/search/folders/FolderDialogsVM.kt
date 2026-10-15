@@ -36,15 +36,25 @@ class FolderDialogsVM : ViewModel(), KoinComponent {
     }
 
     /**
+     * Whether [item] is shown in the app list too while it's in a folder
+     */
+    fun isInAppList(item: SavableSearchable): Flow<Boolean> {
+        return tagFoldersRepository.isInAppList(item)
+    }
+
+    /**
      * Puts [item] in the folders [inFolders] and takes it out of the other [folders]. Its other
      * tags stay. If [newFolder] isn't empty, the item is put in a new folder with that name too;
      * if there already is a tag with that name, it's shown as a folder from now on.
+     *
+     * @param inAppList if not null, whether the item is shown in the app list too
      */
     fun setFolders(
         item: SavableSearchable,
         folders: List<String>,
         inFolders: Set<String>,
         newFolder: String,
+        inAppList: Boolean? = null,
     ) {
         viewModelScope.launch {
             val tags = customAttributesRepository.getTags(item).first()
@@ -55,6 +65,9 @@ class FolderDialogsVM : ViewModel(), KoinComponent {
             }
             if (newFolder.isNotEmpty()) {
                 tagFoldersRepository.setFolder(newFolder, true)
+            }
+            if (inAppList != null) {
+                tagFoldersRepository.setInAppList(item, inAppList)
             }
         }
     }
