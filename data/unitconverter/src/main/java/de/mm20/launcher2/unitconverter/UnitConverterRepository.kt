@@ -19,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -29,6 +30,21 @@ import org.koin.core.component.KoinComponent
 interface UnitConverterRepository {
     fun search(query: String): Flow<UnitConverter?>
     suspend fun getAvailableConverters(includeCurrencies: Boolean): List<Converter>
+
+    /**
+     * The date of the latest exchange rates, null if they haven't been downloaded yet
+     */
+    fun exchangeRatesDate(): Flow<Long?>
+
+    /**
+     * Whether the exchange rates are being downloaded because [updateExchangeRates] was called
+     */
+    fun isUpdatingExchangeRates(): Flow<Boolean>
+
+    /**
+     * Downloads the exchange rates as soon as there is a connection.
+     */
+    fun updateExchangeRates()
 }
 
 internal class UnitConverterRepositoryImpl(
@@ -51,10 +67,25 @@ internal class UnitConverterRepositoryImpl(
 
     override fun search(query: String): Flow<UnitConverter?> {
         if (query.isBlank()) return flowOf(null)
-        return settings.distinctUntilChanged().map {
+        // Searched again when new exchange rates arrive, e.g. if there weren't any yet
+        return combine(
+            settings.distinctUntilChanged(),
+            currencyRepository.latestUpdate(),
+        ) { settings, _ -> settings }.map {
             if (!it.enabled) null
-            else queryUnitConverter(query, it.currencies)
+            else {
+                if (it.currencies) currencyRepository.updateIfOutdated()
+                queryUnitConverter(query, it.currencies)
+            }
         }
+    }
+
+    override fun exchangeRatesDate(): Flow<Long?> = currencyRepository.latestUpdate()
+
+    override fun isUpdatingExchangeRates(): Flow<Boolean> = currencyRepository.isUpdating()
+
+    override fun updateExchangeRates() {
+        currencyRepository.updateExchangeRates()
     }
 
     override suspend fun getAvailableConverters(includeCurrencies: Boolean): List<Converter> {

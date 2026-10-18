@@ -10,6 +10,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.url
 import io.ktor.client.statement.bodyAsChannel
+import io.ktor.http.isSuccess
 import io.ktor.utils.io.jvm.javaio.toInputStream
 import org.w3c.dom.Element
 import java.text.SimpleDateFormat
@@ -23,6 +24,10 @@ class ExchangeRateWorker(val context: Context, params: WorkerParameters) :
         try {
             val response = httpClient.get {
                 url("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")
+            }
+            if (!response.status.isSuccess()) {
+                Log.w("MM20", "Couldn't update exchange rates: ${response.status}")
+                return Result.retry()
             }
             val document = DocumentBuilderFactory.newInstance().newDocumentBuilder()
                 .parse(response.bodyAsChannel().toInputStream())
@@ -40,6 +45,12 @@ class ExchangeRateWorker(val context: Context, params: WorkerParameters) :
                     val date = cube.getAttribute("time")
                     timestamp = SimpleDateFormat("yyyy-MM-dd").parse(date).time
                 }
+            }
+            if (values.size <= 1) {
+                // Not the expected document: don't store a euro rate without the others, they'd
+                // have a different date then and couldn't be converted into each other
+                Log.w("MM20", "Couldn't update exchange rates: no rates in the response")
+                return Result.retry()
             }
             val currencies = values.map {
                 Currency(

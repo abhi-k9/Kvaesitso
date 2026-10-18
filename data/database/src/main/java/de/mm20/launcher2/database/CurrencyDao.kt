@@ -2,6 +2,7 @@ package de.mm20.launcher2.database
 
 import androidx.room3.*
 import de.mm20.launcher2.database.entities.CurrencyEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CurrencyDao {
@@ -31,4 +32,13 @@ interface CurrencyDao {
 
     @Query("SELECT lastUpdate FROM Currency WHERE symbol = :symbol")
     fun getLastUpdate(symbol: String) : Long
+
+    /**
+     * The date of the latest exchange rates, null if there are none
+     */
+    @Query("SELECT MAX(lastUpdate) FROM Currency")
+    fun getLatestUpdate(): Long?
+
+    @Query("SELECT MAX(lastUpdate) FROM Currency")
+    fun latestUpdate(): Flow<Long?>
 }
