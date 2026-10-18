@@ -260,6 +260,12 @@ fun AppShortcutItem(
                     val sheetManager = LocalBottomSheetManager.current
                     toolbarActions.add(
                         DefaultToolbarAction(
+                            label = stringResource(R.string.menu_add_to_folder),
+                            icon = R.drawable.folder_24px,
+                            action = { sheetManager.showAddToFolderDialog(shortcut) }
+                        ))
+                    toolbarActions.add(
+                        DefaultToolbarAction(
                             label = stringResource(R.string.menu_customize),
                             icon = R.drawable.tune_24px,
                             action = { sheetManager.showCustomizeSearchableModal(shortcut) }

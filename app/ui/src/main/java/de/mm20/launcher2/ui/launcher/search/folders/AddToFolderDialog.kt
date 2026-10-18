@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import de.mm20.launcher2.search.AppShortcut
 import de.mm20.launcher2.search.Application
 import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.ui.R
@@ -52,8 +53,10 @@ fun AddToFolderDialog(
     val folders by viewModel.folders.collectAsState(null)
     val allTags by viewModel.allTags.collectAsState(emptyList())
 
-    // Apps in a folder are only shown there, unless they're shown in the app list too
-    val canBeInAppList = item is Application
+    // Apps in a folder are only shown there, unless they're shown in the app list too. Shortcuts
+    // are only shown in the app list if they're set to be, in folders or not.
+    val canBeInAppList = item is Application || item is AppShortcut
+    val inAppListWithoutFolder = item is Application
     var inAppList by remember(item.key) { mutableStateOf(false) }
     var savedInAppList by remember(item.key) { mutableStateOf(false) }
 
@@ -89,16 +92,16 @@ fun AddToFolderDialog(
                 if (loadedFolders != null && loadedSelection != null) {
                     if (canBeInAppList) {
                         // Always first, apart from the folders: an app that isn't in any folder is
-                        // in the app list anyway, then this can't be changed
-                        val inAnyFolder = newFolderName.isNotEmpty() ||
+                        // in the app list anyway, then this can't be changed (a shortcut isn't)
+                        val canChange = !inAppListWithoutFolder || newFolderName.isNotEmpty() ||
                                 loadedSelection.any { it in loadedFolders }
-                        val checked = inAppList || !inAnyFolder
+                        val checked = inAppList || !canChange
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .toggleable(
                                     value = checked,
-                                    enabled = inAnyFolder,
+                                    enabled = canChange,
                                     role = Role.Checkbox,
                                     onValueChange = { inAppList = it },
                                 )
@@ -108,12 +111,12 @@ fun AddToFolderDialog(
                             Checkbox(
                                 checked = checked,
                                 onCheckedChange = null,
-                                enabled = inAnyFolder,
+                                enabled = canChange,
                             )
                             Column(
                                 modifier = Modifier
                                     .padding(start = 16.dp)
-                                    .alpha(if (inAnyFolder) 1f else 0.38f)
+                                    .alpha(if (canChange) 1f else 0.38f)
                             ) {
                                 Text(
                                     stringResource(R.string.add_to_folder_app_list),
