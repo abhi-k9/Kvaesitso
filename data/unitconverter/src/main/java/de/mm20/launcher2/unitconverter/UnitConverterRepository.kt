@@ -108,6 +108,15 @@ internal class UnitConverterRepositoryImpl(
         query: String,
         includeCurrencies: Boolean
     ): UnitConverter? {
+        FeetAndInches.parse(query)?.let {
+            val converter = LengthConverter(context)
+            val unit = context.getString(
+                if (it.inFeet) R.string.unit_foot_symbol else R.string.unit_inch_symbol
+            )
+            if (it.targetUnit != null && !converter.isValidUnit(it.targetUnit)) return null
+            return converter.convert(context, unit, it.value, it.targetUnit)
+        }
+
         val regex = Regex("""([+\-]?[\d+\-e,.]+|[^\d>\-]+)""")
 
         val matches = regex.findAll(query)

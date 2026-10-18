@@ -54,4 +54,5 @@ dependencies {
     implementation(project(":core:base"))
     implementation(project(":core:i18n"))
 
+    testImplementation(libs.bundles.tests)
 }
