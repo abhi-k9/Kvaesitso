@@ -42,6 +42,12 @@ class AppShortcutSettingsScreenVM : ViewModel(), KoinComponent {
         settings.setEnabled(enabled)
     }
 
+    val pinToAppList = settings.pinToAppList
+
+    fun setPinToAppList(pinToAppList: Boolean) {
+        settings.setPinToAppList(pinToAppList)
+    }
+
     fun setAppBlocklisted(appId: String, blocked: Boolean) {
         val blocklist = blocklist.value.toMutableSet()
         if (blocked) {

@@ -849,6 +849,9 @@
     <!-- Switch in the customize sheet of a shortcut -->
     <string name="customize_shortcut_in_app_list">Show in the app list</string>
     <string name="customize_shortcut_in_app_list_summary">Show this shortcut with the apps, like an app</string>
+    <!-- Shortcuts that apps pin, e.g. a browser that adds a web app to the home screen -->
+    <string name="preference_shortcuts_pin_to_app_list">Add new shortcuts to the app list</string>
+    <string name="preference_shortcuts_pin_to_app_list_summary">Shortcuts that apps add, such as web apps, are put in the app list instead of the favorites</string>
     <!-- First item of the "Add to folder" checklist: the app is shown in the app list, outside the folders. -->
     <!-- Recently installed apps are shown first in the app list too, apart from the others -->
     <string name="preference_new_apps">New apps first</string>

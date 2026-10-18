@@ -41,6 +41,7 @@ fun AppShortcutsSettingsScreen() {
     )
     val apps by viewModel.apps.collectAsStateWithLifecycle(emptyList())
     val blocklist by viewModel.blocklist.collectAsStateWithLifecycle()
+    val pinToAppList by viewModel.pinToAppList.collectAsStateWithLifecycle(false)
 
     val activity = LocalActivity.current
     val context = LocalContext.current
@@ -77,6 +78,15 @@ fun AppShortcutsSettingsScreen() {
                             enabled = hasPermission == true,
                         )
                     }
+                    SwitchPreference(
+                        title = stringResource(R.string.preference_shortcuts_pin_to_app_list),
+                        summary = stringResource(R.string.preference_shortcuts_pin_to_app_list_summary),
+                        icon = R.drawable.apps_24px,
+                        value = pinToAppList,
+                        onValueChanged = {
+                            viewModel.setPinToAppList(it)
+                        },
+                    )
                 }
             }
         }

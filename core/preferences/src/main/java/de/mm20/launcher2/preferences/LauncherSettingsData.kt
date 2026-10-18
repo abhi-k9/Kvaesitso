@@ -97,6 +97,10 @@ data class LauncherSettingsData internal constructor(
 
     val shortcutSearchEnabled: Boolean = true,
     val shortcutSearchBlocklist: Set<String> = setOf(),
+    /**
+     * Shortcuts that apps pin (e.g. web apps) are put in the app list, instead of the favorites
+     */
+    val shortcutsPinToAppList: Boolean = false,
 
     val calculatorEnabled: Boolean = true,
 

@@ -28,4 +28,17 @@ class ShortcutSearchSettings internal constructor(
             it.copy(shortcutSearchBlocklist = blocklist)
         }
     }
+
+    /**
+     * Whether shortcuts that apps pin (e.g. web apps) are put in the app list, instead of the
+     * favorites
+     */
+    val pinToAppList
+        get() = dataStore.data.map { it.shortcutsPinToAppList }.distinctUntilChanged()
+
+    fun setPinToAppList(pinToAppList: Boolean) {
+        dataStore.update {
+            it.copy(shortcutsPinToAppList = pinToAppList)
+        }
+    }
 }
