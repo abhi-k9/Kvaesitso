@@ -1,9 +1,11 @@
 package de.mm20.launcher2.icons
 
 import android.content.BroadcastReceiver
+import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.Configuration
 import android.graphics.Color
 import android.util.Log
 import android.util.LruCache
@@ -84,6 +86,38 @@ class IconService(
 
     private val cache = LruCache<String, LauncherIcon>(200)
 
+    private var systemColors = getSystemColors()
+
+    private val configurationCallbacks = object : ComponentCallbacks {
+        override fun onConfigurationChanged(newConfig: Configuration) {
+            // Icons (e.g. of icon packs) can use the system colours, which follow the wallpaper,
+            // or have a dark variant. The colours only apply to icons that are loaded afterwards.
+            val colors = getSystemColors()
+            if (colors != systemColors) {
+                systemColors = colors
+                cache.evictAll()
+                packagesChanged.update { it + 1 }
+            }
+        }
+
+        @Deprecated("Deprecated in Java")
+        override fun onLowMemory() {
+        }
+    }
+
+    private fun getSystemColors(): List<Int> {
+        val nightMode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        if (!isAtLeastApiLevel(31)) return listOf(nightMode)
+        return listOf(
+            nightMode,
+            context.getColor(android.R.color.system_accent1_500),
+            context.getColor(android.R.color.system_accent2_500),
+            context.getColor(android.R.color.system_accent3_500),
+            context.getColor(android.R.color.system_neutral1_500),
+            context.getColor(android.R.color.system_neutral2_500),
+        )
+    }
+
     /**
      * Incremented when the icons of a package have been removed from the cache, so that the icons
      * that are currently shown are reloaded.
@@ -112,6 +146,8 @@ class IconService(
             addAction(Intent.ACTION_PACKAGE_CHANGED)
             addDataScheme("package")
         })
+
+        context.registerComponentCallbacks(configurationCallbacks)
 
         iconPacksUpdated.tryEmit(Unit)
 
