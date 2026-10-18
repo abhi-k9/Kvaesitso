@@ -472,6 +472,12 @@ abstract class SharedLauncherActivity(
     var pauseTime = 0L
 
     /**
+     * True if the launcher had been shown for a while before it was paused, false if it only came
+     * up for a moment, e.g. during a transition between apps.
+     */
+    var shownBeforePause = false
+
+    /**
      * True if the scaffold was on home screen when the activity was paused.
      */
     var pauseOnHome = false

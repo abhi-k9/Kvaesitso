@@ -1104,8 +1104,12 @@ internal fun LauncherScaffold(
             val activity = (activity as? SharedLauncherActivity) ?: return@LaunchedEffect
 
             lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                val resumeTime = System.currentTimeMillis()
                 try {
-                    if (activity.pauseTime > 0L && System.currentTimeMillis() - activity.pauseTime < 50L && activity.isNewIntent) {
+                    // The home button was pressed while the launcher was shown. Not if the launcher
+                    // only came up for a moment during a transition, e.g. while swiping home from
+                    // an app: the home button action (e.g. recent apps) would switch apps then.
+                    if (activity.pauseTime > 0L && System.currentTimeMillis() - activity.pauseTime < 50L && activity.isNewIntent && activity.shownBeforePause) {
                         if (!state.isLocked) {
                             if (state.currentProgress > 0f) {
                                 state.onPredictiveBackEnd()
@@ -1126,6 +1130,7 @@ internal fun LauncherScaffold(
                     awaitCancellation()
                 } finally {
                     activity.pauseTime = System.currentTimeMillis()
+                    activity.shownBeforePause = activity.pauseTime - resumeTime >= 400L
                     activity.pauseOnHome = !state.isSettledOnSecondaryPage
                 }
             }
