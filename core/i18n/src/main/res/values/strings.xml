@@ -667,6 +667,12 @@
     <string name="preference_search_unitconverter_summary">Usage: 1.5 kg or 4 cm &gt;&gt; in</string>
     <string name="preference_search_currencyconverter">Currency converter</string>
     <string name="preference_search_currencyconverter_summary">Periodically download exchange rates to convert currencies</string>
+    <!-- Setting that shows the date of the exchange rates; tapping it downloads them again -->
+    <string name="preference_exchange_rates">Exchange rates</string>
+    <!-- %1$s: date of the exchange rates -->
+    <string name="preference_exchange_rates_summary">From %1$s. Tap to update now</string>
+    <string name="preference_exchange_rates_missing">Not downloaded yet. Tap to download now</string>
+    <string name="preference_exchange_rates_updating">Updating…</string>
     <string name="preference_search_supportedunits">Supported units</string>
     <string name="preference_currency_settings">Currency settings</string>
     <string name="preference_search_wikipedia">Wikipedia</string>

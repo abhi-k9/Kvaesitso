@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
+import java.text.DateFormat
+import java.util.Date
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 import de.mm20.launcher2.ui.R
@@ -46,6 +48,24 @@ fun UnitConverterSettingsScreen() {
                     value = currencyConverter == true,
                     onValueChanged = {
                         viewModel.setCurrencyConverter(it)
+                    }
+                )
+                val exchangeRatesDate by viewModel.exchangeRatesDate.collectAsState()
+                val isUpdating by viewModel.isUpdatingExchangeRates.collectAsState()
+                Preference(
+                    title = stringResource(R.string.preference_exchange_rates),
+                    summary = when {
+                        isUpdating -> stringResource(R.string.preference_exchange_rates_updating)
+                        exchangeRatesDate == null -> stringResource(R.string.preference_exchange_rates_missing)
+                        else -> stringResource(
+                            R.string.preference_exchange_rates_summary,
+                            DateFormat.getDateInstance(DateFormat.MEDIUM)
+                                .format(Date(exchangeRatesDate!!)),
+                        )
+                    },
+                    enabled = unitConverter != false && currencyConverter == true && !isUpdating,
+                    onClick = {
+                        viewModel.updateExchangeRates()
                     }
                 )
             }

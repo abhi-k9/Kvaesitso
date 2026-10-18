@@ -28,6 +28,16 @@ class UnitConverterSettingsScreenVM: ViewModel(), KoinComponent {
         settings.setCurrenciesEnabled(currencyConverter)
     }
 
+    val exchangeRatesDate = repository.exchangeRatesDate()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+
+    val isUpdatingExchangeRates = repository.isUpdatingExchangeRates()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), false)
+
+    fun updateExchangeRates() {
+        repository.updateExchangeRates()
+    }
+
     val availableConverters = settings.currenciesEnabled.map {
         repository.getAvailableConverters(includeCurrencies = it)
     }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(100), 1)
