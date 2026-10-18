@@ -37,6 +37,10 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
          *
          * Spaces at the start or end of the query and repeated spaces are ignored: keyboards often
          * add a space after a word that was picked from the suggestions.
+         *
+         * The words of a query with several words may also match in another order ("maps google"
+         * for "google maps"): every word has to match on its own then, and the match ranks just
+         * below the same match in the right order, in the band of its weakest word.
          */
         fun from(
             query: String,
@@ -47,12 +51,44 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
             // An empty query is a prefix of everything.
             if (cleanQuery.isEmpty()) return ResultScore(1f)
 
-            val maxScore = FzfMatcher.maxScoreFor(cleanQuery)
-            val bestPrimary = primaryFields.maxOfOrNull { scoreField(cleanQuery, it, maxScore) } ?: 0f
+            val parsed = ParsedQuery(cleanQuery)
+            val bestPrimary = primaryFields.maxOfOrNull { scoreTerm(parsed, it) } ?: 0f
             val bestSecondary = secondaryFields.maxOfOrNull {
-                scoreField(cleanQuery, it, maxScore) * SecondaryFieldFactor
+                scoreTerm(parsed, it) * SecondaryFieldFactor
             } ?: 0f
             return ResultScore(maxOf(bestPrimary, bestSecondary))
+        }
+
+        /**
+         * A query and its words, with their highest possible fzf scores, which only need to be
+         * computed once for all the fields that are scored against them.
+         */
+        private class ParsedQuery(val text: String) {
+            val maxScore = FzfMatcher.maxScoreFor(text)
+            val words: List<String>? = if (' ' in text) text.split(' ') else null
+            val wordMaxScores: IntArray? = words?.let { w -> IntArray(w.size) { FzfMatcher.maxScoreFor(w[it]) } }
+        }
+
+        private fun scoreTerm(query: ParsedQuery, term: String): Float {
+            val whole = scoreField(query.text, term, query.maxScore)
+            val words = query.words ?: return whole
+            val wordMaxScores = query.wordMaxScores ?: return whole
+            // Already found as typed: no other order can do better
+            if (whole >= WeakLiteralBand) return whole
+
+            var weakest = 1f
+            for (i in words.indices) {
+                val wordScore = scoreField(words[i], term, wordMaxScores[i])
+                if (wordScore == 0f) return whole
+                weakest = minOf(weakest, wordScore)
+            }
+            val band = when {
+                weakest >= StrongLiteralBand -> StrongLiteralBand
+                weakest >= WeakLiteralBand -> WeakLiteralBand
+                else -> TypoBand
+            }
+            val anyOrder = maxOf(band, weakest - OtherOrderPenalty)
+            return maxOf(whole, anyOrder)
         }
 
         private fun scoreField(query: String, term: String, maxScore: Int): Float {
@@ -158,6 +194,12 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
         private const val MinWordTypoQueryLength = 4
 
         private val jaroWinkler = JaroWinkler()
+
+        /**
+         * How much less words in another order are worth than the same words in the order of the
+         * name.
+         */
+        private const val OtherOrderPenalty = 0.005f
 
         /**
          * How much a match on a secondary field is worth relative to the same match on a primary

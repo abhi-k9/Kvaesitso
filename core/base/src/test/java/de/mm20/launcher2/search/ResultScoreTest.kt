@@ -124,6 +124,33 @@ class ResultScoreTest {
     }
 
     @Test
+    fun wordsCanBeInAnotherOrder() {
+        Assert.assertTrue(matches("maps google", "google maps"))
+        Assert.assertTrue(matches("music yt", "youtube music"))
+        Assert.assertTrue(matches("camera open", "open camera"))
+        Assert.assertTrue(matches("store play", "google play store"))
+        // Typos in the words are still tolerated
+        Assert.assertTrue(matches("mpas gogle", "google maps"))
+    }
+
+    @Test
+    fun everyWordHasToMatch() {
+        Assert.assertFalse(matches("maps google", "google photos"))
+        Assert.assertFalse(matches("camera open", "google photos"))
+        Assert.assertFalse(matches("music maps", "youtube music"))
+    }
+
+    @Test
+    fun theOrderOfTheNameRanksFirst() {
+        val inOrder = score("google maps", "google maps")
+        val otherOrder = score("maps google", "google maps")
+        Assert.assertTrue("$otherOrder < $inOrder", otherOrder < inOrder)
+        // But a good match in another order is still a strong match
+        Assert.assertTrue(otherOrder > score("gogle", "google maps"))
+        Assert.assertTrue(otherOrder >= 0.95f)
+    }
+
+    @Test
     fun noFieldsIsNotAMatch() {
         Assert.assertEquals(ResultScore.Zero, ResultScore.from("chrome"))
     }
