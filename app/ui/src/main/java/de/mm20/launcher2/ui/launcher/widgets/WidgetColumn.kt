@@ -1,5 +1,10 @@
 package de.mm20.launcher2.ui.launcher.widgets
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.unit.Dp
+import de.mm20.launcher2.widgets.Widget
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -72,8 +77,10 @@ fun WidgetColumn(
             val swapThresholds = remember(widgets) {
                 Array(widgets.size) { floatArrayOf(0f, 0f) }
             }
-            val widgetsWithIndex = remember(widgets) { widgets.withIndex() }
-            for ((i, widget) in widgetsWithIndex) {
+            val halfWidth by viewModel.halfWidthWidgets.collectAsState(emptySet())
+
+            @Composable
+            fun WidgetEntry(i: Int, widget: Widget, topPadding: Dp, modifier: Modifier) {
                 key(widget.id) {
                     var dragOffsetAfterSwap = remember<Float?> { null }
                     val offsetY =
@@ -111,13 +118,14 @@ fun WidgetColumn(
                         onWidgetUpdate = {
                             viewModel.updateWidget(it)
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
+                        halfWidth = widget.id.toString() in halfWidth,
+                        onHalfWidthChange = { viewModel.setHalfWidth(widget, it) },
+                        modifier = modifier
                             .onPlaced {
                                 swapThresholds[i][0] = it.positionInParent().y
                                 swapThresholds[i][1] = it.positionInParent().y + it.size.height
                             }
-                            .padding(top = if (i > 0) 8.dp else 0.dp)
+                            .padding(top = topPadding)
                             .offset {
                                 IntOffset(0, offsetY.value.toInt())
                             },
@@ -147,6 +155,46 @@ fun WidgetColumn(
                             }
                         },
                     )
+                }
+            }
+
+            // Outside of edit mode, two half-width widgets in a row are shown side by side. In
+            // edit mode, each widget has a row of its own, so that it can be moved up and down.
+            val rows = remember(widgets, halfWidth, editMode) {
+                val rows = mutableListOf<List<Int>>()
+                var i = 0
+                while (i < widgets.size) {
+                    val isHalf = !editMode && widgets[i].id.toString() in halfWidth
+                    val nextIsHalf = i + 1 < widgets.size &&
+                            widgets[i + 1].id.toString() in halfWidth
+                    if (isHalf && nextIsHalf) {
+                        rows += listOf(i, i + 1)
+                        i += 2
+                    } else {
+                        rows += listOf(i)
+                        i++
+                    }
+                }
+                rows
+            }
+            for ((rowIndex, row) in rows.withIndex()) {
+                val topPadding = if (rowIndex > 0) 8.dp else 0.dp
+                val first = widgets[row[0]]
+                if (row.size == 1 && (editMode || first.id.toString() !in halfWidth)) {
+                    WidgetEntry(row[0], first, topPadding, Modifier.fillMaxWidth())
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = topPadding),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        for (i in row) {
+                            WidgetEntry(i, widgets[i], 0.dp, Modifier.weight(1f))
+                        }
+                        // A half-width widget without another one next to it keeps its width
+                        if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
+                    }
                 }
             }
         }

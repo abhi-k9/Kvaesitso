@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,6 +60,8 @@ fun WidgetItem(
     onWidgetAdd: (widget: Widget, offset: Int) -> Unit = { _, _ -> },
     onWidgetUpdate: (widget: Widget) -> Unit = {},
     onWidgetRemove: () -> Unit = {},
+    halfWidth: Boolean = false,
+    onHalfWidthChange: ((Boolean) -> Unit)? = null,
     draggableState: DraggableState = rememberDraggableState {},
     onDragStopped: () -> Unit = {}
 ) {
@@ -111,6 +114,18 @@ fun WidgetItem(
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1
                     )
+                    if (onHalfWidthChange != null) {
+                        // Half-width widgets are shown side by side, outside of edit mode
+                        IconToggleButton(
+                            checked = halfWidth,
+                            onCheckedChange = onHalfWidthChange,
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.splitscreen_right_20px),
+                                contentDescription = stringResource(R.string.widget_half_width),
+                            )
+                        }
+                    }
                     IconButton(onClick = {
                         configure = true
                     }) {

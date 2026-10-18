@@ -168,6 +168,10 @@ data class LauncherSettingsData internal constructor(
     val surfacesShape: SurfaceShape = SurfaceShape.Rounded,
 
     val widgetsEditButton: Boolean = true,
+    /**
+     * IDs of the widgets that take half the width, so that two of them are shown side by side
+     */
+    val widgetsHalfWidth: Set<String> = emptySet(),
     val widgetScreenCount: Int = 1,
 
     val gesturesSwipeDown: GestureAction = GestureAction.Search,

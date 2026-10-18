@@ -253,6 +253,8 @@
     <string name="action_next">Next</string>
     <!-- Turn something off / disable a functionality of the launcher -->
     <string name="turn_off">Turn off</string>
+    <!-- Toggle in edit mode: the widget takes half the width, two of them are shown side by side -->
+    <string name="widget_half_width">Half width</string>
     <string name="widget_action_remove">Remove</string>
     <string name="widget_action_replace">Replace</string>
     <string name="menu_item_edit_favs">Edit favorites</string>

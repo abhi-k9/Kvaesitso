@@ -22,6 +22,15 @@ class WidgetsVM(
     private val uiSettings: UiSettings by inject()
 
     val editButton = uiSettings.widgetEditButton
+
+    /**
+     * IDs of the widgets that take half the width
+     */
+    val halfWidthWidgets = uiSettings.halfWidthWidgets
+
+    fun setHalfWidth(widget: Widget, halfWidth: Boolean) {
+        uiSettings.setWidgetHalfWidth(widget.id.toString(), halfWidth)
+    }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
 
     val widgets = widgetRepository.get(parent = parentId)

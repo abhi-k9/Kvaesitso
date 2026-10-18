@@ -379,4 +379,21 @@ class UiSettings internal constructor(
             it.copy(widgetsEditButton = editButton)
         }
     }
+
+    /**
+     * IDs of the widgets that take half the width, so that two of them are shown side by side
+     */
+    val halfWidthWidgets
+        get() = launcherDataStore.data.map {
+            it.widgetsHalfWidth
+        }.distinctUntilChanged()
+
+    fun setWidgetHalfWidth(widgetId: String, halfWidth: Boolean) {
+        launcherDataStore.update {
+            it.copy(
+                widgetsHalfWidth = if (halfWidth) it.widgetsHalfWidth + widgetId
+                else it.widgetsHalfWidth - widgetId
+            )
+        }
+    }
 }
