@@ -45,4 +45,10 @@ class FavoritesSettingsScreenVM: ViewModel(), KoinComponent {
     fun setCompactTags(compactTags: Boolean) {
         favoritesSettings.setCompactTags(compactTags)
     }
+
+    val tagsFixed = favoritesSettings.tagsFixed
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+    fun setTagsFixed(tagsFixed: Boolean) {
+        favoritesSettings.setTagsFixed(tagsFixed)
+    }
 }

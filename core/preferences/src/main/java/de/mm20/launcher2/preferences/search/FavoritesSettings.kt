@@ -48,4 +48,15 @@ class FavoritesSettings internal constructor(
     fun setCompactTags(compactTags: Boolean) {
         dataStore.update { it.copy(favoritesCompactTags = compactTags) }
     }
+
+    /**
+     * Whether the tags are shown in a bar at the bottom of the search screen, which doesn't
+     * scroll with the list
+     */
+    val tagsFixed: Flow<Boolean>
+        get() = dataStore.data.map { it.favoritesTagsFixed }.distinctUntilChanged()
+
+    fun setTagsFixed(tagsFixed: Boolean) {
+        dataStore.update { it.copy(favoritesTagsFixed = tagsFixed) }
+    }
 }

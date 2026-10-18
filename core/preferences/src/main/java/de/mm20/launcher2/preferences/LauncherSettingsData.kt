@@ -70,6 +70,11 @@ data class LauncherSettingsData internal constructor(
     val favoritesFrequentlyUsedRows: Int = 1,
     val favoritesEditButton: Boolean = true,
     val favoritesCompactTags: Boolean = false,
+    /**
+     * The tags of the favorites are shown in a bar at the bottom of the search screen, which
+     * doesn't scroll with the list
+     */
+    val favoritesTagsFixed: Boolean = false,
     val foldersStyle: FolderStyle = FolderStyle.Popup,
     val foldersInSearch: Boolean = true,
     val foldersPosition: FolderPosition = FolderPosition.Mixed,

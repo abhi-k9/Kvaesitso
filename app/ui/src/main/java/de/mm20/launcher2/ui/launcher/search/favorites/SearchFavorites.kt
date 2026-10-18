@@ -31,6 +31,8 @@ fun LazyListScope.SearchFavorites(
     onSelectTag: (String?) -> Unit,
     editButton: Boolean,
     reverse: Boolean,
+    // False if the tags are shown in a bar of their own, apart from the list
+    showTags: Boolean = true,
 ) {
     item(
         key = "favorites",
@@ -62,7 +64,7 @@ fun LazyListScope.SearchFavorites(
                         icon = if (selectedTag == null) R.drawable.star_24px else R.drawable.tag_24px,
                     )
                 }
-                if (pinnedTags.isNotEmpty() || editButton) {
+                if (showTags && (pinnedTags.isNotEmpty() || editButton)) {
                     FavoritesTagSelector(
                         tags = pinnedTags,
                         selectedTag = selectedTag,

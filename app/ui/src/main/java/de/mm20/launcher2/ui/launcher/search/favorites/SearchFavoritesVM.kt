@@ -23,6 +23,8 @@ class SearchFavoritesVM : FavoritesVM() {
 
     override val compactTags: Flow<Boolean> = settings.compactTags
 
+    val tagsFixed: Flow<Boolean> = settings.tagsFixed
+
     override fun folderTags(): Flow<Set<String>> = get<TagFoldersRepository>().folderTags
 
 }

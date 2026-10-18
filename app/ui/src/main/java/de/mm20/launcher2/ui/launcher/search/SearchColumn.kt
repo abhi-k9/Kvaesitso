@@ -10,6 +10,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import de.mm20.launcher2.ui.common.FavoritesTagSelector
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -179,6 +184,13 @@ fun SearchColumn(
     val compactTags by favoritesVM.compactTags.collectAsState(false)
     val favoritesEditButton by favoritesVM.showEditButton.collectAsState(false)
     val favoritesTagsExpanded by favoritesVM.tagsExpanded.collectAsState(false)
+    val tagsFixed by favoritesVM.tagsFixed.collectAsState(false)
+    // The tags are in a bar of their own at the bottom, if set, while the favorites are shown
+    val showFixedTags = tagsFixed && !hideFavs && favoritesEnabled &&
+            (pinnedTags.isNotEmpty() || favoritesEditButton)
+    var fixedTagsHeight by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+    val layoutDirection = LocalLayoutDirection.current
 
     val expandedCategory: SearchCategory? by viewModel.expandedCategory
 
@@ -244,203 +256,244 @@ fun SearchColumn(
                 )
             }
         } else {
-            LazyColumn(
-                state = state,
-                userScrollEnabled = userScrollEnabled,
-                contentPadding = paddingValues,
-                reverseLayout = reverse,
-            ) {
-                if (!hideFavs && favoritesEnabled) {
-                    SearchFavorites(
-                        favorites = favorites,
-                        selectedTag = selectedTag,
-                        pinnedTags = pinnedTags,
-                        tagsExpanded = favoritesTagsExpanded,
-                        onSelectTag = { favoritesVM.selectTag(it) },
-                        reverse = reverse,
-                        onExpandTags = {
-                            favoritesVM.setTagsExpanded(it)
-                        },
-                        compactTags = compactTags,
-                        editButton = favoritesEditButton
-                    )
-                } else {
-                    // Empty item to maintain scroll position
-                    item(key = "favorites") {
+            Box(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    state = state,
+                    userScrollEnabled = userScrollEnabled,
+                    // Room for the tags bar, if it's apart from the list
+                    contentPadding = if (showFixedTags) {
+                        PaddingValues(
+                            start = paddingValues.calculateStartPadding(layoutDirection),
+                            top = paddingValues.calculateTopPadding(),
+                            end = paddingValues.calculateEndPadding(layoutDirection),
+                            bottom = paddingValues.calculateBottomPadding() +
+                                    with(density) { fixedTagsHeight.toDp() },
+                        )
+                    } else paddingValues,
+                    reverseLayout = reverse,
+                ) {
+                    if (!hideFavs && favoritesEnabled) {
+                        SearchFavorites(
+                            favorites = favorites,
+                            selectedTag = selectedTag,
+                            pinnedTags = pinnedTags,
+                            tagsExpanded = favoritesTagsExpanded,
+                            onSelectTag = { favoritesVM.selectTag(it) },
+                            reverse = reverse,
+                            onExpandTags = {
+                                favoritesVM.setTagsExpanded(it)
+                            },
+                            compactTags = compactTags,
+                            editButton = favoritesEditButton,
+                            showTags = !showFixedTags,
+                        )
+                    } else {
+                        // Empty item to maintain scroll position
+                        item(key = "favorites") {
+                        }
+                    }
+
+                    if (isSearchEmpty && profiles.size > 1 && allAppsEnabled) {
+                        val visibleProfiles by derivedStateOf {
+                            profiles.filter { profileStates[it.type]?.hidden == false }
+                        }
+                        val selectedProfile = visibleProfiles.getOrNull(selectedAppProfileIndex) ?: visibleProfiles.firstOrNull()
+                        AppResults(
+                            apps = when (selectedProfile?.type) {
+                                Profile.Type.Private -> privateApps
+                                Profile.Type.Work -> workApps
+                                else -> appList
+                            },
+                            separateAt = when (selectedProfile?.type) {
+                                Profile.Type.Private, Profile.Type.Work -> emptyList()
+                                else -> appListSeparateAt
+                            },
+                            highlightedItem = bestMatch as? Application,
+                            profiles = visibleProfiles,
+                            profileStates = profileStates,
+                            selectedProfile = visibleProfiles.getOrNull(selectedAppProfileIndex),
+                            onProfileSelected = {
+                                selectedAppProfileIndex = visibleProfiles.indexOf(it)
+                                onHideKeyboard()
+                            },
+                            onProfileLockChange = { p, l ->
+                                viewModel.setProfileLock(p, l)
+                            },
+                            columns = columns,
+                            reverse = reverse,
+                            showProfileLockControls = hasProfilesPermission,
+                            showList = showList,
+                            selectedIndex = selectedAppIndex,
+                            onSelect = { selectedAppIndex = it },
+                        )
+                    } else if (!isSearchEmpty || allAppsEnabled) {
+                        AppResults(
+                            apps = appList,
+                            separateAt = appListSeparateAt,
+                            highlightedItem = bestMatch as? Application,
+                            columns = columns,
+                            reverse = reverse,
+                            showList = showList,
+                            selectedIndex = selectedAppIndex,
+                            onSelect = { selectedAppIndex = it },
+                        )
+                    }
+
+                    if (!isSearchEmpty) {
+
+                        ShortcutResults(
+                            shortcuts = appShortcuts,
+                            missingPermission = missingShortcutsPermission,
+                            onPermissionRequest = {
+                                viewModel.requestAppShortcutPermission(context as AppCompatActivity)
+                            },
+                            onPermissionRequestRejected = {
+                                viewModel.disableAppShortcutSearch()
+                            },
+                            reverse = reverse,
+                            selectedIndex = selectedShortcutIndex,
+                            onSelect = { selectedShortcutIndex = it },
+                            highlightedItem = bestMatch as? AppShortcut,
+                            truncate = expandedCategory != SearchCategory.Shortcuts,
+                            onShowAll = {
+                                viewModel.expandCategory(SearchCategory.Shortcuts)
+                            },
+                        )
+
+                        UnitConverterResults(
+                            converters = unitConverter,
+                            reverse = reverse,
+                            truncate = expandedCategory != SearchCategory.UnitConverter,
+                            onShowAll = {
+                                viewModel.expandCategory(SearchCategory.UnitConverter)
+                            }
+                        )
+
+                        CalculatorResults(
+                            calculator,
+                            reverse = reverse
+                        )
+
+                        CalendarResults(
+                            events = events,
+                            missingPermission = missingCalendarPermission,
+                            onPermissionRequest = {
+                                viewModel.requestCalendarPermission(context as AppCompatActivity)
+                            },
+                            onPermissionRequestRejected = {
+                                viewModel.disableCalendarSearch()
+                            },
+                            reverse = reverse,
+                            selectedIndex = selectedCalendarIndex,
+                            onSelect = { selectedCalendarIndex = it },
+                            highlightedItem = bestMatch as? CalendarEvent,
+                            truncate = expandedCategory != SearchCategory.Calendar,
+                            onShowAll = {
+                                viewModel.expandCategory(SearchCategory.Calendar)
+                            }
+                        )
+
+                        ContactResults(
+                            contacts = contacts,
+                            missingPermission = missingContactsPermission,
+                            onPermissionRequest = {
+                                viewModel.requestContactsPermission(context as AppCompatActivity)
+                            },
+                            onPermissionRequestRejected = {
+                                viewModel.disableContactsSearch()
+                            },
+                            reverse = reverse,
+                            selectedIndex = selectedContactIndex,
+                            onSelect = { selectedContactIndex = it },
+                            highlightedItem = bestMatch as? Contact,
+                            truncate = expandedCategory != SearchCategory.Contacts,
+                            onShowAll = {
+                                viewModel.expandCategory(SearchCategory.Contacts)
+                            },
+                        )
+
+                        LocationResults(
+                            locations = locations,
+                            missingPermission = missingLocationPermission,
+                            onPermissionRequest = {
+                                viewModel.requestLocationPermission(context as AppCompatActivity)
+                            },
+                            onPermissionRequestRejected = {
+                                viewModel.disableLocationSearch()
+                            },
+                            reverse = reverse,
+                            selectedIndex = selectedLocationIndex,
+                            onSelect = { selectedLocationIndex = it },
+                            highlightedItem = bestMatch as? Location,
+                            truncate = expandedCategory != SearchCategory.Location,
+                            onShowAll = {
+                                viewModel.expandCategory(SearchCategory.Location)
+                            }
+                        )
+                        ArticleResults(
+                            articles = wikipedia,
+                            selectedIndex = selectedArticleIndex,
+                            onSelect = { selectedArticleIndex = it },
+                            highlightedItem = bestMatch as? Article,
+                            reverse = reverse,
+                        )
+                        WebsiteResults(
+                            websites = website,
+                            selectedIndex = selectedWebsiteIndex,
+                            onSelect = { selectedWebsiteIndex = it },
+                            highlightedItem = bestMatch as? Website,
+                            reverse = reverse,
+                        )
+                        FileResults(
+                            files = files,
+                            onPermissionRequest = {
+                                viewModel.requestFilesPermission(context as AppCompatActivity)
+                            },
+                            onPermissionRequestRejected = {
+                                viewModel.disableFilesSearch()
+                            },
+                            reverse = reverse,
+                            highlightedItem = bestMatch as? File,
+                            missingPermission = missingFilesPermission,
+                            selectedIndex = selectedFileIndex,
+                            onSelect = {
+                                selectedFileIndex = it
+                            },
+                            truncate = expandedCategory != SearchCategory.Files,
+                            onShowAll = {
+                                viewModel.expandCategory(SearchCategory.Files)
+                            }
+                        )
                     }
                 }
-
-                if (isSearchEmpty && profiles.size > 1 && allAppsEnabled) {
-                    val visibleProfiles by derivedStateOf {
-                        profiles.filter { profileStates[it.type]?.hidden == false }
+                // The tags of the favorites, apart from the list so that they don't scroll with it
+                if (showFixedTags) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(bottom = paddingValues.calculateBottomPadding())
+                            .onSizeChanged { fixedTagsHeight = it.height }
+                            .background(
+                                MaterialTheme.colorScheme.surface.copy(
+                                    MaterialTheme.transparency.surface
+                                ),
+                                MaterialTheme.shapes.medium
+                            )
+                    ) {
+                        FavoritesTagSelector(
+                            tags = pinnedTags,
+                            selectedTag = selectedTag,
+                            editButton = favoritesEditButton,
+                            reverse = false,
+                            onSelectTag = { favoritesVM.selectTag(it) },
+                            scrollState = rememberScrollState(),
+                            expanded = favoritesTagsExpanded,
+                            compact = compactTags,
+                            onExpand = { favoritesVM.setTagsExpanded(it) },
+                            showFavorites = true,
+                        )
                     }
-                    val selectedProfile = visibleProfiles.getOrNull(selectedAppProfileIndex) ?: visibleProfiles.firstOrNull()
-                    AppResults(
-                        apps = when (selectedProfile?.type) {
-                            Profile.Type.Private -> privateApps
-                            Profile.Type.Work -> workApps
-                            else -> appList
-                        },
-                        separateAt = when (selectedProfile?.type) {
-                            Profile.Type.Private, Profile.Type.Work -> emptyList()
-                            else -> appListSeparateAt
-                        },
-                        highlightedItem = bestMatch as? Application,
-                        profiles = visibleProfiles,
-                        profileStates = profileStates,
-                        selectedProfile = visibleProfiles.getOrNull(selectedAppProfileIndex),
-                        onProfileSelected = {
-                            selectedAppProfileIndex = visibleProfiles.indexOf(it)
-                            onHideKeyboard()
-                        },
-                        onProfileLockChange = { p, l ->
-                            viewModel.setProfileLock(p, l)
-                        },
-                        columns = columns,
-                        reverse = reverse,
-                        showProfileLockControls = hasProfilesPermission,
-                        showList = showList,
-                        selectedIndex = selectedAppIndex,
-                        onSelect = { selectedAppIndex = it },
-                    )
-                } else if (!isSearchEmpty || allAppsEnabled) {
-                    AppResults(
-                        apps = appList,
-                        separateAt = appListSeparateAt,
-                        highlightedItem = bestMatch as? Application,
-                        columns = columns,
-                        reverse = reverse,
-                        showList = showList,
-                        selectedIndex = selectedAppIndex,
-                        onSelect = { selectedAppIndex = it },
-                    )
-                }
-
-                if (!isSearchEmpty) {
-
-                    ShortcutResults(
-                        shortcuts = appShortcuts,
-                        missingPermission = missingShortcutsPermission,
-                        onPermissionRequest = {
-                            viewModel.requestAppShortcutPermission(context as AppCompatActivity)
-                        },
-                        onPermissionRequestRejected = {
-                            viewModel.disableAppShortcutSearch()
-                        },
-                        reverse = reverse,
-                        selectedIndex = selectedShortcutIndex,
-                        onSelect = { selectedShortcutIndex = it },
-                        highlightedItem = bestMatch as? AppShortcut,
-                        truncate = expandedCategory != SearchCategory.Shortcuts,
-                        onShowAll = {
-                            viewModel.expandCategory(SearchCategory.Shortcuts)
-                        },
-                    )
-
-                    UnitConverterResults(
-                        converters = unitConverter,
-                        reverse = reverse,
-                        truncate = expandedCategory != SearchCategory.UnitConverter,
-                        onShowAll = {
-                            viewModel.expandCategory(SearchCategory.UnitConverter)
-                        }
-                    )
-
-                    CalculatorResults(
-                        calculator,
-                        reverse = reverse
-                    )
-
-                    CalendarResults(
-                        events = events,
-                        missingPermission = missingCalendarPermission,
-                        onPermissionRequest = {
-                            viewModel.requestCalendarPermission(context as AppCompatActivity)
-                        },
-                        onPermissionRequestRejected = {
-                            viewModel.disableCalendarSearch()
-                        },
-                        reverse = reverse,
-                        selectedIndex = selectedCalendarIndex,
-                        onSelect = { selectedCalendarIndex = it },
-                        highlightedItem = bestMatch as? CalendarEvent,
-                        truncate = expandedCategory != SearchCategory.Calendar,
-                        onShowAll = {
-                            viewModel.expandCategory(SearchCategory.Calendar)
-                        }
-                    )
-
-                    ContactResults(
-                        contacts = contacts,
-                        missingPermission = missingContactsPermission,
-                        onPermissionRequest = {
-                            viewModel.requestContactsPermission(context as AppCompatActivity)
-                        },
-                        onPermissionRequestRejected = {
-                            viewModel.disableContactsSearch()
-                        },
-                        reverse = reverse,
-                        selectedIndex = selectedContactIndex,
-                        onSelect = { selectedContactIndex = it },
-                        highlightedItem = bestMatch as? Contact,
-                        truncate = expandedCategory != SearchCategory.Contacts,
-                        onShowAll = {
-                            viewModel.expandCategory(SearchCategory.Contacts)
-                        },
-                    )
-
-                    LocationResults(
-                        locations = locations,
-                        missingPermission = missingLocationPermission,
-                        onPermissionRequest = {
-                            viewModel.requestLocationPermission(context as AppCompatActivity)
-                        },
-                        onPermissionRequestRejected = {
-                            viewModel.disableLocationSearch()
-                        },
-                        reverse = reverse,
-                        selectedIndex = selectedLocationIndex,
-                        onSelect = { selectedLocationIndex = it },
-                        highlightedItem = bestMatch as? Location,
-                        truncate = expandedCategory != SearchCategory.Location,
-                        onShowAll = {
-                            viewModel.expandCategory(SearchCategory.Location)
-                        }
-                    )
-                    ArticleResults(
-                        articles = wikipedia,
-                        selectedIndex = selectedArticleIndex,
-                        onSelect = { selectedArticleIndex = it },
-                        highlightedItem = bestMatch as? Article,
-                        reverse = reverse,
-                    )
-                    WebsiteResults(
-                        websites = website,
-                        selectedIndex = selectedWebsiteIndex,
-                        onSelect = { selectedWebsiteIndex = it },
-                        highlightedItem = bestMatch as? Website,
-                        reverse = reverse,
-                    )
-                    FileResults(
-                        files = files,
-                        onPermissionRequest = {
-                            viewModel.requestFilesPermission(context as AppCompatActivity)
-                        },
-                        onPermissionRequestRejected = {
-                            viewModel.disableFilesSearch()
-                        },
-                        reverse = reverse,
-                        highlightedItem = bestMatch as? File,
-                        missingPermission = missingFilesPermission,
-                        selectedIndex = selectedFileIndex,
-                        onSelect = {
-                            selectedFileIndex = it
-                        },
-                        truncate = expandedCategory != SearchCategory.Files,
-                        onShowAll = {
-                            viewModel.expandCategory(SearchCategory.Files)
-                        }
-                    )
                 }
             }
         }
