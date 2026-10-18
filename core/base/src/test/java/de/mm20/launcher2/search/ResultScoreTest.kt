@@ -151,6 +151,20 @@ class ResultScoreTest {
     }
 
     @Test
+    fun shortQueriesMatchStronglyOnlyFromTheStartOfAWord() {
+        Assert.assertTrue(score("c", "calendar") >= 0.95f)
+        Assert.assertTrue(score("c", "music clock") >= 0.95f)
+        Assert.assertTrue(score("wa", "whatsapp") >= 0.95f)
+        Assert.assertTrue(score("gm", "google maps") >= 0.95f)
+        Assert.assertTrue(score("yt", "youtube") >= 0.95f)
+        // Still matches, but weaker
+        Assert.assertTrue(score("c", "music") < 0.95f)
+        Assert.assertTrue(matches("c", "music"))
+        Assert.assertTrue(score("ca", "authenticator") < 0.95f)
+        Assert.assertTrue(matches("ca", "authenticator"))
+    }
+
+    @Test
     fun noFieldsIsNotAMatch() {
         Assert.assertEquals(ResultScore.Zero, ResultScore.from("chrome"))
     }

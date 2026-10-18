@@ -94,7 +94,7 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
         private fun scoreField(query: String, term: String, maxScore: Int): Float {
             val literal = FzfMatcher.normalizedScore(query, term, maxScore)
             if (literal > 0f) {
-                return if (literal >= StrongLiteralThreshold) {
+                val banded = if (literal >= StrongLiteralThreshold) {
                     lerp(
                         StrongLiteralBand,
                         1f,
@@ -102,6 +102,14 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
                     )
                 } else {
                     lerp(WeakLiteralBand, StrongLiteralBand, literal / StrongLiteralThreshold)
+                }
+                if (query.length > ShortQueryLength) return banded
+                // One or two characters are in the middle of nearly every name ("c" in "music"):
+                // only a match from the start of a word counts as strong then.
+                return if (startsAtWordStart(query, term)) {
+                    maxOf(banded, StrongLiteralBand)
+                } else {
+                    lerp(WeakLiteralBand, StrongLiteralBand, literal * 0.99f)
                 }
             }
 
@@ -123,6 +131,21 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
                 WeakLiteralBand,
                 (similarity - MatchThreshold) / (1f - MatchThreshold)
             )
+        }
+
+        /**
+         * Whether a word of [term] starts with the first character of [query], followed by the rest
+         * of [query] (in order, not necessarily contiguously): "c" in "music clock", "wa" in
+         * "whatsapp", "gm" in "google maps".
+         */
+        private fun startsAtWordStart(query: String, term: String): Boolean {
+            val first = query[0]
+            for (i in term.indices) {
+                if (term[i] != first) continue
+                if (i > 0 && term[i - 1].isLetterOrDigit()) continue
+                if (FzfMatcher.matches(query.substring(1), term.substring(i + 1))) return true
+            }
+            return false
         }
 
         /**
@@ -181,9 +204,14 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
          */
         private const val StrongLiteralThreshold = 0.5f
 
-        private const val StrongLiteralBand = 0.95f
-        private const val WeakLiteralBand = 0.9f
+        internal const val StrongLiteralBand = 0.95f
+        internal const val WeakLiteralBand = 0.9f
         private const val TypoBand = MatchThreshold
+
+        /**
+         * Queries up to this length only match strongly at the start of a word.
+         */
+        private const val ShortQueryLength = 2
 
         private const val MinTypoQueryLength = 3
 

@@ -44,6 +44,7 @@ import de.mm20.launcher2.search.Website
 import de.mm20.launcher2.search.data.Calculator
 import de.mm20.launcher2.search.data.UnitConverter
 import de.mm20.launcher2.search.isUnspecified
+import de.mm20.launcher2.search.rankSearchResults
 import de.mm20.launcher2.searchable.SavableSearchableRepository
 import de.mm20.launcher2.searchable.VisibilityLevel
 import de.mm20.launcher2.searchactions.actions.SearchAction
@@ -519,8 +520,8 @@ class SearchVM : ViewModel(), KoinComponent {
         // Not every repository scores its results: score those here, once per result, with the
         // same normalization (case, accents, transliteration) as the scored ones.
         val normalizedQuery = stringNormalizer.normalize(query)
-        val totals = map { item ->
-            val score = if (item.score.isUnspecified) {
+        val scores = map { item ->
+            if (item.score.isUnspecified) {
                 ResultScore.from(
                     query = normalizedQuery,
                     primaryFields = listOf(stringNormalizer.normalize(item.labelOverride ?: item.label)),
@@ -528,11 +529,12 @@ class SearchVM : ViewModel(), KoinComponent {
             } else {
                 item.score.score
             }
-            val weight = weights[item.key] ?: 0.0
-            score * 0.6f + weight.toFloat() * 0.4f
         }
-        return indices
-            .sortedByDescending { totals[it] }
+        return rankSearchResults(
+            indices.toList(),
+            score = { scores[it] },
+            weight = { weights[this[it].key] ?: 0.0 },
+        )
             .map { this[it] }
             .distinctBy { it.key }
     }
