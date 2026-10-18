@@ -94,6 +94,8 @@ import de.mm20.launcher2.ui.settings.folders.FoldersSettingsScreen
 import de.mm20.launcher2.ui.settings.gestures.GestureSettingsScreen
 import de.mm20.launcher2.ui.settings.gestures.GesturesSettingsRoute
 import de.mm20.launcher2.ui.settings.hiddenitems.HiddenItemsSettingsRoute
+import de.mm20.launcher2.ui.settings.learnedsearches.LearnedSearchesSettingsRoute
+import de.mm20.launcher2.ui.settings.learnedsearches.LearnedSearchesSettingsScreen
 import de.mm20.launcher2.ui.settings.hiddenitems.HiddenItemsSettingsScreen
 import de.mm20.launcher2.ui.settings.homescreen.HomescreenSettingsRoute
 import de.mm20.launcher2.ui.settings.homescreen.HomescreenSettingsScreen
@@ -255,6 +257,9 @@ class SettingsActivity : BaseActivity() {
             }
             entry<HiddenItemsSettingsRoute> {
                 HiddenItemsSettingsScreen()
+            }
+            entry<LearnedSearchesSettingsRoute> {
+                LearnedSearchesSettingsScreen()
             }
             entry<TagsSettingsRoute> {
                 TagsSettingsScreen()

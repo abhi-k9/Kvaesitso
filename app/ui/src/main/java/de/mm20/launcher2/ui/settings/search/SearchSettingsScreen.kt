@@ -43,6 +43,7 @@ import de.mm20.launcher2.ui.settings.filesearch.FileSearchSettingsRoute
 import de.mm20.launcher2.ui.settings.filterbar.FilterBarSettingsRoute
 import de.mm20.launcher2.ui.settings.folders.FoldersSettingsRoute
 import de.mm20.launcher2.ui.settings.hiddenitems.HiddenItemsSettingsRoute
+import de.mm20.launcher2.ui.settings.learnedsearches.LearnedSearchesSettingsRoute
 import de.mm20.launcher2.ui.settings.locations.LocationsSettingsRoute
 import de.mm20.launcher2.ui.settings.searchactions.SearchActionsSettingsRoute
 import de.mm20.launcher2.ui.settings.tags.TagsSettingsRoute
@@ -92,6 +93,7 @@ fun SearchSettingsScreen() {
     val launchOnEnter by viewModel.launchOnEnter.collectAsStateWithLifecycle(null)
     val reverseSearchResults by viewModel.reverseSearchResults.collectAsStateWithLifecycle(null)
     val filterBar by viewModel.filterBar.collectAsStateWithLifecycle(null)
+    val learnFromLaunches by viewModel.learnFromLaunches.collectAsStateWithLifecycle(null)
 
     PreferenceScreen(title = stringResource(R.string.preference_screen_search)) {
         item {
@@ -330,6 +332,18 @@ fun SearchSettingsScreen() {
                     icon = R.drawable.visibility_off_24px,
                     onClick = {
                         backStack.add(HiddenItemsSettingsRoute)
+                    }
+                )
+                PreferenceWithSwitch(
+                    title = stringResource(R.string.preference_learn_from_launches),
+                    summary = stringResource(R.string.preference_learn_from_launches_summary),
+                    icon = R.drawable.school_24px,
+                    switchValue = learnFromLaunches == true,
+                    onSwitchChanged = {
+                        viewModel.setLearnFromLaunches(it)
+                    },
+                    onClick = {
+                        backStack.add(LearnedSearchesSettingsRoute)
                     }
                 )
                 Preference(
