@@ -91,13 +91,21 @@ fun SearchColumn(
     val allAppsEnabled by viewModel.allAppsEnabled.collectAsState(false)
 
     val apps = viewModel.appResults
+    // Shortcuts set to be shown in the app list are sorted in with the apps
+    val appListShortcuts = viewModel.appListShortcuts
+    val appItems by remember {
+        derivedStateOf {
+            if (appListShortcuts.isEmpty() || !viewModel.isSearchEmpty.value) apps
+            else (apps + appListShortcuts).sorted()
+        }
+    }
     val appFolders = viewModel.appFolders
     val folderPosition by viewModel.folderPosition.collectAsState(FolderPosition.Mixed)
     // Folders are sorted in with the apps in the app list, or shown before or after them, as set.
     // Search results are sorted by how well they match, so matching folders come first there.
     val appsWithFolders by remember {
         derivedStateOf {
-            if (viewModel.isSearchEmpty.value) mergeFolders(apps, appFolders, folderPosition)
+            if (viewModel.isSearchEmpty.value) mergeFolders(appItems, appFolders, folderPosition)
             else appFolders + apps
         }
     }
@@ -120,10 +128,10 @@ fun SearchColumn(
     val foldersSeparateFrom by remember {
         derivedStateOf {
             if (!separateFolders || !viewModel.isSearchEmpty.value) return@derivedStateOf -1
-            if (apps.isEmpty() || appFolders.isEmpty()) return@derivedStateOf -1
+            if (appItems.isEmpty() || appFolders.isEmpty()) return@derivedStateOf -1
             when (folderPosition) {
                 FolderPosition.First -> appFolders.size
-                FolderPosition.Last -> apps.size
+                FolderPosition.Last -> appItems.size
                 FolderPosition.Mixed -> -1
             }
         }

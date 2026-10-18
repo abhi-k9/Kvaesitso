@@ -846,6 +846,9 @@
     <!-- Switch in the customize sheet of an app that is in a folder -->
     <string name="customize_item_in_app_list">Also show in the app list</string>
     <string name="customize_item_in_app_list_summary">Show this app outside its folder too</string>
+    <!-- Switch in the customize sheet of a shortcut -->
+    <string name="customize_shortcut_in_app_list">Show in the app list</string>
+    <string name="customize_shortcut_in_app_list_summary">Show this shortcut with the apps, like an app</string>
     <!-- First item of the "Add to folder" checklist: the app is shown in the app list, outside the folders. -->
     <!-- Recently installed apps are shown first in the app list too, apart from the others -->
     <string name="preference_new_apps">New apps first</string>

@@ -129,6 +129,11 @@ class SearchVM : ViewModel(), KoinComponent {
      * Recently installed apps, newest first, that are shown first in the app list too
      */
     val newApps = mutableStateListOf<Application>()
+
+    /**
+     * Items other than apps that are shown in the app list, e.g. shortcuts
+     */
+    val appListShortcuts = mutableStateListOf<SavableSearchable>()
     val workAppResults = mutableStateListOf<Application>()
     val privateSpaceAppResults = mutableStateListOf<Application>()
 
@@ -269,11 +274,20 @@ class SearchVM : ViewModel(), KoinComponent {
                     ) { (results, hiddenKeys), folders ->
                         Triple(results, hiddenKeys, folders)
                     }
-                    .combine(searchUiSettings.newAppsDays) { results, newAppsDays ->
-                        results to newAppsDays
+                    .combine(
+                        combine(
+                            searchUiSettings.newAppsDays,
+                            tagFoldersRepository.appListItems.catch {
+                                Log.e("SearchVM", "Failed to load app list items", it)
+                                emit(emptyList())
+                            },
+                        ) { newAppsDays, appListItems -> newAppsDays to appListItems }
+                    ) { results, extras ->
+                        results to extras
                     }
-                    .collectLatest { (resultsAndFolders, newAppsDays) ->
+                    .collectLatest { (resultsAndFolders, extras) ->
                         val (results, hiddenKeys, foldersAndInAppList) = resultsAndFolders
+                        val (newAppsDays, appListItems) = extras
                         val (folders, inAppList) = foldersAndInAppList
                         val hiddenItems = mutableListOf<SavableSearchable>()
 
@@ -311,6 +325,7 @@ class SearchVM : ViewModel(), KoinComponent {
                         )
 
                         searchActionResults.clear()
+                        appListShortcuts.updateItems(appListItems)
                         appResults.updateItems(grouping.ungrouped)
                         appFolders.updateItems(grouping.folders)
                         workAppResults.updateItems(workApps)

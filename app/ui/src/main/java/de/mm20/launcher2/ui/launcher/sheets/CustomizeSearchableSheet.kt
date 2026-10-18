@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import de.mm20.launcher2.badges.Badge
 import de.mm20.launcher2.badges.BadgeIcon
 import de.mm20.launcher2.icons.CustomIconWithPreview
+import de.mm20.launcher2.search.AppShortcut
 import de.mm20.launcher2.search.Application
 import de.mm20.launcher2.search.CalendarEvent
 import de.mm20.launcher2.search.SavableSearchable
@@ -336,10 +337,12 @@ fun CustomizeSearchableSheet(
                 }
             }
 
-            // Apps in a folder are only shown there, unless they're shown in the app list too
+            // Apps in a folder are only shown there, unless they're shown in the app list too.
+            // Shortcuts are only shown in the app list if they're set to be.
             val folderTags by remember { viewModel.folderTags }.collectAsState(emptySet())
-            if (searchable is Application && visibility == VisibilityLevel.Default &&
-                tags.any { it in folderTags }
+            val isShortcut = searchable is AppShortcut
+            if (visibility == VisibilityLevel.Default && (isShortcut ||
+                        searchable is Application && tags.any { it in folderTags })
             ) {
                 Row(
                     modifier = Modifier
@@ -359,11 +362,17 @@ fun CustomizeSearchableSheet(
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            stringResource(R.string.customize_item_in_app_list),
+                            stringResource(
+                                if (isShortcut) R.string.customize_shortcut_in_app_list
+                                else R.string.customize_item_in_app_list
+                            ),
                             style = MaterialTheme.typography.bodyLarge,
                         )
                         Text(
-                            stringResource(R.string.customize_item_in_app_list_summary),
+                            stringResource(
+                                if (isShortcut) R.string.customize_shortcut_in_app_list_summary
+                                else R.string.customize_item_in_app_list_summary
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

@@ -3,6 +3,7 @@ package de.mm20.launcher2.data.customattrs
 import de.mm20.launcher2.database.AppDatabase
 import de.mm20.launcher2.database.entities.CustomAttributeEntity
 import de.mm20.launcher2.preferences.FolderPosition
+import de.mm20.launcher2.search.Application
 import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.search.Tag
 import de.mm20.launcher2.searchable.SavableSearchableRepository
@@ -50,7 +51,14 @@ interface TagFoldersRepository {
     fun isInAppList(searchable: SavableSearchable): Flow<Boolean>
 
     /**
-     * Shows [searchable] in the app list too, or only in its folders
+     * Items other than apps that are shown in the app list, e.g. shortcuts. Like in the app list,
+     * items that are hidden (or only shown in search results) are left out.
+     */
+    val appListItems: Flow<List<SavableSearchable>>
+
+    /**
+     * Shows [searchable] in the app list too, or only in its folders. For items other than apps,
+     * whether they are shown in the app list at all.
      */
     fun setInAppList(searchable: SavableSearchable, inAppList: Boolean)
 
@@ -65,7 +73,7 @@ interface TagFoldersRepository {
 internal class TagFoldersRepositoryImpl(
     private val appDatabase: AppDatabase,
     private val customAttributesRepository: CustomAttributesRepository,
-    searchableRepository: SavableSearchableRepository,
+    private val searchableRepository: SavableSearchableRepository,
 ) : TagFoldersRepository {
     // One at a time, so that changes are written in order
     private val scope = CoroutineScope(Job() + Dispatchers.IO.limitedParallelism(1))
@@ -121,6 +129,17 @@ internal class TagFoldersRepositoryImpl(
         .map { it.toSet() }
         .distinctUntilChanged()
 
+    override val appListItems: Flow<List<SavableSearchable>> = inAppListKeys
+        .flatMapLatest { keys ->
+            if (keys.isEmpty()) flowOf(emptyList())
+            else searchableRepository.getByKeys(keys.toList())
+        }
+        .map { items -> items.filterNot { it is Application } }
+        .combine(
+            searchableRepository.getKeys(maxVisibility = VisibilityLevel.SearchOnly)
+                .map { it.toSet() }
+        ) { items, notInAppList -> items.filterNot { it.key in notInAppList } }
+
     override fun isInAppList(searchable: SavableSearchable): Flow<Boolean> {
         return appDatabase.customAttrsDao().getCustomAttribute(searchable.key, InAppListAttribute)
             .map { it != null }
@@ -132,6 +151,8 @@ internal class TagFoldersRepositoryImpl(
             val dao = appDatabase.customAttrsDao()
             dao.clearCustomAttribute(searchable.key, InAppListAttribute)
             if (inAppList) {
+                // Items other than apps are only loaded from the saved items
+                searchableRepository.insert(searchable)
                 dao.setCustomAttribute(
                     CustomAttributeEntity(
                         key = searchable.key,
