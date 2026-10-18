@@ -49,9 +49,9 @@ fun LazyListScope.AppResults(
     onProfileLockChange: ((Profile, Boolean) -> Unit)? = null,
     // Apps and folders (tags)
     apps: List<SavableSearchable>,
-    // Where the apps start, if they are shown apart from the folders before them, or where the
-    // folders start, if they are shown apart from the apps
-    separateFrom: Int = -1,
+    // Where groups of items start that are shown apart from the ones before them, e.g. the apps
+    // after the folders
+    separateAt: List<Int> = emptyList(),
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     highlightedItem: Application? = null,
@@ -241,7 +241,7 @@ fun LazyListScope.AppResults(
                 }
             },
             reverse = reverse,
-            separateFrom = separateFrom,
+            separateAt = separateAt,
         )
     } else {
         GridResults(
@@ -264,7 +264,7 @@ fun LazyListScope.AppResults(
             },
             reverse = reverse,
             columns = columns,
-            separateFrom = separateFrom,
+            separateAt = separateAt,
         )
     }
 

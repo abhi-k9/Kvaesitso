@@ -17,7 +17,7 @@ import de.mm20.launcher2.ui.theme.transparency.transparency
 import kotlin.math.ceil
 
 /**
- * @param separateFrom if set, the items from this index on are shown apart from the ones before
+ * @param separateAt the items from each of these indices on are shown apart from the ones before
  * them, in a box of their own that starts on a new row
  */
 fun <T : SavableSearchable> LazyListScope.GridResults(
@@ -28,7 +28,7 @@ fun <T : SavableSearchable> LazyListScope.GridResults(
     after: @Composable (() -> Unit)? = null,
     columns: Int,
     reverse: Boolean = false,
-    separateFrom: Int = -1,
+    separateAt: List<Int> = emptyList(),
 ) {
     if (before != null) {
         item(
@@ -58,10 +58,12 @@ fun <T : SavableSearchable> LazyListScope.GridResults(
         }
     }
 
-    val split = separateFrom.takeIf { it in 1 until items.size }
-    val sections = if (split == null) listOf(items)
-    else listOf(items.subList(0, split), items.subList(split, items.size))
+    val splits = separateAt.filter { it in 1 until items.size }.distinct().sorted()
+    val bounds = listOf(0) + splits + items.size
+    val sections = bounds.zipWithNext { from, to -> items.subList(from, to) }
     val sectionRows = sections.map { ceil(it.size / columns.toFloat()).toInt() }
+    // The first row of each section
+    val sectionStarts = sectionRows.runningFold(0) { start, rows -> start + rows }
     val rows = sectionRows.sum()
     items(
         rows,
@@ -70,15 +72,16 @@ fun <T : SavableSearchable> LazyListScope.GridResults(
         },
         contentType = { key }
     ) {
-        val section = if (it < sectionRows[0]) 0 else 1
-        val row = if (section == 0) it else it - sectionRows[0]
+        val section = sectionStarts.indexOfLast { start -> start <= it }
+            .coerceIn(0, sections.lastIndex)
+        val row = it - sectionStarts[section]
         val sectionItems = sections[section]
         val isFirstOfSection = row == 0
         val isLastOfSection = row == sectionRows[section] - 1
 
-        // The box of the first section ends where the second one begins
-        val isFirst = isFirstOfSection && (section == 1 || before == null)
-        val isLast = isLastOfSection && (section == 0 && split != null || after == null)
+        // The box of a section ends where the next one begins
+        val isFirst = isFirstOfSection && (section > 0 || before == null)
+        val isLast = isLastOfSection && (section < sections.lastIndex || after == null)
         val isTopRow = if (reverse) isLastOfSection else isFirstOfSection
         val isBottomRow = if (reverse) isFirstOfSection else isLastOfSection
         Row(

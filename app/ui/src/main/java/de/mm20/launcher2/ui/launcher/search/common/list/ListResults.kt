@@ -25,8 +25,8 @@ import de.mm20.launcher2.ui.layout.BottomReversed
 import de.mm20.launcher2.ui.theme.transparency.transparency
 
 /**
- * @param separateFrom if set, the items from this index on are shown apart from the ones before
- * them, in a box of their own
+ * @param separateAt the items from each of these indices on are shown apart from the ones before
+ * them, in a box of their own. An item can be in several of these boxes.
  */
 fun <T : SavableSearchable> LazyListScope.ListResults(
     key: String,
@@ -36,7 +36,7 @@ fun <T : SavableSearchable> LazyListScope.ListResults(
     after: @Composable (ColumnScope.() -> Unit)? = null,
     reverse: Boolean = false,
     selectedIndex: Int = -1,
-    separateFrom: Int = -1,
+    separateAt: List<Int> = emptyList(),
 ) {
     if (before != null) {
         item(
@@ -54,11 +54,20 @@ fun <T : SavableSearchable> LazyListScope.ListResults(
         }
     }
     val rows = items.size
-    val split = separateFrom.takeIf { it in 1 until items.size }
+    val splits = separateAt.filter { it in 1 until items.size }.toSet()
+    // The section of each item: an item can be in several sections, the keys must stay unique
+    val sectionOf = IntArray(items.size).also { sections ->
+        var section = 0
+        for (i in items.indices) {
+            if (i in splits) section++
+            sections[i] = section
+        }
+    }
     items(
         items.size,
         key = {
-            "$key-${items[it].key}"
+            if (sectionOf[it] == 0) "$key-${items[it].key}"
+            else "$key-${sectionOf[it]}-${items[it].key}"
         },
         contentType = { key },
     ) {
@@ -66,8 +75,8 @@ fun <T : SavableSearchable> LazyListScope.ListResults(
         val showDetails = it == selectedIndex
 
         ListItemSurface(
-            isFirst = it == 0 && before == null || it == split,
-            isLast = it == rows - 1 && after == null || split != null && it == split - 1,
+            isFirst = it == 0 && before == null || it in splits,
+            isLast = it == rows - 1 && after == null || it + 1 in splits,
             reverse = reverse,
             isExpanded = showDetails,
             isBeforeExpanded = selectedIndex - 1 == it,

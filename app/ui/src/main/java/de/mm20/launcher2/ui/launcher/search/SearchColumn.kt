@@ -250,9 +250,9 @@ fun SearchColumn(
                             Profile.Type.Work -> workApps
                             else -> appsWithFolders
                         },
-                        separateFrom = when (selectedProfile?.type) {
-                            Profile.Type.Private, Profile.Type.Work -> -1
-                            else -> foldersSeparateFrom
+                        separateAt = when (selectedProfile?.type) {
+                            Profile.Type.Private, Profile.Type.Work -> emptyList()
+                            else -> listOf(foldersSeparateFrom)
                         },
                         highlightedItem = bestMatch as? Application,
                         profiles = visibleProfiles,
@@ -275,7 +275,7 @@ fun SearchColumn(
                 } else if (!isSearchEmpty || allAppsEnabled) {
                     AppResults(
                         apps = appsWithFolders,
-                        separateFrom = foldersSeparateFrom,
+                        separateAt = listOf(foldersSeparateFrom),
                         highlightedItem = bestMatch as? Application,
                         columns = columns,
                         reverse = reverse,
