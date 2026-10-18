@@ -6,12 +6,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import de.mm20.launcher2.themes.typography.DefaultEmphasizedTextStyles
 import de.mm20.launcher2.themes.typography.DefaultTextStyles
+import de.mm20.launcher2.themes.typography.FontManager
 import de.mm20.launcher2.ui.theme.typography.fontfamily.GoogleSansFlex
 import de.mm20.launcher2.ui.theme.typography.fontfamily.getDeviceBodyFontFamily
 import de.mm20.launcher2.ui.theme.typography.fontfamily.getDeviceHeadlineFontFamily
@@ -322,6 +324,10 @@ fun fontFamilyOf(
         is ThemeFontFamily.SansSerif -> FontFamily.SansSerif
         is ThemeFontFamily.Serif -> FontFamily.Serif
         is ThemeFontFamily.Monospace -> FontFamily.Monospace
+        // An imported font, if it still exists
+        is ThemeFontFamily.Custom -> FontManager(context).getCustomFontFile(fontFamily)
+            ?.let { FontFamily(Font(it)) }
+            ?: FontFamily.Default
         else -> FontFamily.Default
     }
 }

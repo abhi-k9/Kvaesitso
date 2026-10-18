@@ -217,6 +217,18 @@ sealed interface FontFamily {
     @Serializable
     @SerialName("system")
     data class System(val name: String) : FontFamily
+
+    /**
+     * A font that the user has imported, see [FontManager.importFont]
+     *
+     * @param file the name of the font file in the launcher's fonts directory
+     */
+    @Serializable
+    @SerialName("custom")
+    data class Custom(val file: String) : FontFamily {
+        val name: String
+            get() = file.substringBeforeLast('.')
+    }
 }
 
 @Serializable(with = FontWeightSerializer::class)

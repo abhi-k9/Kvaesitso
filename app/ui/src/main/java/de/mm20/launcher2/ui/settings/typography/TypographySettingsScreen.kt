@@ -74,6 +74,11 @@ import de.mm20.launcher2.themes.typography.FontManager
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.component.DismissableBottomSheet
 import de.mm20.launcher2.ui.component.ShapedLauncherIcon
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import de.mm20.launcher2.ui.component.preferences.Preference
 import de.mm20.launcher2.ui.component.preferences.PreferenceCategory
 import de.mm20.launcher2.ui.component.preferences.PreferenceScreen
@@ -871,6 +876,42 @@ private fun FontPreference(
                 }
             }
 
+            // Fonts that the user has imported, and importing another one
+            item {
+                val scope = rememberCoroutineScope()
+                val importFont = rememberLauncherForActivityResult(
+                    ActivityResultContracts.OpenDocument()
+                ) { uri ->
+                    if (uri == null) return@rememberLauncherForActivityResult
+                    scope.launch {
+                        val font = fontManager.importFont(uri)
+                        if (font != null) {
+                            onValueChange(font)
+                            showDialog = false
+                        } else {
+                            Toast.makeText(context, R.string.font_import_failed, Toast.LENGTH_LONG)
+                                .show()
+                        }
+                    }
+                }
+                FontPickerCategory(
+                    stringResource(R.string.typo_preview_extra_short),
+                    stringResource(R.string.font_category_custom),
+                    fonts.custom,
+                    onFontClick = {
+                        onValueChange(it)
+                        showDialog = false
+                    },
+                ) {
+                    Preference(
+                        title = stringResource(R.string.font_import),
+                        summary = stringResource(R.string.font_import_summary),
+                        icon = R.drawable.add_24px,
+                        onClick = { importFont.launch(FontMimeTypes) },
+                    )
+                }
+            }
+
             if (removable) {
                 item {
                     PreferenceCategory() {
@@ -948,11 +989,18 @@ private fun FontPreference(
     }
 }
 
+// Font files often have no specific type, so others are offered too
+private val FontMimeTypes = arrayOf(
+    "font/ttf", "font/otf", "font/sfnt", "application/x-font-ttf", "application/x-font-otf",
+    "application/font-sfnt", "application/vnd.ms-opentype", "application/octet-stream",
+)
+
 @Composable
 private fun FontPickerCategory(
     previewText: String, categoryName: String?,
     fonts: List<ThemeFontFamily?>,
     onFontClick: (ThemeFontFamily?) -> Unit = {},
+    after: @Composable () -> Unit = {},
 ) {
     val context = LocalContext.current
     PreferenceCategory(categoryName) {
@@ -983,6 +1031,7 @@ private fun FontPickerCategory(
                 },
             )
         }
+        after()
     }
 }
 
@@ -993,6 +1042,7 @@ private fun getFontName(context: Context, fontFamily: ThemeFontFamily?): String 
         is ThemeFontFamily.DeviceHeadline -> context.getString(R.string.font_name_device_headline)
         is ThemeFontFamily.DeviceBody -> context.getString(R.string.font_name_device_body)
         is ThemeFontFamily.System -> fontFamily.name
+        is ThemeFontFamily.Custom -> fontFamily.name
         is ThemeFontFamily.SansSerif -> "sans-serif"
         is ThemeFontFamily.Serif -> "serif"
         is ThemeFontFamily.Monospace -> "monospace"

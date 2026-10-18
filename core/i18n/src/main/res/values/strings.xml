@@ -1191,6 +1191,11 @@
     <string name="font_category_device_default">Device default</string>
     <string name="font_name_device_headline">Default headline font</string>
     <string name="font_name_device_body">Device text font</string>
+    <!-- Fonts that the user has imported from font files -->
+    <string name="font_category_custom">Your fonts</string>
+    <string name="font_import">Import font…</string>
+    <string name="font_import_summary">Use a font file (.ttf or .otf)</string>
+    <string name="font_import_failed">This file isn\'t a font that can be used</string>
     <string name="font_category_generic">Generic</string>
     <string name="preference_screen_locale">Language and region</string>
     <string name="preference_screen_locale_summary">Language, units, time format</string>
