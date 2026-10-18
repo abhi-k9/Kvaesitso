@@ -39,6 +39,7 @@ import de.mm20.launcher2.search.SearchResults
 import de.mm20.launcher2.search.SearchService
 import de.mm20.launcher2.search.Tag
 import de.mm20.launcher2.search.Searchable
+import de.mm20.launcher2.search.StringNormalizer
 import de.mm20.launcher2.search.Website
 import de.mm20.launcher2.search.data.Calculator
 import de.mm20.launcher2.search.data.UnitConverter
@@ -88,6 +89,7 @@ class SearchVM : ViewModel(), KoinComponent {
     private val searchService: SearchService by inject()
     private val tagFoldersRepository: TagFoldersRepository by inject()
     private val folderSettings: FolderSettings by inject()
+    private val stringNormalizer: StringNormalizer by inject()
 
     val searchQuery = mutableStateOf("")
     val isSearchEmpty = mutableStateOf(true)
@@ -513,30 +515,26 @@ class SearchVM : ViewModel(), KoinComponent {
 
     private suspend fun <T : SavableSearchable> List<T>.applyRanking(query: String): List<T> {
         if (size <= 1) return this
-        val sequence = asSequence()
         val weights = searchableRepository.getWeights(map { it.key }).first()
-        val sorted = sequence.sortedWith { a, b ->
-            val aWeight = weights[a.key] ?: 0.0
-            val bWeight = weights[b.key] ?: 0.0
-
-            val aScore = if (a.score.isUnspecified) {
-                ResultScore.from(query = query, primaryFields = listOf(a.labelOverride ?: a.label)).score
+        // Not every repository scores its results: score those here, once per result, with the
+        // same normalization (case, accents, transliteration) as the scored ones.
+        val normalizedQuery = stringNormalizer.normalize(query)
+        val totals = map { item ->
+            val score = if (item.score.isUnspecified) {
+                ResultScore.from(
+                    query = normalizedQuery,
+                    primaryFields = listOf(stringNormalizer.normalize(item.labelOverride ?: item.label)),
+                ).score
             } else {
-                a.score.score
+                item.score.score
             }
-
-            val bScore = if (b.score.isUnspecified) {
-                ResultScore.from(query = query, primaryFields = listOf(b.labelOverride ?: b.label)).score
-            } else {
-                b.score.score
-            }
-
-            val aTotal = aScore * 0.6f + aWeight.toFloat() * 0.4f
-            val bTotal = bScore * 0.6f + bWeight.toFloat() * 0.4f
-
-            bTotal.compareTo(aTotal)
+            val weight = weights[item.key] ?: 0.0
+            score * 0.6f + weight.toFloat() * 0.4f
         }
-        return sorted.distinctBy { it.key }.toList()
+        return indices
+            .sortedByDescending { totals[it] }
+            .map { this[it] }
+            .distinctBy { it.key }
     }
 
     /**
