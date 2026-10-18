@@ -36,6 +36,8 @@ Releases of this fork install over each other.
   between folders and apps
 - Folders open as a popup or a bottom sheet, can be pinned to the favorites, and folders whose
   name matches the search are shown in the search results
+- Shortcuts (e.g. web apps) can be shown in the app list and put in folders like apps, and new
+  shortcuts can go to the app list instead of the favorites
 - All folder settings are in Settings > Search > Folders
 
 ### Search and app list
@@ -44,6 +46,9 @@ Releases of this fork install over each other.
 - Tags can be picked from a list in the customize sheet, and are sorted alphabetically
 - "Search on enter" starts the first search action, such as a web search
 - Up to 8 rows of frequently used apps
+- "New apps first" shows recently installed apps at the top of the app list
+- "Fixed tags bar" keeps the favorites' tags at the bottom of the screen while the list scrolls
+- Fonts can be imported (.ttf or .otf) and used in the typography settings
 - "Open file location" for local files, and "Skip .nomedia folders" for file search
 - Website search only looks up queries that look like web addresses
 
@@ -60,6 +65,7 @@ Releases of this fork install over each other.
 
 - MET Norway weather, with free forecasts for the whole world. It's the default provider
 - Spacer widget, and "Clear when playback stops" for the music widget
+- Half-width widgets, shown side by side (toggle in edit mode)
 
 ### Plugins
 
