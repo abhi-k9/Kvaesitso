@@ -34,19 +34,23 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
          *
          * All bands sit above [MatchThreshold], where the previous substring-or-similar scorer put
          * its matches too, so the balance against usage weights in ranking is unchanged.
+         *
+         * Spaces at the start or end of the query and repeated spaces are ignored: keyboards often
+         * add a space after a word that was picked from the suggestions.
          */
         fun from(
             query: String,
             primaryFields: Iterable<String> = emptyList(),
             secondaryFields: Iterable<String> = emptyList(),
         ): ResultScore {
+            val cleanQuery = collapseSpaces(query)
             // An empty query is a prefix of everything.
-            if (query.isEmpty()) return ResultScore(1f)
+            if (cleanQuery.isEmpty()) return ResultScore(1f)
 
-            val maxScore = FzfMatcher.maxScoreFor(query)
-            val bestPrimary = primaryFields.maxOfOrNull { scoreField(query, it, maxScore) } ?: 0f
+            val maxScore = FzfMatcher.maxScoreFor(cleanQuery)
+            val bestPrimary = primaryFields.maxOfOrNull { scoreField(cleanQuery, it, maxScore) } ?: 0f
             val bestSecondary = secondaryFields.maxOfOrNull {
-                scoreField(query, it, maxScore) * SecondaryFieldFactor
+                scoreField(cleanQuery, it, maxScore) * SecondaryFieldFactor
             } ?: 0f
             return ResultScore(maxOf(bestPrimary, bestSecondary))
         }
@@ -78,6 +82,26 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
                 (similarity - MatchThreshold) / (1f - MatchThreshold)
             )
         }
+
+        /**
+         * [query] without spaces at the start and end, and with runs of whitespace replaced by a
+         * single space.
+         */
+        internal fun collapseSpaces(query: String): String {
+            var clean = true
+            for (i in query.indices) {
+                val char = query[i]
+                if (!char.isWhitespace()) continue
+                if (char != ' ' || i == 0 || i == query.lastIndex || query[i + 1].isWhitespace()) {
+                    clean = false
+                    break
+                }
+            }
+            if (clean) return query
+            return query.split(Whitespace).filter { it.isNotEmpty() }.joinToString(" ")
+        }
+
+        private val Whitespace = Regex("\\s+")
 
         private fun lerp(start: Float, end: Float, fraction: Float): Float {
             return start + (end - start) * fraction.coerceIn(0f, 1f)

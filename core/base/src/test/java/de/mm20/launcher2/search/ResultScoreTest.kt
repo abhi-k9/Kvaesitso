@@ -89,6 +89,22 @@ class ResultScoreTest {
     }
 
     @Test
+    fun extraSpacesAreIgnored() {
+        // Keyboards add a space after a word picked from the suggestions
+        Assert.assertEquals(1f, score("maps ", "google maps"), 0f)
+        Assert.assertEquals(1f, score("chrome ", "chrome"), 0f)
+        Assert.assertEquals(1f, score(" chrome", "chrome"), 0f)
+        Assert.assertEquals(score("keep notes", "keep notes"), score("keep  notes", "keep notes"), 0f)
+        Assert.assertEquals(score("goo m", "google maps"), score("goo \tm ", "google maps"), 0f)
+        Assert.assertTrue(matches("go ", "google"))
+    }
+
+    @Test
+    fun onlySpacesAreLikeAnEmptyQuery() {
+        Assert.assertEquals(1f, score("  ", "chrome"), 0f)
+    }
+
+    @Test
     fun noFieldsIsNotAMatch() {
         Assert.assertEquals(ResultScore.Zero, ResultScore.from("chrome"))
     }
