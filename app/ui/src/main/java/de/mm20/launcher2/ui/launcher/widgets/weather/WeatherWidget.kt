@@ -825,7 +825,7 @@ private fun weatherIconById(id: Int): WeatherIcon {
     return when (id) {
         Forecast.CLEAR -> WeatherIcon.Clear
         Forecast.OVERCAST -> WeatherIcon.Overcast
-        Forecast.EXTREME_COLD -> WeatherIcon.ExtremeHeat
+        Forecast.EXTREME_COLD -> WeatherIcon.ExtremeCold
         Forecast.LIGHT_RAIN -> WeatherIcon.LightRain
         Forecast.HAZE -> WeatherIcon.Haze
         Forecast.FOG -> WeatherIcon.Fog
