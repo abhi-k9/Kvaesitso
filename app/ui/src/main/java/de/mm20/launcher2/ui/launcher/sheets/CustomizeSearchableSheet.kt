@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CheckableDropdownMenuItem
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -413,7 +414,7 @@ private fun TagChoice(
     checked: Boolean,
     onCheckedChange: (tag: String, checked: Boolean) -> Unit,
 ) {
-    DropdownMenuItem(
+    CheckableDropdownMenuItem(
         checked = checked,
         onCheckedChange = { onCheckedChange(tag, it) },
         shapes = MenuDefaults.itemShapes(),
