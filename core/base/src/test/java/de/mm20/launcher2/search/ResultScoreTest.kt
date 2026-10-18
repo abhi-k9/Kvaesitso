@@ -45,6 +45,25 @@ class ResultScoreTest {
     }
 
     @Test
+    fun toleratesTyposInOneWordOfTheName() {
+        Assert.assertTrue(matches("photso", "google photos"))
+        Assert.assertTrue(matches("fotos", "google photos"))
+        Assert.assertTrue(matches("gallary", "simple gallery"))
+        Assert.assertTrue(matches("teams", "microsoft teams"))
+        // Still a guess: below a literal match
+        Assert.assertTrue(score("photso", "google photos") < score("phts", "google photos"))
+    }
+
+    @Test
+    fun wordTyposNeedLongerQueries() {
+        Assert.assertFalse(matches("fot", "google photos"))
+        Assert.assertFalse(matches("maps", "google photos"))
+        Assert.assertFalse(matches("music", "google photos"))
+        // Not a typo of "music" just because it starts with it
+        Assert.assertFalse(matches("music maps", "youtube music"))
+    }
+
+    @Test
     fun toleratesDroppedCharacters() {
         Assert.assertTrue(matches("chrme", "chrome"))
         Assert.assertTrue(matches("settngs", "settings"))

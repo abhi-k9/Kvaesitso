@@ -72,7 +72,13 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
             // With only one or two characters, there is nothing to base a correction on.
             if (query.length < MinTypoQueryLength) return 0f
 
-            val similarity = JaroWinkler().similarity(query, term).toFloat()
+            var similarity = jaroWinkler.similarity(query, term).toFloat()
+            // A typo in one word of a longer name, e.g. "photso" for "google photos": compared
+            // with the whole name, the other words make it look too different. Only for queries
+            // of a single word: a longer query would look similar to the word it starts with.
+            if (similarity < MatchThreshold && query.length >= MinWordTypoQueryLength && ' ' !in query) {
+                similarity = maxOf(similarity, bestWordSimilarity(query, term))
+            }
             if (similarity < MatchThreshold) return 0f
             // Similarity is only 1 for identical strings, which the literal path has already
             // caught, so this stays below WeakLiteralBand.
@@ -81,6 +87,28 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
                 WeakLiteralBand,
                 (similarity - MatchThreshold) / (1f - MatchThreshold)
             )
+        }
+
+        /**
+         * The highest similarity of [query] to one of the words of [term], or 0 if [term] has only
+         * one word.
+         */
+        private fun bestWordSimilarity(query: String, term: String): Float {
+            var best = 0f
+            var wordStart = -1
+            for (i in 0..term.length) {
+                val isWordChar = i < term.length && term[i].isLetterOrDigit()
+                if (isWordChar) {
+                    if (wordStart < 0) wordStart = i
+                } else if (wordStart >= 0) {
+                    if (wordStart > 0 || i < term.length) {
+                        val word = term.substring(wordStart, i)
+                        best = maxOf(best, jaroWinkler.similarity(query, word).toFloat())
+                    }
+                    wordStart = -1
+                }
+            }
+            return best
         }
 
         /**
@@ -122,6 +150,14 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
         private const val TypoBand = MatchThreshold
 
         private const val MinTypoQueryLength = 3
+
+        /**
+         * Typos are also looked for in single words of a name from this query length on: there
+         * are more words to compare with, so it takes a little more evidence.
+         */
+        private const val MinWordTypoQueryLength = 4
+
+        private val jaroWinkler = JaroWinkler()
 
         /**
          * How much a match on a secondary field is worth relative to the same match on a primary
