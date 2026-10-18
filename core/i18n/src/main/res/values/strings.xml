@@ -253,8 +253,16 @@
     <string name="action_next">Next</string>
     <!-- Turn something off / disable a functionality of the launcher -->
     <string name="turn_off">Turn off</string>
-    <!-- Toggle in edit mode: the widget takes half the width, two of them are shown side by side -->
+    <!-- Button in edit mode: choose how much of the width a widget takes. Narrower widgets are shown side by side -->
+    <string name="widget_width">Width</string>
+    <!-- Widget width option -->
+    <string name="widget_width_full">Full width</string>
+    <!-- Widget width option -->
     <string name="widget_half_width">Half width</string>
+    <!-- Widget width option -->
+    <string name="widget_width_third">One third</string>
+    <!-- Widget width option -->
+    <string name="widget_width_quarter">One quarter</string>
     <string name="widget_action_remove">Remove</string>
     <string name="widget_action_replace">Replace</string>
     <string name="menu_item_edit_favs">Edit favorites</string>

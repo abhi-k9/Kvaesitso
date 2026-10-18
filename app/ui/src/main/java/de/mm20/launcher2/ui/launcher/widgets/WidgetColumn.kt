@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.unit.Dp
+import de.mm20.launcher2.preferences.ui.WidgetWidth
+import de.mm20.launcher2.preferences.ui.widgetRows
 import de.mm20.launcher2.widgets.Widget
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Column
@@ -77,7 +79,7 @@ fun WidgetColumn(
             val swapThresholds = remember(widgets) {
                 Array(widgets.size) { floatArrayOf(0f, 0f) }
             }
-            val halfWidth by viewModel.halfWidthWidgets.collectAsState(emptySet())
+            val widths by viewModel.widgetWidths.collectAsState(emptyMap())
 
             @Composable
             fun WidgetEntry(i: Int, widget: Widget, topPadding: Dp, modifier: Modifier) {
@@ -118,8 +120,8 @@ fun WidgetColumn(
                         onWidgetUpdate = {
                             viewModel.updateWidget(it)
                         },
-                        halfWidth = widget.id.toString() in halfWidth,
-                        onHalfWidthChange = { viewModel.setHalfWidth(widget, it) },
+                        width = widths[widget.id.toString()] ?: WidgetWidth.Full,
+                        onWidthChange = { viewModel.setWidth(widget, it) },
                         modifier = modifier
                             .onPlaced {
                                 swapThresholds[i][0] = it.positionInParent().y
@@ -158,30 +160,20 @@ fun WidgetColumn(
                 }
             }
 
-            // Outside of edit mode, two half-width widgets in a row are shown side by side. In
-            // edit mode, each widget has a row of its own, so that it can be moved up and down.
-            val rows = remember(widgets, halfWidth, editMode) {
-                val rows = mutableListOf<List<Int>>()
-                var i = 0
-                while (i < widgets.size) {
-                    val isHalf = !editMode && widgets[i].id.toString() in halfWidth
-                    val nextIsHalf = i + 1 < widgets.size &&
-                            widgets[i + 1].id.toString() in halfWidth
-                    if (isHalf && nextIsHalf) {
-                        rows += listOf(i, i + 1)
-                        i += 2
-                    } else {
-                        rows += listOf(i)
-                        i++
-                    }
+            // Outside of edit mode, narrower widgets that follow each other are shown side by
+            // side. In edit mode, each widget has a row of its own, so that it can be moved up and
+            // down.
+            val widgetWidths = remember(widgets, widths, editMode) {
+                widgets.map {
+                    if (editMode) WidgetWidth.Full
+                    else widths[it.id.toString()] ?: WidgetWidth.Full
                 }
-                rows
             }
+            val rows = remember(widgetWidths) { widgetRows(widgetWidths) }
             for ((rowIndex, row) in rows.withIndex()) {
                 val topPadding = if (rowIndex > 0) 8.dp else 0.dp
-                val first = widgets[row[0]]
-                if (row.size == 1 && (editMode || first.id.toString() !in halfWidth)) {
-                    WidgetEntry(row[0], first, topPadding, Modifier.fillMaxWidth())
+                if (row.size == 1 && widgetWidths[row[0]] == WidgetWidth.Full) {
+                    WidgetEntry(row[0], widgets[row[0]], topPadding, Modifier.fillMaxWidth())
                 } else {
                     Row(
                         modifier = Modifier
@@ -190,10 +182,14 @@ fun WidgetColumn(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         for (i in row) {
-                            WidgetEntry(i, widgets[i], 0.dp, Modifier.weight(1f))
+                            WidgetEntry(
+                                i, widgets[i], 0.dp,
+                                Modifier.weight(widgetWidths[i].twelfths.toFloat())
+                            )
                         }
-                        // A half-width widget without another one next to it keeps its width
-                        if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
+                        // Narrower widgets keep their width if the row isn't full
+                        val free = 12 - row.sumOf { widgetWidths[it].twelfths }
+                        if (free > 0) Spacer(modifier = Modifier.weight(free.toFloat()))
                     }
                 }
             }

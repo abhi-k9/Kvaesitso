@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.DraggableState
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,7 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconToggleButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import de.mm20.launcher2.preferences.ui.WidgetWidth
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.component.LauncherCard
 import de.mm20.launcher2.ui.launcher.sheets.ConfigureWidgetSheet
@@ -60,8 +63,8 @@ fun WidgetItem(
     onWidgetAdd: (widget: Widget, offset: Int) -> Unit = { _, _ -> },
     onWidgetUpdate: (widget: Widget) -> Unit = {},
     onWidgetRemove: () -> Unit = {},
-    halfWidth: Boolean = false,
-    onHalfWidthChange: ((Boolean) -> Unit)? = null,
+    width: WidgetWidth = WidgetWidth.Full,
+    onWidthChange: ((WidgetWidth) -> Unit)? = null,
     draggableState: DraggableState = rememberDraggableState {},
     onDragStopped: () -> Unit = {}
 ) {
@@ -114,16 +117,49 @@ fun WidgetItem(
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1
                     )
-                    if (onHalfWidthChange != null) {
-                        // Half-width widgets are shown side by side, outside of edit mode
-                        IconToggleButton(
-                            checked = halfWidth,
-                            onCheckedChange = onHalfWidthChange,
-                        ) {
-                            Icon(
-                                painterResource(R.drawable.splitscreen_right_20px),
-                                contentDescription = stringResource(R.string.widget_half_width),
-                            )
+                    if (onWidthChange != null) {
+                        // Narrower widgets are shown side by side, outside of edit mode
+                        Box {
+                            var showWidths by remember { mutableStateOf(false) }
+                            IconButton(onClick = { showWidths = true }) {
+                                Icon(
+                                    painterResource(R.drawable.splitscreen_right_20px),
+                                    contentDescription = stringResource(R.string.widget_width),
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showWidths,
+                                onDismissRequest = { showWidths = false },
+                            ) {
+                                for (option in WidgetWidth.entries) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                stringResource(
+                                                    when (option) {
+                                                        WidgetWidth.Full -> R.string.widget_width_full
+                                                        WidgetWidth.Half -> R.string.widget_half_width
+                                                        WidgetWidth.Third -> R.string.widget_width_third
+                                                        WidgetWidth.Quarter -> R.string.widget_width_quarter
+                                                    }
+                                                )
+                                            )
+                                        },
+                                        trailingIcon = if (option == width) {
+                                            {
+                                                Icon(
+                                                    painterResource(R.drawable.check_24px),
+                                                    contentDescription = null,
+                                                )
+                                            }
+                                        } else null,
+                                        onClick = {
+                                            showWidths = false
+                                            onWidthChange(option)
+                                        },
+                                    )
+                                }
+                            }
                         }
                     }
                     IconButton(onClick = {

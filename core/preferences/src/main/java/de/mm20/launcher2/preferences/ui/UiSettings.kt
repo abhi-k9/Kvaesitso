@@ -381,18 +381,20 @@ class UiSettings internal constructor(
     }
 
     /**
-     * IDs of the widgets that take half the width, so that two of them are shown side by side
+     * The widths of the widgets that don't take the full width, by widget ID
      */
-    val halfWidthWidgets
+    val widgetWidths
         get() = launcherDataStore.data.map {
-            it.widgetsHalfWidth
+            it.widgetsHalfWidth.associateWith { WidgetWidth.Half } +
+                    it.widgetsWidth.mapValues { (_, fraction) -> WidgetWidth.ofFraction(fraction) }
         }.distinctUntilChanged()
 
-    fun setWidgetHalfWidth(widgetId: String, halfWidth: Boolean) {
+    fun setWidgetWidth(widgetId: String, width: WidgetWidth) {
         launcherDataStore.update {
             it.copy(
-                widgetsHalfWidth = if (halfWidth) it.widgetsHalfWidth + widgetId
-                else it.widgetsHalfWidth - widgetId
+                widgetsHalfWidth = it.widgetsHalfWidth - widgetId,
+                widgetsWidth = if (width == WidgetWidth.Full) it.widgetsWidth - widgetId
+                else it.widgetsWidth + (widgetId to width.fraction),
             )
         }
     }

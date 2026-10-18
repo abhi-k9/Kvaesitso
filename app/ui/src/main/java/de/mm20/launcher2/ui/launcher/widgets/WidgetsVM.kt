@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import de.mm20.launcher2.preferences.ui.UiSettings
+import de.mm20.launcher2.preferences.ui.WidgetWidth
 import de.mm20.launcher2.widgets.Widget
 import de.mm20.launcher2.widgets.WidgetRepository
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,12 +26,12 @@ class WidgetsVM(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
 
     /**
-     * IDs of the widgets that take half the width
+     * The widths of the widgets that don't take the full width, by widget ID
      */
-    val halfWidthWidgets = uiSettings.halfWidthWidgets
+    val widgetWidths = uiSettings.widgetWidths
 
-    fun setHalfWidth(widget: Widget, halfWidth: Boolean) {
-        uiSettings.setWidgetHalfWidth(widget.id.toString(), halfWidth)
+    fun setWidth(widget: Widget, width: WidgetWidth) {
+        uiSettings.setWidgetWidth(widget.id.toString(), width)
     }
 
     val widgets = widgetRepository.get(parent = parentId)

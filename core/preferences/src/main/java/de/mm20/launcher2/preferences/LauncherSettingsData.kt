@@ -169,9 +169,15 @@ data class LauncherSettingsData internal constructor(
 
     val widgetsEditButton: Boolean = true,
     /**
-     * IDs of the widgets that take half the width, so that two of them are shown side by side
+     * IDs of the widgets that took half the width, before narrower widths were added: these are
+     * shown at half width until their width is changed.
      */
     val widgetsHalfWidth: Set<String> = emptySet(),
+    /**
+     * The width of widgets that don't take the full width, by widget ID: 2 for a half, 3 for a
+     * third, 4 for a quarter of it
+     */
+    val widgetsWidth: Map<String, Int> = emptyMap(),
     val widgetScreenCount: Int = 1,
 
     val gesturesSwipeDown: GestureAction = GestureAction.Search,
