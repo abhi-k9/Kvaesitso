@@ -6,8 +6,8 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 val customAttrsModule = module {
-    factory<Backupable>(named<CustomAttributesRepository>()) { CustomAttributesRepositoryImpl(get(), get()) }
-    factory<CustomAttributesRepository> { CustomAttributesRepositoryImpl(get(), get()) }
+    factory<Backupable>(named<CustomAttributesRepository>()) { CustomAttributesRepositoryImpl(get(), get(), get()) }
+    factory<CustomAttributesRepository> { CustomAttributesRepositoryImpl(get(), get(), get()) }
     single<SearchableKeyMigrator> { SearchableKeyMigratorImpl(get(), get()) }
     single<TagFoldersRepository> { TagFoldersRepositoryImpl(get(), get(), get()) }
 }

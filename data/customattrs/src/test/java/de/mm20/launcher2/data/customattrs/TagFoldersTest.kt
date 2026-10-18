@@ -187,7 +187,7 @@ class TagFoldersTest {
     // name must not be a folder
     @Test
     fun foldersOfUnusedTagsAreRemovedWhenTagsChange() {
-        val repository = CustomAttributesRepositoryImpl(database, searchables)
+        val repository = CustomAttributesRepositoryImpl(database, searchables, mockk(relaxed = true))
         repository.setTags(camera, listOf("Photos"))
 
         coVerify(timeout = 5000) { dao.deleteUnusedFolders() }

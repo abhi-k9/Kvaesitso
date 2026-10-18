@@ -247,3 +247,15 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
 
 inline val ResultScore.isUnspecified: Boolean
     get() = score.isNaN()
+
+/**
+ * Whether this score is a match at all, typo matches included
+ */
+val ResultScore.isMatch: Boolean
+    get() = score >= ResultScore.MatchThreshold
+
+/**
+ * Whether all the characters of the query are there, tightly clustered or at the start of words
+ */
+val ResultScore.isStrongMatch: Boolean
+    get() = score >= ResultScore.StrongLiteralBand

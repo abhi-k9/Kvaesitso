@@ -43,6 +43,7 @@ import de.mm20.launcher2.search.StringNormalizer
 import de.mm20.launcher2.search.Website
 import de.mm20.launcher2.search.data.Calculator
 import de.mm20.launcher2.search.data.UnitConverter
+import de.mm20.launcher2.search.isStrongMatch
 import de.mm20.launcher2.search.isUnspecified
 import de.mm20.launcher2.search.rankSearchResults
 import de.mm20.launcher2.searchable.SavableSearchableRepository
@@ -347,9 +348,15 @@ class SearchVM : ViewModel(), KoinComponent {
                         tagFoldersRepository.folderTags.catch { emit(emptySet()) },
                     ) { show, folders ->
                         if (!show) return@combine emptyList<Tag>()
-                        val trimmedQuery = query.trim()
+                        val normalizedQuery = stringNormalizer.normalize(query)
+                        // Like tags: a folder shows many items, so only strong matches count
                         folders
-                            .filter { it.contains(trimmedQuery, ignoreCase = true) }
+                            .filter {
+                                ResultScore.from(
+                                    normalizedQuery,
+                                    primaryFields = listOf(stringNormalizer.normalize(it)),
+                                ).isStrongMatch
+                            }
                             .sortedWith(String.CASE_INSENSITIVE_ORDER)
                             .map { Tag(it) }
                     }

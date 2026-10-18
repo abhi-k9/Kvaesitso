@@ -16,7 +16,7 @@ class AllTagsTest {
     private val database = mockk<AppDatabase> {
         every { customAttrsDao() } returns dao
     }
-    private val repository = CustomAttributesRepositoryImpl(database, mockk(relaxed = true))
+    private val repository = CustomAttributesRepositoryImpl(database, mockk(relaxed = true), mockk(relaxed = true))
 
     // The database sorts capital letters first
     @Test

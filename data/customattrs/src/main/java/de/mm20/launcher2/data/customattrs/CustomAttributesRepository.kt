@@ -7,7 +7,11 @@ import de.mm20.launcher2.database.AppDatabase
 import de.mm20.launcher2.database.entities.CustomAttributeEntity
 import de.mm20.launcher2.searchable.SavableSearchableRepository
 import de.mm20.launcher2.ktx.jsonObjectOf
+import de.mm20.launcher2.search.ResultScore
 import de.mm20.launcher2.search.SavableSearchable
+import de.mm20.launcher2.search.StringNormalizer
+import de.mm20.launcher2.search.isMatch
+import de.mm20.launcher2.search.isStrongMatch
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -24,6 +28,7 @@ import org.json.JSONArray
 import org.json.JSONException
 import java.io.File
 import java.text.Collator
+import java.util.concurrent.ConcurrentHashMap
 
 interface CustomAttributesRepository: Backupable {
 
@@ -51,7 +56,8 @@ interface CustomAttributesRepository: Backupable {
 
 internal class CustomAttributesRepositoryImpl(
     private val appDatabase: AppDatabase,
-    private val searchableRepository: SavableSearchableRepository
+    private val searchableRepository: SavableSearchableRepository,
+    private val stringNormalizer: StringNormalizer,
 ) : CustomAttributesRepository {
     private val scope = CoroutineScope(Job() + Dispatchers.Default)
 
@@ -200,18 +206,55 @@ internal class CustomAttributesRepositoryImpl(
         }
     }
 
+    /**
+     * Custom labels and tags, which are searched
+     */
+    private val labelsAndTags: Flow<List<CustomAttributeEntity>> by lazy {
+        appDatabase.customAttrsDao().getLabelsAndTags()
+            .shareIn(scope, SharingStarted.WhileSubscribed(5000), 1)
+    }
+
+    /**
+     * Normalized labels and tags, by their text and the ID of the normalizer, so that they're not
+     * normalized again on every keystroke.
+     */
+    private val normalizedValues = ConcurrentHashMap<String, Pair<String, String>>()
+
+    private fun normalize(value: String): String {
+        val normalizerId = stringNormalizer.id
+        normalizedValues[value]?.takeIf { it.first == normalizerId }?.let { return it.second }
+        if (normalizedValues.size > 2000) normalizedValues.clear()
+        return stringNormalizer.normalize(value).also {
+            normalizedValues[value] = normalizerId to it
+        }
+    }
+
     override fun search(query: String): Flow<ImmutableList<SavableSearchable>> {
         if (query.isBlank()) {
             return flow {
                 emit(persistentListOf())
             }
         }
-        val dao = appDatabase.customAttrsDao()
-        return dao.search("%$query%").flatMapLatest {
-            searchableRepository.getByKeys(it).map {
-                it.toImmutableList()
+        val normalizedQuery = stringNormalizer.normalize(query)
+        return labelsAndTags
+            .map { attributes ->
+                attributes.filter {
+                    val score = ResultScore.from(
+                        normalizedQuery,
+                        primaryFields = listOf(normalize(it.value)),
+                    )
+                    // A tag matches many items at once, so only a strong match counts there:
+                    // "ga" in "navigation" would show every navigation app.
+                    if (it.type == CustomAttributeType.Tag.value) score.isStrongMatch
+                    else score.isMatch
+                }.map { it.key }.distinct()
             }
-        }
+            .distinctUntilChanged()
+            .flatMapLatest {
+                searchableRepository.getByKeys(it).map {
+                    it.toImmutableList()
+                }
+            }
     }
 
     override suspend fun backup(toDir: File) = withContext(Dispatchers.IO) {
