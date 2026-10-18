@@ -42,6 +42,15 @@ Releases of this fork install over each other.
 
 ### Search and app list
 
+- Search learns from what you open: the result you opened after typing something comes first the
+  next time you type it. Learned results can be reviewed and removed in Settings > Search > "Learn
+  from what you open"
+- Better matching: words in any order ("maps google"), typos in any word of a name ("fotos" for
+  Google Photos), extra spaces from the keyboard are ignored, and custom labels, tags and folder
+  names are matched like names
+- Better ranking: names that contain what you typed come before typo guesses, and for one or two
+  letters, names starting with them come first. Contacts, events and files are ranked by how well
+  they match, regardless of upper or lower case and accents
 - Apps can be found by their package name, files by their full name or extension (e.g. ".pdf")
 - Tags can be picked from a list in the customize sheet, and are sorted alphabetically
 - "Search on enter" starts the first search action, such as a web search
@@ -65,7 +74,10 @@ Releases of this fork install over each other.
 
 - MET Norway weather, with free forecasts for the whole world. It's the default provider
 - Spacer widget, and "Clear when playback stops" for the music widget
-- Half-width widgets, shown side by side (toggle in edit mode)
+- Widgets can take a half, a third or a quarter of the width, and are shown side by side (in edit
+  mode)
+- Current weather on the home clock, and the date of the exchange rates in the unit converter
+  settings (tap to update them)
 
 ### Plugins
 
