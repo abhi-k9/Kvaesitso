@@ -1,6 +1,7 @@
 package de.mm20.launcher2.services.favorites
 
 import de.mm20.launcher2.search.SavableSearchable
+import de.mm20.launcher2.searchable.LearnedSearchRepository
 import de.mm20.launcher2.searchable.PinnedLevel
 import de.mm20.launcher2.searchable.SavableSearchableRepository
 import de.mm20.launcher2.searchable.VisibilityLevel
@@ -8,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 
 class FavoritesService(
     private val searchableRepository: SavableSearchableRepository,
+    private val learnedSearchRepository: LearnedSearchRepository,
 ) {
     fun getFavorites(
         includeTypes: List<String>? = null,
@@ -67,6 +69,7 @@ class FavoritesService(
 
     fun reportLaunch(searchable: SavableSearchable) {
         searchableRepository.touch(searchable)
+        learnedSearchRepository.reportLaunch(searchable.key)
     }
 
     fun updateFavorites(

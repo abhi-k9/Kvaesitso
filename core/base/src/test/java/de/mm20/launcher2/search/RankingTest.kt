@@ -7,12 +7,37 @@ class RankingTest {
 
     private data class Item(val name: String, val weight: Double = 0.0)
 
-    private fun rank(query: String, vararg items: Item): List<String> {
+    private fun rank(
+        query: String,
+        vararg items: Item,
+        learned: Map<String, Int> = emptyMap(),
+    ): List<String> {
         return rankSearchResults(
             items.toList(),
             score = { ResultScore.from(query, primaryFields = listOf(it.name)).score },
             weight = { it.weight },
+            learnedRank = { learned[it.name] },
         ).map { it.name }
+    }
+
+    @Test
+    fun learnedResultsComeFirst() {
+        assertEquals(
+            listOf("music", "discord", "calendar", "camera"),
+            rank(
+                "c",
+                Item("calendar"),
+                Item("camera"),
+                Item("discord"),
+                Item("music"),
+                learned = mapOf("music" to 0, "discord" to 1),
+            ),
+        )
+        // Even a typo guess, if that's what was opened for the query before
+        assertEquals(
+            listOf("notion", "notes"),
+            rank("note", Item("notes"), Item("notion"), learned = mapOf("notion" to 0)),
+        )
     }
 
     @Test

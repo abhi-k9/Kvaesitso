@@ -46,6 +46,7 @@ import de.mm20.launcher2.search.data.UnitConverter
 import de.mm20.launcher2.search.isStrongMatch
 import de.mm20.launcher2.search.isUnspecified
 import de.mm20.launcher2.search.rankSearchResults
+import de.mm20.launcher2.searchable.LearnedSearchRepository
 import de.mm20.launcher2.searchable.SavableSearchableRepository
 import de.mm20.launcher2.searchable.VisibilityLevel
 import de.mm20.launcher2.searchactions.actions.SearchAction
@@ -92,6 +93,7 @@ class SearchVM : ViewModel(), KoinComponent {
     private val tagFoldersRepository: TagFoldersRepository by inject()
     private val folderSettings: FolderSettings by inject()
     private val stringNormalizer: StringNormalizer by inject()
+    private val learnedSearchRepository: LearnedSearchRepository by inject()
 
     val searchQuery = mutableStateOf("")
     val isSearchEmpty = mutableStateOf(true)
@@ -252,6 +254,9 @@ class SearchVM : ViewModel(), KoinComponent {
         } catch (_: CancellationException) {
         }
         hideFavorites.value = query.isNotEmpty()
+
+        // Nothing is learned from items opened from the app list
+        if (query.isEmpty()) learnedSearchRepository.setCurrentSearch("", emptySet())
 
         searchJob = viewModelScope.launch {
             if (query.isEmpty()) {
@@ -430,6 +435,19 @@ class SearchVM : ViewModel(), KoinComponent {
                             searchActionResults.updateItems(results.searchActions!!)
                         }
 
+                        // Results that are opened now are learned for this query
+                        learnedSearchRepository.setCurrentSearch(
+                            query,
+                            buildSet {
+                                for (list in listOf(
+                                    appResults, appShortcutResults, fileResults, contactResults,
+                                    calendarResults, locationResults, articleResults, websiteResults,
+                                )) {
+                                    list.mapTo(this) { it.key }
+                                }
+                            },
+                        )
+
                         if (launchOnEnter.value) {
                             bestMatch.value = when {
                                 launchActionOnEnter.value && searchActionResults.isNotEmpty() -> searchActionResults.first()
@@ -524,6 +542,7 @@ class SearchVM : ViewModel(), KoinComponent {
     private suspend fun <T : SavableSearchable> List<T>.applyRanking(query: String): List<T> {
         if (size <= 1) return this
         val weights = searchableRepository.getWeights(map { it.key }).first()
+        val learned = learnedSearchRepository.getRanks(query)
         // Not every repository scores its results: score those here, once per result, with the
         // same normalization (case, accents, transliteration) as the scored ones.
         val normalizedQuery = stringNormalizer.normalize(query)
@@ -541,6 +560,7 @@ class SearchVM : ViewModel(), KoinComponent {
             indices.toList(),
             score = { scores[it] },
             weight = { weights[this[it].key] ?: 0.0 },
+            learnedRank = { learned[this[it].key] },
         )
             .map { this[it] }
             .distinctBy { it.key }

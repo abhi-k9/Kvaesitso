@@ -143,6 +143,10 @@ data class LauncherSettingsData internal constructor(
     val separateWorkProfile: Boolean = true,
 
     val rankingWeightFactor: WeightFactor = WeightFactor.Default,
+    /**
+     * Whether results that are opened after typing a query come first the next time it is typed
+     */
+    val rankingLearnFromLaunches: Boolean = true,
 
     val hiddenItemsShowButton: Boolean = false,
 
