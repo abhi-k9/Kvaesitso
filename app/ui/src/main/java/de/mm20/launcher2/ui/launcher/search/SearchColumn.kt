@@ -101,6 +101,19 @@ fun SearchColumn(
             else appFolders + apps
         }
     }
+    // Recently installed apps are shown first in the app list too, one row of them
+    val newApps = viewModel.newApps
+    val shownNewApps by remember(columns, showList) {
+        derivedStateOf {
+            if (!viewModel.isSearchEmpty.value) emptyList()
+            else newApps.take(if (showList) 3 else columns)
+        }
+    }
+    val appList by remember {
+        derivedStateOf {
+            if (shownNewApps.isEmpty()) appsWithFolders else shownNewApps + appsWithFolders
+        }
+    }
     val separateFolders by viewModel.separateFolders.collectAsState(false)
     // If set, folders before or after the apps are shown apart from them: this is where the
     // second of them starts in the app list
@@ -113,6 +126,16 @@ fun SearchColumn(
                 FolderPosition.Last -> apps.size
                 FolderPosition.Mixed -> -1
             }
+        }
+    }
+    // The new apps are apart from the rest, and so are the folders, if set
+    val appListSeparateAt by remember {
+        derivedStateOf {
+            val offset = shownNewApps.size
+            listOfNotNull(
+                offset.takeIf { it > 0 },
+                foldersSeparateFrom.takeIf { it > 0 }?.plus(offset),
+            )
         }
     }
     val workApps = viewModel.workAppResults
@@ -248,11 +271,11 @@ fun SearchColumn(
                         apps = when (selectedProfile?.type) {
                             Profile.Type.Private -> privateApps
                             Profile.Type.Work -> workApps
-                            else -> appsWithFolders
+                            else -> appList
                         },
                         separateAt = when (selectedProfile?.type) {
                             Profile.Type.Private, Profile.Type.Work -> emptyList()
-                            else -> listOf(foldersSeparateFrom)
+                            else -> appListSeparateAt
                         },
                         highlightedItem = bestMatch as? Application,
                         profiles = visibleProfiles,
@@ -274,8 +297,8 @@ fun SearchColumn(
                     )
                 } else if (!isSearchEmpty || allAppsEnabled) {
                     AppResults(
-                        apps = appsWithFolders,
-                        separateAt = listOf(foldersSeparateFrom),
+                        apps = appList,
+                        separateAt = appListSeparateAt,
                         highlightedItem = bestMatch as? Application,
                         columns = columns,
                         reverse = reverse,

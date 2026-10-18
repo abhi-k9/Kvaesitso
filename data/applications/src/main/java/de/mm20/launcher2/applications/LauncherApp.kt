@@ -76,6 +76,9 @@ internal data class LauncherApp(
     override val user: UserHandle
         get() = launcherActivityInfo.user
 
+    override val installTime: Long
+        get() = launcherActivityInfo.firstInstallTime
+
     private val isMainProfile = launcherActivityInfo.user == Process.myUserHandle()
 
     private val isSystemApp: Boolean =

@@ -91,4 +91,16 @@ class SearchUiSettings internal constructor(
         }
     }
 
+    /**
+     * Apps installed in the last this many days are shown first in the app list too; 0 for none
+     */
+    val newAppsDays
+        get() = launcherDataStore.data.map { it.appsNewAppsDays }.distinctUntilChanged()
+
+    fun setNewAppsDays(days: Int) {
+        launcherDataStore.update {
+            it.copy(appsNewAppsDays = days.coerceAtLeast(0))
+        }
+    }
+
 }

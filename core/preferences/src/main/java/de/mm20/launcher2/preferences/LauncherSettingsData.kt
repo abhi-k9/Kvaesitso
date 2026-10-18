@@ -77,6 +77,10 @@ data class LauncherSettingsData internal constructor(
 
     val searchAllApps: Boolean = true,
     val appsShowDetails: Boolean = true,
+    /**
+     * Apps installed in the last this many days are shown first in the app list too; 0 for none
+     */
+    val appsNewAppsDays: Int = 0,
 
     val fileSearchProviders: Set<String> = setOf("local"),
     val fileSearchSkipNoMedia: Boolean = false,

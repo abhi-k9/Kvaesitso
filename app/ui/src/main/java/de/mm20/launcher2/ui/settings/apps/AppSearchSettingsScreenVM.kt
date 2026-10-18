@@ -28,6 +28,13 @@ class AppSearchSettingsScreenVM: ViewModel(), KoinComponent {
         searchUiSettings.setShowAppDetails(hideAppDetails)
     }
 
+    val newAppsDays = searchUiSettings.newAppsDays
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+
+    fun setNewAppsDays(days: Int) {
+        searchUiSettings.setNewAppsDays(days)
+    }
+
     val showList = uiSettings.gridSettings.map { it.showList }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
 

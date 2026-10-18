@@ -62,6 +62,8 @@ import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
+private const val DayMillis = 24 * 60 * 60 * 1000L
+
 class SearchVM : ViewModel(), KoinComponent {
 
     private val favoritesService: FavoritesService by inject()
@@ -123,6 +125,10 @@ class SearchVM : ViewModel(), KoinComponent {
      * Whether [appFolders] are shown apart from the apps, if they're before or after them
      */
     val separateFolders = folderSettings.separate
+    /**
+     * Recently installed apps, newest first, that are shown first in the app list too
+     */
+    val newApps = mutableStateListOf<Application>()
     val workAppResults = mutableStateListOf<Application>()
     val privateSpaceAppResults = mutableStateListOf<Application>()
 
@@ -263,7 +269,11 @@ class SearchVM : ViewModel(), KoinComponent {
                     ) { (results, hiddenKeys), folders ->
                         Triple(results, hiddenKeys, folders)
                     }
-                    .collectLatest { (results, hiddenKeys, foldersAndInAppList) ->
+                    .combine(searchUiSettings.newAppsDays) { results, newAppsDays ->
+                        results to newAppsDays
+                    }
+                    .collectLatest { (resultsAndFolders, newAppsDays) ->
+                        val (results, hiddenKeys, foldersAndInAppList) = resultsAndFolders
                         val (folders, inAppList) = foldersAndInAppList
                         val hiddenItems = mutableListOf<SavableSearchable>()
 
@@ -292,6 +302,13 @@ class SearchVM : ViewModel(), KoinComponent {
                         // Apps in a folder are only shown in the folder, unless they're set to be
                         // shown in the app list too
                         val grouping = apps.groupIntoFolders(folders, inAppList)
+
+                        val newSince = System.currentTimeMillis() - newAppsDays * DayMillis
+                        newApps.updateItems(
+                            if (newAppsDays <= 0) emptyList()
+                            else apps.filter { it.installTime >= newSince }
+                                .sortedByDescending { it.installTime }
+                        )
 
                         searchActionResults.clear()
                         appResults.updateItems(grouping.ungrouped)

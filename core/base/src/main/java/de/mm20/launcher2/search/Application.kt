@@ -27,6 +27,12 @@ interface Application: SavableSearchable {
     val user: UserHandle
     val versionName: String?
 
+    /**
+     * When the app was installed, in milliseconds since the epoch; 0 if unknown
+     */
+    val installTime: Long
+        get() = 0L
+
     override fun getPlaceholderIcon(context: Context): StaticLauncherIcon {
         return StaticLauncherIcon(
             foregroundLayer = TintedIconLayer(

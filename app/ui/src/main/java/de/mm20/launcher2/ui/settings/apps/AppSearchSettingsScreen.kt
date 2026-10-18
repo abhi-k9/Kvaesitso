@@ -3,11 +3,13 @@ package de.mm20.launcher2.ui.settings.apps
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 import de.mm20.launcher2.ui.R
+import de.mm20.launcher2.ui.component.preferences.ListPreference
 import de.mm20.launcher2.ui.component.preferences.Preference
 import de.mm20.launcher2.ui.component.preferences.PreferenceCategory
 import de.mm20.launcher2.ui.component.preferences.PreferenceScreen
@@ -29,6 +31,7 @@ fun AppSearchSettingsScreen() {
     val showAppDetails by viewModel.showAppDetails.collectAsStateWithLifecycle()
     val showList by viewModel.showList.collectAsStateWithLifecycle()
     val showListIcons by viewModel.showListIcons.collectAsStateWithLifecycle()
+    val newAppsDays by viewModel.newAppsDays.collectAsStateWithLifecycle()
     val backStack = LocalBackStack.current
 
     PreferenceScreen(
@@ -75,6 +78,26 @@ fun AppSearchSettingsScreen() {
                         }
                     )
                 }
+                ListPreference(
+                    title = stringResource(R.string.preference_new_apps),
+                    summary = if (newAppsDays == 0) {
+                        stringResource(R.string.preference_new_apps_off)
+                    } else {
+                        pluralStringResource(
+                            R.plurals.preference_new_apps_summary,
+                            newAppsDays ?: 0,
+                            newAppsDays ?: 0,
+                        )
+                    },
+                    items = listOf(0, 1, 3, 7, 14, 30).map { days ->
+                        if (days == 0) stringResource(R.string.preference_new_apps_off) to days
+                        else pluralStringResource(R.plurals.preference_new_apps_days, days, days) to days
+                    },
+                    value = newAppsDays,
+                    onValueChanged = {
+                        if (it != null) viewModel.setNewAppsDays(it)
+                    },
+                )
                 // The grid is set up with the icons, it's shared with the favorites
                 Preference(
                     title = stringResource(R.string.preference_category_grid),
