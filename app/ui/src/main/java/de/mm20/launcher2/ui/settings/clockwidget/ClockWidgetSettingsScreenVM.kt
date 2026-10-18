@@ -101,6 +101,10 @@ class ClockWidgetSettingsScreenVM : ViewModel(), KoinComponent {
         settings.setAlarmPart(alarmPart)
     }
 
+    fun setWeatherPart(weatherPart: Boolean) {
+        settings.setWeatherPart(weatherPart)
+    }
+
     val alignment = settings.alignment
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
 

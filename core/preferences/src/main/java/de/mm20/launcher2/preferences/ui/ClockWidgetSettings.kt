@@ -16,6 +16,7 @@ data class ClockWidgetParts(
     val music: Boolean = false,
     val battery: BatteryStatusVisibility = BatteryStatusVisibility.Hide,
     val alarm: Boolean = false,
+    val weather: Boolean = false,
 )
 
 class ClockWidgetSettings internal constructor(
@@ -37,6 +38,7 @@ class ClockWidgetSettings internal constructor(
                 music = it.clockWidgetMusicPart,
                 battery = it.clockWidgetBatteryPart,
                 alarm = it.clockWidgetAlarmPart,
+                weather = it.clockWidgetWeatherPart,
             )
         }.distinctUntilChanged()
 
@@ -61,6 +63,12 @@ class ClockWidgetSettings internal constructor(
     fun setAlarmPart(alarmPart: Boolean) {
         launcherDataStore.update {
             it.copy(clockWidgetAlarmPart = alarmPart)
+        }
+    }
+
+    fun setWeatherPart(weatherPart: Boolean) {
+        launcherDataStore.update {
+            it.copy(clockWidgetWeatherPart = weatherPart)
         }
     }
 

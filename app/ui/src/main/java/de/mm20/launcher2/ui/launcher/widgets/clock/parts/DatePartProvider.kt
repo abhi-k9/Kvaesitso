@@ -5,6 +5,7 @@ import android.icu.text.DateFormat
 import android.icu.util.ULocale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -24,13 +25,37 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 
-class DatePartProvider : PartProvider {
+class DatePartProvider(
+    private val showDate: Boolean = true,
+    private val showWeather: Boolean = false,
+) : PartProvider {
     override fun getRanking(context: Context): Flow<Int> = flow {
         emit(1)
     }
 
     @Composable
     override fun Component(compactLayout: Boolean) {
+        if (!showWeather) {
+            DateButton(compactLayout)
+        } else if (!compactLayout) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                if (showDate) DateButton(compactLayout)
+                ClockWeather(compactLayout)
+            }
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (showDate) DateButton(compactLayout)
+                ClockWeather(compactLayout)
+            }
+        }
+    }
+
+    @Composable
+    private fun DateButton(compactLayout: Boolean) {
         // The date only changes once a day, so it's only formatted again then, not every second
         val timeState = LocalTimeState.current
         val day by remember(timeState) {

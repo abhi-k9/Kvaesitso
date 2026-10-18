@@ -821,7 +821,7 @@ private fun windDirectionAsWord(resources: Resources, direction: Double): String
     )
 }
 
-private fun weatherIconById(id: Int): WeatherIcon {
+internal fun weatherIconById(id: Int): WeatherIcon {
     return when (id) {
         Forecast.CLEAR -> WeatherIcon.Clear
         Forecast.OVERCAST -> WeatherIcon.Overcast
