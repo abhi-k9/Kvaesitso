@@ -1195,6 +1195,8 @@
     <string name="font_category_custom">Your fonts</string>
     <string name="font_import">Import font…</string>
     <string name="font_import_summary">Use a font file (.ttf or .otf)</string>
+    <!-- %1$s is the name of an imported font -->
+    <string name="font_delete_message">Delete the font %1$s? Text that uses it is shown in the default font then.</string>
     <string name="font_import_failed">This file isn\'t a font that can be used</string>
     <string name="font_category_generic">Generic</string>
     <string name="preference_screen_locale">Language and region</string>

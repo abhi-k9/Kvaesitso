@@ -156,6 +156,13 @@ class FontManager(
         }
     }
 
+    /**
+     * Deletes an imported font. Text styles that use it fall back to the default font.
+     */
+    suspend fun deleteFont(font: FontFamily.Custom) = withContext(Dispatchers.IO) {
+        getCustomFontFile(font)?.delete()
+    }
+
     companion object {
         /**
          * Where imported fonts are stored, in the app's files directory

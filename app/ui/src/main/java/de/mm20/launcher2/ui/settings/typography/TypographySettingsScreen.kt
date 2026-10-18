@@ -828,7 +828,31 @@ private fun FontPreference(
         expanded = showDialog,
         onDismissRequest = { showDialog = false },
     ) {
-        val fonts = remember { fontManager.getInstalledFonts() }
+        var fonts by remember { mutableStateOf(fontManager.getInstalledFonts()) }
+        var deleteFont by remember { mutableStateOf<ThemeFontFamily.Custom?>(null) }
+        val deleteScope = rememberCoroutineScope()
+        deleteFont?.let { font ->
+            AlertDialog(
+                onDismissRequest = { deleteFont = null },
+                text = { Text(stringResource(R.string.font_delete_message, font.name)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        deleteFont = null
+                        deleteScope.launch {
+                            fontManager.deleteFont(font)
+                            fonts = fontManager.getInstalledFonts()
+                        }
+                    }) {
+                        Text(stringResource(R.string.menu_delete))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { deleteFont = null }) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                },
+            )
+        }
         LazyColumn(
             contentPadding = PaddingValues(
                 start = 16.dp,
@@ -902,6 +926,7 @@ private fun FontPreference(
                         onValueChange(it)
                         showDialog = false
                     },
+                    onDelete = { deleteFont = it as? ThemeFontFamily.Custom },
                 ) {
                     Preference(
                         title = stringResource(R.string.font_import),
@@ -1000,6 +1025,7 @@ private fun FontPickerCategory(
     previewText: String, categoryName: String?,
     fonts: List<ThemeFontFamily?>,
     onFontClick: (ThemeFontFamily?) -> Unit = {},
+    onDelete: ((ThemeFontFamily?) -> Unit)? = null,
     after: @Composable () -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -1028,6 +1054,16 @@ private fun FontPickerCategory(
                 summary = getFontSummary(context, font)?.let { { Text(it, fontFamily = f) } },
                 onClick = {
                     onFontClick(font)
+                },
+                controls = onDelete?.let { delete ->
+                    {
+                        IconButton(onClick = { delete(font) }) {
+                            Icon(
+                                painterResource(R.drawable.delete_24px),
+                                stringResource(R.string.menu_delete),
+                            )
+                        }
+                    }
                 },
             )
         }
