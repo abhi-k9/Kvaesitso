@@ -123,14 +123,79 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
             if (similarity < MatchThreshold && query.length >= MinWordTypoQueryLength && ' ' !in query) {
                 similarity = maxOf(similarity, bestWordSimilarity(query, term))
             }
-            if (similarity < MatchThreshold) return 0f
             // Similarity is only 1 for identical strings, which the literal path has already
             // caught, so this stays below WeakLiteralBand.
-            return lerp(
-                TypoBand,
-                WeakLiteralBand,
-                (similarity - MatchThreshold) / (1f - MatchThreshold)
-            )
+            val similar = if (similarity >= MatchThreshold) {
+                lerp(
+                    TypoBand,
+                    WeakLiteralBand,
+                    (similarity - MatchThreshold) / (1f - MatchThreshold)
+                )
+            } else 0f
+            // A typo in a word that is only partly typed, e.g. "swtti" for "settings": compared
+            // with the whole word, the missing rest makes it look too different.
+            val partial = if (' ' !in query) partlyTypedWordScore(query, term) else 0f
+            return maxOf(similar, partial)
+        }
+
+        /**
+         * A typo score if [query] is only a few edits away from the beginning of a word of [term]
+         * (one edit from [OneTypoQueryLength] characters on, two from [TwoTyposQueryLength]), or 0.
+         */
+        private fun partlyTypedWordScore(query: String, term: String): Float {
+            val maxEdits = when {
+                query.length >= TwoTyposQueryLength -> 2
+                query.length >= OneTypoQueryLength -> 1
+                else -> return 0f
+            }
+            var fewest = maxEdits + 1
+            for (start in term.indices) {
+                if (!term[start].isLetterOrDigit()) continue
+                if (start > 0 && term[start - 1].isLetterOrDigit()) continue
+                fewest = minOf(fewest, prefixEditDistance(query, term, start, maxEdits))
+                if (fewest <= 1) break
+            }
+            if (fewest > maxEdits) return 0f
+            return lerp(TypoBand, WeakLiteralBand, 1f - fewest.toFloat() / (maxEdits + 1))
+        }
+
+        /**
+         * The fewest edits (inserting, removing or replacing a character, or swapping two
+         * neighbouring characters) that turn [query] into the beginning of [term] from [start] on,
+         * or more than [maxEdits] if that takes more than [maxEdits] edits.
+         */
+        internal fun prefixEditDistance(query: String, term: String, start: Int, maxEdits: Int): Int {
+            val m = minOf(term.length - start, query.length + maxEdits)
+            // Rows of the edit distance matrix: for the first i - 2, i - 1 and i characters of
+            // the query, against the first j characters of the term from start on
+            var older = IntArray(m + 1)
+            var previous = IntArray(m + 1) { it }
+            var current = IntArray(m + 1)
+            for (i in 1..query.length) {
+                current[0] = i
+                var rowMin = i
+                for (j in 1..m) {
+                    val q = query[i - 1]
+                    val t = term[start + j - 1]
+                    var edits = minOf(
+                        previous[j] + 1,
+                        current[j - 1] + 1,
+                        previous[j - 1] + if (q == t) 0 else 1,
+                    )
+                    if (i > 1 && j > 1 && q == term[start + j - 2] && query[i - 2] == t) {
+                        edits = minOf(edits, older[j - 2] + 1)
+                    }
+                    current[j] = edits
+                    if (edits < rowMin) rowMin = edits
+                }
+                if (rowMin > maxEdits) return maxEdits + 1
+                val recycled = older
+                older = previous
+                previous = current
+                current = recycled
+            }
+            // Any beginning of the term will do: the rest of it hasn't been typed yet
+            return previous.min()
         }
 
         /**
@@ -220,6 +285,16 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
          * are more words to compare with, so it takes a little more evidence.
          */
         private const val MinWordTypoQueryLength = 4
+
+        /**
+         * From this query length on, one typo is tolerated in a word that is only partly typed
+         */
+        private const val OneTypoQueryLength = 5
+
+        /**
+         * From this query length on, two typos are tolerated in a word that is only partly typed
+         */
+        private const val TwoTyposQueryLength = 9
 
         private val jaroWinkler = JaroWinkler()
 

@@ -55,6 +55,40 @@ class ResultScoreTest {
     }
 
     @Test
+    fun toleratesTyposInPartlyTypedWords() {
+        Assert.assertTrue(matches("swtti", "settings"))
+        Assert.assertTrue(matches("stetin", "settings"))
+        Assert.assertTrue(matches("telwgr", "telegram"))
+        Assert.assertTrue(matches("ohoto", "google photos"))
+        Assert.assertTrue(matches("calxul", "calculator"))
+        // Two typos from nine characters on
+        Assert.assertTrue(matches("calxulatpr", "calculator"))
+        // Still a guess: below a literal match
+        Assert.assertTrue(score("swtti", "settings") < score("sett", "settings"))
+    }
+
+    @Test
+    fun partlyTypedWordsNeedEnoughCharactersForATypo() {
+        Assert.assertFalse(matches("swtt", "settings"))
+        Assert.assertFalse(matches("calxulatpr", "calendar"))
+        Assert.assertFalse(matches("swxti", "settings"))
+    }
+
+    @Test
+    fun prefixEditDistance() {
+        Assert.assertEquals(0, ResultScore.prefixEditDistance("sett", "settings", 0, 1))
+        Assert.assertEquals(1, ResultScore.prefixEditDistance("swtti", "settings", 0, 1))
+        // Swapped neighbours count as one edit
+        Assert.assertEquals(1, ResultScore.prefixEditDistance("stetin", "settings", 0, 1))
+        // From a later word
+        Assert.assertEquals(1, ResultScore.prefixEditDistance("ohoto", "google photos", 7, 1))
+        // Too far
+        Assert.assertEquals(2, ResultScore.prefixEditDistance("swxti", "settings", 0, 1))
+        // Longer than the term
+        Assert.assertEquals(1, ResultScore.prefixEditDistance("settingx", "setting", 0, 1))
+    }
+
+    @Test
     fun wordTyposNeedLongerQueries() {
         Assert.assertFalse(matches("fot", "google photos"))
         Assert.assertFalse(matches("maps", "google photos"))
