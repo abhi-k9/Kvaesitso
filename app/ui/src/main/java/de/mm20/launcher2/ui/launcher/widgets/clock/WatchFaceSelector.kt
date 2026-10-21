@@ -1,11 +1,9 @@
 package de.mm20.launcher2.ui.launcher.widgets.clock
 
 import android.app.Activity
-import android.app.ActivityOptions
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.ContextWrapper
-import android.os.Build
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.scaleIn
@@ -65,6 +63,7 @@ import androidx.compose.ui.unit.coerceAtMost
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isUnspecified
 import androidx.compose.ui.zIndex
+import de.mm20.launcher2.ktx.backgroundActivityStartOptions
 import de.mm20.launcher2.ktx.isAtLeastApiLevel
 import de.mm20.launcher2.preferences.ClockWidgetColors
 import de.mm20.launcher2.preferences.ClockWidgetStyle
@@ -266,15 +265,7 @@ fun WatchFaceSelector(
                                                             ?: return@DropdownMenuItem,
                                                         0,
                                                         0,
-                                                        if (Build.VERSION.SDK_INT < 34) {
-                                                            null
-                                                        } else {
-                                                            ActivityOptions.makeBasic()
-                                                                .setPendingIntentBackgroundActivityStartMode(
-                                                                    ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
-                                                                )
-                                                                .toBundle()
-                                                        }
+                                                        backgroundActivityStartOptions()
                                                     )
                                                 },
                                                 shape = if (!BuildConfig.DEBUG) {

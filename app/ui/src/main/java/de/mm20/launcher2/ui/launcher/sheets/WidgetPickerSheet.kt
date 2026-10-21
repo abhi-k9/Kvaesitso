@@ -1,7 +1,6 @@
 package de.mm20.launcher2.ui.launcher.sheets
 
 import android.app.Activity
-import android.app.ActivityOptions
 import android.appwidget.AppWidgetHost
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
@@ -9,7 +8,6 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.os.Process
 import android.util.Log
@@ -62,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import de.mm20.launcher2.ktx.backgroundActivityStartOptions
 import de.mm20.launcher2.ktx.isAtLeastApiLevel
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.component.DismissableBottomSheet
@@ -180,16 +179,7 @@ class BindAndConfigureAppWidgetActivity : Activity() {
         appWidgetId?.let { outState.putInt(StateAppWidgetId, it) }
     }
 
-    private fun getConfigurationOptions(): Bundle? {
-        if (Build.VERSION.SDK_INT < 34) {
-            return null
-        }
-        return ActivityOptions.makeBasic()
-            .setPendingIntentBackgroundActivityStartMode(
-                ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
-            )
-            .toBundle()
-    }
+    private fun getConfigurationOptions(): Bundle? = backgroundActivityStartOptions()
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
