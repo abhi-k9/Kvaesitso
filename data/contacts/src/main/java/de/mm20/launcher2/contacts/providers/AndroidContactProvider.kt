@@ -94,6 +94,35 @@ internal class AndroidContactProvider(
     }
 
     /**
+     * The account type (and data set) of the given raw contacts, which is the package name of the
+     * app for contacts of apps like messengers
+     */
+    private fun getAccountTypes(rawIds: Set<Long>): Map<Long, String> {
+        if (rawIds.isEmpty()) return emptyMap()
+        val accountTypes = mutableMapOf<Long, String>()
+        try {
+            context.contentResolver.query(
+                ContactsContract.RawContacts.CONTENT_URI,
+                arrayOf(
+                    ContactsContract.RawContacts._ID,
+                    ContactsContract.RawContacts.ACCOUNT_TYPE_AND_DATA_SET,
+                ),
+                "${ContactsContract.RawContacts._ID} IN (${rawIds.joinToString(", ")})",
+                null,
+                null
+            )?.use {
+                while (it.moveToNext()) {
+                    val type = it.getStringOrNull(1) ?: continue
+                    accountTypes[it.getLong(0)] = type
+                }
+            }
+        } catch (e: Exception) {
+            Log.w("AndroidContactProvider", "Couldn't read the account types of contacts", e)
+        }
+        return accountTypes
+    }
+
+    /**
      * Combine the given raw contact ids into a single contact.
      */
     private suspend fun getWithRawIds(id: Long, rawIds: Set<Long>): Contact? =
@@ -126,8 +155,10 @@ internal class AndroidContactProvider(
                 dataCursor.getColumnIndex(ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME)
             val familyNameColumn =
                 dataCursor.getColumnIndex(ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME)
-            val accountTypeColumn =
-                dataCursor.getColumnIndex(ContactsContract.Data.ACCOUNT_TYPE_AND_DATA_SET)
+            // Android 17 removed the account columns from the data view (for apps targeting it),
+            // they're read from the raw contacts instead
+            val accountTypes = getAccountTypes(rawIds)
+            val rawContactIdColumn = dataCursor.getColumnIndex(ContactsContract.Data.RAW_CONTACT_ID)
 
             val data3Column = dataCursor.getColumnIndex(ContactsContract.Data.DATA3)
             val idColumn = dataCursor.getColumnIndex(ContactsContract.Data._ID)
@@ -180,7 +211,8 @@ internal class AndroidContactProvider(
                     else -> {
                         customActions += CustomContactAction(
                             label = dataCursor.getStringOrNull(data3Column) ?: continue,
-                            packageName = dataCursor.getStringOrNull(accountTypeColumn) ?: continue,
+                            packageName = dataCursor.getLongOrNull(rawContactIdColumn)
+                                ?.let { accountTypes[it] } ?: continue,
                             mimeType = dataCursor.getStringOrNull(mimeTypeColumn) ?: continue,
                             uri = ContentUris.withAppendedId(
                                 ContactsContract.Data.CONTENT_URI,
