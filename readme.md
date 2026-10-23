@@ -10,6 +10,8 @@ Norway weather, performance work and many bug fixes. It follows upstream and mer
 
 ## Installation
 
+Kvaesitso runs on Android 8.0 or higher.
+
 Download the APK of the [latest release](https://github.com/abhi-k9/Kvaesitso/releases/latest)
 and install it. Releases are built by GitHub Actions from this repository. Each release says what
 changed; they aren't tested on a device before they're published.
