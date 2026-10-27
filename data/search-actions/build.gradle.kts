@@ -38,6 +38,9 @@ android {
         }
     }
     namespace = "de.mm20.launcher2.searchactions"
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 dependencies {
@@ -56,4 +59,22 @@ dependencies {
     implementation(project(":core:preferences"))
     implementation(project(":core:crashreporter"))
 
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+}
+
+// Resolve Robolectric's Android runtime with Gradle, including proxy and cache support.
+val robolectricAndroidAll by configurations.creating
+dependencies {
+    robolectricAndroidAll(libs.robolectric.android.all)
+}
+val robolectricDependencyDir = layout.buildDirectory.dir("robolectric")
+val copyRobolectricAndroidAll by tasks.registering(Sync::class) {
+    from(robolectricAndroidAll)
+    into(robolectricDependencyDir)
+}
+tasks.withType<Test>().configureEach {
+    dependsOn(copyRobolectricAndroidAll)
+    systemProperty("robolectric.offline", "true")
+    systemProperty("robolectric.dependency.dir", robolectricDependencyDir.get().asFile.absolutePath)
 }
