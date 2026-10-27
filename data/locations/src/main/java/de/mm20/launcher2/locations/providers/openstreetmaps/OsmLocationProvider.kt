@@ -1,7 +1,6 @@
 package de.mm20.launcher2.locations.providers.openstreetmaps
 
 import android.content.Context
-import android.util.Log
 import de.mm20.launcher2.crashreporter.CrashReporter
 import de.mm20.launcher2.locations.providers.AndroidLocation
 import de.mm20.launcher2.locations.providers.LocationProvider

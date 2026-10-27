@@ -1,6 +1,5 @@
 package de.mm20.launcher2.locations.providers.openstreetmaps
 
-import android.util.Log
 import de.mm20.launcher2.serialization.Json
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -138,7 +137,6 @@ internal class OverpassApi(
         baseUrl: String,
         query: OverpassQuery,
     ): OverpassResponse {
-        Log.d("MM20", query.toQueryString())
         val response = httpClient.post {
             url {
                 takeFrom(baseUrl)
