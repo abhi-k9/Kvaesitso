@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -259,7 +258,7 @@ fun SearchColumn(
             }
         } else {
             Box(modifier = Modifier.fillMaxSize()) {
-                LazyColumn(
+                SearchResultList(
                     state = state,
                     userScrollEnabled = userScrollEnabled,
                     // Room for the tags bar, if it's apart from the list

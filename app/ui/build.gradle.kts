@@ -68,10 +68,17 @@ android {
         abortOnError = false
     }
     namespace = "de.mm20.launcher2.ui"
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 
 dependencies {
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation(libs.bundles.kotlin)
 
     implementation(libs.androidx.compose.runtime)
@@ -154,4 +161,20 @@ dependencies {
     implementation(project(":services:favorites"))
     implementation(project(":services:feed"))
     implementation(project(":core:devicepose"))
+}
+
+// Resolve the Android framework through Gradle so Robolectric works with the proxy/cache.
+val robolectricAndroidAll by configurations.creating
+dependencies {
+    robolectricAndroidAll(libs.robolectric.android.all)
+}
+val robolectricDependencyDir = layout.buildDirectory.dir("robolectric")
+val copyRobolectricAndroidAll by tasks.registering(Sync::class) {
+    from(robolectricAndroidAll)
+    into(robolectricDependencyDir)
+}
+tasks.withType<Test>().configureEach {
+    dependsOn(copyRobolectricAndroidAll)
+    systemProperty("robolectric.offline", "true")
+    systemProperty("robolectric.dependency.dir", robolectricDependencyDir.get().asFile.absolutePath)
 }
