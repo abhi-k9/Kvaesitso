@@ -5,6 +5,7 @@
 # findings, with or without a release (lint never stops a release).
 # To save Actions time, release in one run (with lint if needed) rather than checking the build
 # in a separate run first: a release is only published if the build and the tests pass.
+# Pushing a v*-fork.* tag publishes that tag; manual runs still support build-only and lint.
 # This file only exists in the fork, so it never conflicts with upstream changes.
 #
 # Required repository secrets (same names as the upstream nightly workflow):
@@ -15,6 +16,9 @@
 name: Release APK (fork)
 
 on:
+  push:
+    tags:
+      - 'v*-fork.*'
   workflow_dispatch:
     inputs:
       tag:
@@ -53,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      TAG: ${{ inputs.tag }}
+      TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
       KEYSTORE: ${{ secrets.KEYSTORE }}
       KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
       SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
