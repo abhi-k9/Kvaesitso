@@ -4,13 +4,19 @@ import de.mm20.launcher2.database.AppDatabase
 import de.mm20.launcher2.database.CustomAttrsDao
 import de.mm20.launcher2.database.entities.CustomAttributeEntity
 import de.mm20.launcher2.search.SavableSearchable
+import de.mm20.launcher2.search.KeyboardLayout
 import de.mm20.launcher2.search.StringNormalizer
 import de.mm20.launcher2.searchable.SavableSearchableRepository
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -72,5 +78,27 @@ class CustomAttributeSearchTest {
     @Test
     fun blankQueriesFindNothing() {
         assertEquals(emptyList<String>(), search(" "))
+    }
+
+    @Test
+    fun changingKeyboardLayoutRescoresAnActiveSearchWithCachedLabels() = runBlocking {
+        every { dao.getLabelsAndTags() } returns flowOf(
+            listOf(CustomAttributeEntity("app://zebra", "label", "Zebra"))
+        )
+        val keyboardLayouts = MutableStateFlow(KeyboardLayout.Qwerty)
+        val repository = CustomAttributesRepositoryImpl(database, searchables, normalizer, keyboardLayouts)
+        val emissions = mutableListOf<List<String>>()
+        // U is adjacent to Z in QWERTZ, but not QWERTY. No label/database update or new query
+        // should be required for a changed keyboard preference to affect this search.
+        withTimeout(5_000) {
+            repository.search("uebr").onEach { items ->
+                emissions += items.map { it.key }
+                when (emissions.size) {
+                    1 -> keyboardLayouts.value = KeyboardLayout.Qwertz
+                    2 -> keyboardLayouts.value = KeyboardLayout.Disabled
+                }
+            }.take(3).collect()
+        }
+        assertEquals(listOf(emptyList(), listOf("app://zebra"), emptyList()), emissions)
     }
 }

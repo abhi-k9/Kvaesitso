@@ -140,6 +140,8 @@ data class LauncherSettingsData internal constructor(
     val searchBarFixed: Boolean = false,
 
     val searchResultsReversed: Boolean = false,
+    /** Stored as an ID so unknown layouts from newer backups preserve the rest of the settings. */
+    val searchKeyboardLayout: String = "Qwerty",
     val separateWorkProfile: Boolean = true,
 
     val rankingWeightFactor: WeightFactor = WeightFactor.Default,

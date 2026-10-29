@@ -8,6 +8,7 @@ import de.mm20.launcher2.database.entities.CustomAttributeEntity
 import de.mm20.launcher2.searchable.SavableSearchableRepository
 import de.mm20.launcher2.ktx.jsonObjectOf
 import de.mm20.launcher2.search.ResultScore
+import de.mm20.launcher2.search.KeyboardLayout
 import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.search.StringNormalizer
 import de.mm20.launcher2.search.isMatch
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import org.json.JSONArray
@@ -58,6 +60,7 @@ internal class CustomAttributesRepositoryImpl(
     private val appDatabase: AppDatabase,
     private val searchableRepository: SavableSearchableRepository,
     private val stringNormalizer: StringNormalizer,
+    private val keyboardLayouts: Flow<KeyboardLayout> = flowOf(KeyboardLayout.Qwerty),
 ) : CustomAttributesRepository {
     private val scope = CoroutineScope(Job() + Dispatchers.Default)
 
@@ -237,11 +240,12 @@ internal class CustomAttributesRepositoryImpl(
         }
         val normalizedQuery = stringNormalizer.normalize(query)
         return labelsAndTags
-            .map { attributes ->
+            .combine(keyboardLayouts) { attributes, keyboardLayout ->
                 attributes.filter {
                     val score = ResultScore.from(
                         normalizedQuery,
                         primaryFields = listOf(normalize(it.value)),
+                        keyboardLayout = keyboardLayout,
                     )
                     // A tag matches many items at once, so only a strong match counts there:
                     // "ga" in "navigation" would show every navigation app.

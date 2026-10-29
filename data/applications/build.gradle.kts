@@ -45,6 +45,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:preferences"))
     implementation(libs.bundles.kotlin)
     implementation(libs.androidx.core)
     implementation(libs.androidx.appcompat)

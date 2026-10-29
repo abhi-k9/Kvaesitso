@@ -32,6 +32,7 @@ import de.mm20.launcher2.search.CalendarEvent
 import de.mm20.launcher2.search.Contact
 import de.mm20.launcher2.search.File
 import de.mm20.launcher2.search.Location
+import de.mm20.launcher2.search.KeyboardLayout
 import de.mm20.launcher2.search.ResultScore
 import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.search.SearchFilters
@@ -179,7 +180,20 @@ class SearchVM : ViewModel(), KoinComponent {
 
     val selectedAppProfileType = mutableStateOf(Profile.Type.Personal)
 
+    private var searchJob: Job? = null
+    private var keyboardLayout = KeyboardLayout.Qwerty
+
     init {
+        viewModelScope.launch {
+            searchUiSettings.keyboardLayout.collect { selected ->
+                if (keyboardLayout != selected) {
+                    keyboardLayout = selected
+                    // Cached provider scores belong to the previous layout.
+                    previousResults = null
+                    search(searchQuery.value, forceRestart = true)
+                }
+            }
+        }
         search("", forceRestart = true)
     }
 
@@ -217,7 +231,6 @@ class SearchVM : ViewModel(), KoinComponent {
         search("")
     }
 
-    private var searchJob: Job? = null
     fun search(query: String, forceRestart: Boolean = false) {
         if (searchQuery.value == query && !forceRestart) return
         if (searchQuery.value != query) {
@@ -360,6 +373,7 @@ class SearchVM : ViewModel(), KoinComponent {
                                 ResultScore.from(
                                     normalizedQuery,
                                     primaryFields = listOf(stringNormalizer.normalize(it)),
+                                    keyboardLayout = keyboardLayout,
                                 ).isStrongMatch
                             }
                             .sortedWith(String.CASE_INSENSITIVE_ORDER)
@@ -551,6 +565,7 @@ class SearchVM : ViewModel(), KoinComponent {
                 ResultScore.from(
                     query = normalizedQuery,
                     primaryFields = listOf(stringNormalizer.normalize(item.labelOverride ?: item.label)),
+                    keyboardLayout = keyboardLayout,
                 ).score
             } else {
                 item.score.score

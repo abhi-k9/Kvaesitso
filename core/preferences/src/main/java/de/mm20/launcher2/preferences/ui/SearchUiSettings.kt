@@ -1,12 +1,24 @@
 package de.mm20.launcher2.preferences.ui
 
 import de.mm20.launcher2.preferences.LauncherDataStore
+import de.mm20.launcher2.search.KeyboardLayout
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 class SearchUiSettings internal constructor(
     private val launcherDataStore: LauncherDataStore,
 ) {
+    val keyboardLayout
+        get() = launcherDataStore.data.map {
+            KeyboardLayout.fromId(it.searchKeyboardLayout)
+        }.distinctUntilChanged()
+
+    fun setKeyboardLayout(layout: KeyboardLayout) {
+        launcherDataStore.update {
+            it.copy(searchKeyboardLayout = layout.name)
+        }
+    }
+
     val launchOnEnter
         get() = launcherDataStore.data.map { it.searchLaunchOnEnter }.distinctUntilChanged()
 

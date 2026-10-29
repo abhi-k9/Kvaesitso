@@ -14,6 +14,7 @@ import android.os.UserHandle
 import de.mm20.launcher2.profiles.Profile
 import de.mm20.launcher2.profiles.ProfileManager
 import de.mm20.launcher2.search.Application
+import de.mm20.launcher2.search.KeyboardLayout
 import de.mm20.launcher2.search.ResultScore
 import de.mm20.launcher2.search.SearchableKeyMigrator
 import de.mm20.launcher2.search.SearchableRepository
@@ -26,6 +27,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
@@ -53,6 +56,7 @@ internal class AppRepositoryImpl(
     private val profileManager: ProfileManager,
     private val stringNormalizer: StringNormalizer,
     private val keyMigrator: SearchableKeyMigrator,
+    private val keyboardLayouts: Flow<KeyboardLayout> = flowOf(KeyboardLayout.Qwerty),
 ) : AppRepository {
     private val scope = CoroutineScope(Dispatchers.Default + Job())
 
@@ -331,7 +335,7 @@ internal class AppRepositoryImpl(
     override fun search(query: String, allowNetwork: Boolean): Flow<ImmutableList<LauncherApp>> {
         val normalizedQuery = stringNormalizer.normalize(query)
 
-        return installedApps.map { apps ->
+        return installedApps.combine(keyboardLayouts) { apps, keyboardLayout ->
             withContext(Dispatchers.Default) {
                 val normalizerId = stringNormalizer.id
                 val appResults = mutableListOf<LauncherApp>()
@@ -342,6 +346,7 @@ internal class AppRepositoryImpl(
                         val cachedLabel = app.cachedNormalizerResult
                         val labelScore = ResultScore.from(
                             query = normalizedQuery,
+                            keyboardLayout = keyboardLayout,
                             primaryFields = listOf(
                                 if (cachedLabel?.first == normalizerId) {
                                     cachedLabel.second

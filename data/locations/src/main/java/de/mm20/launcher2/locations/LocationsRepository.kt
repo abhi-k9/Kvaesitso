@@ -8,6 +8,7 @@ import de.mm20.launcher2.permissions.PermissionGroup
 import de.mm20.launcher2.permissions.PermissionsManager
 import de.mm20.launcher2.preferences.search.LocationSearchSettings
 import de.mm20.launcher2.search.Location
+import de.mm20.launcher2.search.KeyboardLayout
 import de.mm20.launcher2.search.SearchableRepository
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -30,10 +31,11 @@ internal class LocationsRepository(
     private val settings: LocationSearchSettings,
     private val poseProvider: DevicePoseProvider,
     private val permissionsManager: PermissionsManager,
+    private val keyboardLayouts: Flow<KeyboardLayout> = flowOf(KeyboardLayout.Qwerty),
 ) : SearchableRepository<Location> {
 
     // Reuse the provider (and its HttpClient) instead of creating a new one for every search
-    private val osmLocationProvider by lazy { OsmLocationProvider(context, settings) }
+    private val osmLocationProvider by lazy { OsmLocationProvider(context, settings, keyboardLayouts) }
 
     @OptIn(FlowPreview::class)
     override fun search(

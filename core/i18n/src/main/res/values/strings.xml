@@ -1264,4 +1264,11 @@
     <string name="typo_preview_medium2">Preview</string>
     <string name="typo_preview_long">The quick brown fox\njumps over 1234790</string>
     <string name="preference_category_donate">Support the development</string>
+    <string name="preference_search_keyboard_layout">Keyboard layout for typos</string>
+    <string name="preference_search_keyboard_layout_summary">Choose the layout you type with. Used to recognize neighboring-key mistakes.</string>
+    <string name="keyboard_layout_qwerty" translatable="false">QWERTY</string>
+    <string name="keyboard_layout_qwertz" translatable="false">QWERTZ</string>
+    <string name="keyboard_layout_azerty" translatable="false">AZERTY</string>
+    <string name="keyboard_layout_dvorak" translatable="false">Dvorak</string>
+    <string name="keyboard_layout_colemak" translatable="false">Colemak</string>
 </resources>

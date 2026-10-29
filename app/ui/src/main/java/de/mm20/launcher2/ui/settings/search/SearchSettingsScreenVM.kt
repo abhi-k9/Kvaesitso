@@ -19,6 +19,7 @@ import de.mm20.launcher2.preferences.search.UnitConverterSettings
 import de.mm20.launcher2.preferences.search.WebsiteSearchSettings
 import de.mm20.launcher2.preferences.search.WikipediaSearchSettings
 import de.mm20.launcher2.preferences.ui.SearchUiSettings
+import de.mm20.launcher2.search.KeyboardLayout
 import de.mm20.launcher2.search.SearchFilters
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
@@ -49,6 +50,13 @@ class SearchSettingsScreenVM : ViewModel(), KoinComponent {
 
     val learnFromLaunches = rankingSettings.learnFromLaunches
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+
+    val keyboardLayout = searchUiSettings.keyboardLayout
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+
+    fun setKeyboardLayout(layout: KeyboardLayout) {
+        searchUiSettings.setKeyboardLayout(layout)
+    }
 
     fun setLearnFromLaunches(learn: Boolean) {
         rankingSettings.setLearnFromLaunches(learn)

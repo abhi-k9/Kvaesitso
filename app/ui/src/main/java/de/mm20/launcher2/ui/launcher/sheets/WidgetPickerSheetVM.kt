@@ -11,9 +11,13 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import de.mm20.launcher2.search.ResultScore
+import de.mm20.launcher2.search.KeyboardLayout
+import de.mm20.launcher2.preferences.ui.SearchUiSettings
 import de.mm20.launcher2.search.StringNormalizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
@@ -29,6 +33,7 @@ class WidgetPickerSheetVM(
     private val widgetsService: WidgetsService,
     private val packageManager: PackageManager,
     private val stringNormalizer: StringNormalizer,
+    private val keyboardLayouts: Flow<KeyboardLayout> = flowOf(KeyboardLayout.Qwerty),
 ) : ViewModel() {
 
     val searchQuery = MutableStateFlow("")
@@ -40,8 +45,10 @@ class WidgetPickerSheetVM(
         widgetsService.getAvailableBuiltInWidgets()
             .shareIn(viewModelScope, SharingStarted.WhileSubscribed(100))
 
+    private val matchingQuery = combine(searchQuery, keyboardLayouts) { query, layout -> query to layout }
+
     val builtInWidgets = allBuiltInWidgets
-        .combine(searchQuery) { widgets, query ->
+        .combine(matchingQuery) { widgets, (query, layout) ->
             if (query.isBlank()) return@combine widgets
             withContext(Dispatchers.IO) {
                 val normalizedQuery = stringNormalizer.normalize(query)
@@ -51,7 +58,8 @@ class WidgetPickerSheetVM(
                         primaryFields = listOf(
                             stringNormalizer.normalize(it.label),
                             it.type
-                        )
+                        ),
+                        keyboardLayout = layout,
                     ).score >= 0.8f
                 }
             }
@@ -63,7 +71,7 @@ class WidgetPickerSheetVM(
     }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(100))
 
     private val filteredAppWidgets = allAppWidgets
-        .combine(searchQuery) { widgets, query ->
+        .combine(matchingQuery) { widgets, (query, layout) ->
             if (query.isBlank()) return@combine widgets
             withContext(Dispatchers.IO) {
                 val normalizedQuery = stringNormalizer.normalize(query)
@@ -85,7 +93,8 @@ class WidgetPickerSheetVM(
                         primaryFields = listOf(
                             widgetNormalizedLabel,
                             normalizedAppLabel,
-                        )
+                        ),
+                        keyboardLayout = layout,
                     ).score >= 0.8f
                 }
             }
@@ -134,7 +143,7 @@ class WidgetPickerSheetVM(
     companion object : KoinComponent {
         val Factory = viewModelFactory {
             initializer {
-                WidgetPickerSheetVM(get(), get(), get())
+                WidgetPickerSheetVM(get(), get(), get(), get<SearchUiSettings>().keyboardLayout)
             }
         }
     }

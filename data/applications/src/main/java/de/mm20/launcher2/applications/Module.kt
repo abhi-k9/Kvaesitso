@@ -1,5 +1,6 @@
 package de.mm20.launcher2.applications
 
+import de.mm20.launcher2.preferences.ui.SearchUiSettings
 import de.mm20.launcher2.search.SearchableDeserializer
 import de.mm20.launcher2.search.Application
 import de.mm20.launcher2.search.SearchableRepository
@@ -9,6 +10,8 @@ import org.koin.dsl.module
 
 val applicationsModule = module {
     factory<SearchableRepository<Application>>(named<Application>()) { get<AppRepository>() }
-    single<AppRepository> { AppRepositoryImpl(androidContext(), get(), get(), get()) }
+    single<AppRepository> {
+        AppRepositoryImpl(androidContext(), get(), get(), get(), get<SearchUiSettings>().keyboardLayout)
+    }
     factory<SearchableDeserializer>(named(LauncherApp.Domain)) { LauncherAppDeserializer(androidContext(), get(), get()) }
 }

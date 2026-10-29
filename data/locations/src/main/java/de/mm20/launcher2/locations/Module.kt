@@ -1,5 +1,6 @@
 package de.mm20.launcher2.locations
 
+import de.mm20.launcher2.preferences.ui.SearchUiSettings
 import de.mm20.launcher2.locations.providers.PluginLocation
 import de.mm20.launcher2.locations.providers.openstreetmaps.OsmLocation
 import de.mm20.launcher2.locations.providers.openstreetmaps.OsmLocationProvider
@@ -11,8 +12,12 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 val locationsModule = module {
-    single<OsmLocationProvider> { OsmLocationProvider(androidContext(), get()) }
-    single<LocationsRepository> { LocationsRepository(androidContext(), get(), get(), get()) }
+    single<OsmLocationProvider> {
+        OsmLocationProvider(androidContext(), get(), get<SearchUiSettings>().keyboardLayout)
+    }
+    single<LocationsRepository> {
+        LocationsRepository(androidContext(), get(), get(), get(), get<SearchUiSettings>().keyboardLayout)
+    }
     factory<SearchableRepository<Location>>(named<Location>()) { get<LocationsRepository>() }
     factory<SearchableDeserializer>(named(OsmLocation.DOMAIN)) { OsmLocationDeserializer(get()) }
     factory<SearchableDeserializer>(named(PluginLocation.DOMAIN)) { PluginLocationDeserializer(androidContext(), get()) }

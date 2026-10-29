@@ -16,6 +16,7 @@ import de.mm20.launcher2.permissions.PermissionsManager
 import de.mm20.launcher2.preferences.search.ShortcutSearchSettings
 import de.mm20.launcher2.profiles.ProfileManager
 import de.mm20.launcher2.search.AppShortcut
+import de.mm20.launcher2.search.KeyboardLayout
 import de.mm20.launcher2.search.ResultScore
 import de.mm20.launcher2.search.SearchableRepository
 import de.mm20.launcher2.search.StringNormalizer
@@ -61,6 +62,7 @@ internal class AppShortcutRepositoryImpl(
     private val settings: ShortcutSearchSettings,
     private val profileManager: ProfileManager,
     private val stringNormalizer: StringNormalizer,
+    private val keyboardLayouts: Flow<KeyboardLayout> = flowOf(KeyboardLayout.Qwerty),
 ) : AppShortcutRepository {
 
     private val scope = CoroutineScope(Dispatchers.Default + Job())
@@ -134,13 +136,14 @@ internal class AppShortcutRepositoryImpl(
         }
 
         val normalizedQuery = stringNormalizer.normalize(query)
-        return rawShortcuts.map { shortcuts ->
+        return rawShortcuts.combine(keyboardLayouts) { shortcuts, keyboardLayout ->
             val filtered = shortcuts.mapIndexedNotNull { index, normalized ->
                 if (index % 8 == 0) currentCoroutineContext().ensureActive()
 
                 val score = ResultScore.from(
                     query = normalizedQuery,
                     primaryFields = normalized.normalizedLabels,
+                    keyboardLayout = keyboardLayout,
                 )
                 if (score.score < 0.8f) return@mapIndexedNotNull null
                 LauncherShortcut(

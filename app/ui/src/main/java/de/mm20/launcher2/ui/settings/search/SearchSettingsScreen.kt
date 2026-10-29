@@ -21,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 import de.mm20.launcher2.plugin.PluginType
+import de.mm20.launcher2.search.KeyboardLayout
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.component.DismissableBottomSheet
 import de.mm20.launcher2.ui.component.SmallMessage
@@ -94,6 +95,16 @@ fun SearchSettingsScreen() {
     val reverseSearchResults by viewModel.reverseSearchResults.collectAsStateWithLifecycle(null)
     val filterBar by viewModel.filterBar.collectAsStateWithLifecycle(null)
     val learnFromLaunches by viewModel.learnFromLaunches.collectAsStateWithLifecycle(null)
+    val keyboardLayout by viewModel.keyboardLayout.collectAsStateWithLifecycle()
+    val keyboardLayoutItems = listOf(
+        stringResource(R.string.keyboard_layout_qwerty) to KeyboardLayout.Qwerty,
+        stringResource(R.string.keyboard_layout_qwertz) to KeyboardLayout.Qwertz,
+        stringResource(R.string.keyboard_layout_azerty) to KeyboardLayout.Azerty,
+        stringResource(R.string.keyboard_layout_dvorak) to KeyboardLayout.Dvorak,
+        stringResource(R.string.keyboard_layout_colemak) to KeyboardLayout.Colemak,
+        stringResource(R.string.preference_value_disabled) to KeyboardLayout.Disabled,
+    )
+    val keyboardLayoutName = keyboardLayoutItems.firstOrNull { it.second == keyboardLayout }?.first
 
     PreferenceScreen(title = stringResource(R.string.preference_screen_search)) {
         item {
@@ -345,6 +356,19 @@ fun SearchSettingsScreen() {
                     onClick = {
                         backStack.add(LearnedSearchesSettingsRoute)
                     }
+                )
+                ListPreference(
+                    title = stringResource(R.string.preference_search_keyboard_layout),
+                    summary = listOfNotNull(
+                        keyboardLayoutName,
+                        stringResource(R.string.preference_search_keyboard_layout_summary),
+                    ).joinToString("\n"),
+                    icon = R.drawable.keyboard_24px,
+                    items = keyboardLayoutItems,
+                    value = keyboardLayout,
+                    onValueChanged = {
+                        if (it != null) viewModel.setKeyboardLayout(it)
+                    },
                 )
                 Preference(
                     title = stringResource(R.string.preference_screen_tags),

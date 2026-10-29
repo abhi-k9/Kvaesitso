@@ -22,7 +22,8 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
          * A field matches if it contains the query's characters in order (an fzf-style
          * subsequence match, e.g. "ytm" in "yt music"), or failing that, if it is close enough to
          * the query to be a typo of it (e.g. "settimgs" for "settings"). Word prefixes also
-         * account for neighboring QWERTY keys: "swtt" can find "settings" while still typing.
+         * account for neighboring keys of [keyboardLayout]: with QWERTY, "swtt" can find
+         * "settings" while still typing.
          *
          * Every match lands in one of three non-overlapping bands, so that the kind of evidence
          * decides the order before the similarity within a band does:
@@ -47,12 +48,13 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
             query: String,
             primaryFields: Iterable<String> = emptyList(),
             secondaryFields: Iterable<String> = emptyList(),
+            keyboardLayout: KeyboardLayout = KeyboardLayout.Qwerty,
         ): ResultScore {
             val cleanQuery = collapseSpaces(query)
             // An empty query is a prefix of everything.
             if (cleanQuery.isEmpty()) return ResultScore(1f)
 
-            val parsed = ParsedQuery(cleanQuery)
+            val parsed = ParsedQuery(cleanQuery, keyboardLayout)
             val bestPrimary = primaryFields.maxOfOrNull { scoreTerm(parsed, it) } ?: 0f
             val bestSecondary = secondaryFields.maxOfOrNull {
                 scoreTerm(parsed, it) * SecondaryFieldFactor
@@ -64,14 +66,14 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
          * A query and its words, with their highest possible fzf scores, which only need to be
          * computed once for all the fields that are scored against them.
          */
-        private class ParsedQuery(val text: String) {
+        private class ParsedQuery(val text: String, val keyboardLayout: KeyboardLayout) {
             val maxScore = FzfMatcher.maxScoreFor(text)
             val words: List<String>? = if (' ' in text) text.split(' ') else null
             val wordMaxScores: IntArray? = words?.let { w -> IntArray(w.size) { FzfMatcher.maxScoreFor(w[it]) } }
         }
 
         private fun scoreTerm(query: ParsedQuery, term: String): Float {
-            val whole = scoreField(query.text, term, query.maxScore)
+            val whole = scoreField(query.text, term, query.maxScore, query.keyboardLayout)
             val words = query.words ?: return whole
             val wordMaxScores = query.wordMaxScores ?: return whole
             // Already found as typed: no other order can do better
@@ -79,7 +81,7 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
 
             var weakest = 1f
             for (i in words.indices) {
-                val wordScore = scoreField(words[i], term, wordMaxScores[i])
+                val wordScore = scoreField(words[i], term, wordMaxScores[i], query.keyboardLayout)
                 if (wordScore == 0f) return whole
                 weakest = minOf(weakest, wordScore)
             }
@@ -92,7 +94,7 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
             return maxOf(whole, anyOrder)
         }
 
-        private fun scoreField(query: String, term: String, maxScore: Int): Float {
+        private fun scoreField(query: String, term: String, maxScore: Int, keyboardLayout: KeyboardLayout): Float {
             val literal = FzfMatcher.normalizedScore(query, term, maxScore)
             if (literal > 0f) {
                 val banded = if (literal >= StrongLiteralThreshold) {
@@ -135,7 +137,7 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
             } else 0f
             // A typo in a word that is only partly typed, e.g. "swtti" for "settings": compared
             // with the whole word, the missing rest makes it look too different.
-            val partial = if (' ' !in query) partlyTypedWordScore(query, term) else 0f
+            val partial = if (' ' !in query) partlyTypedWordScore(query, term, keyboardLayout) else 0f
             return maxOf(similar, partial)
         }
 
@@ -144,7 +146,7 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
          * general edits still need five characters, and two errors still need nine. Keyboard
          * proximity changes confidence, not the maximum number of mistakes we accept.
          */
-        private fun partlyTypedWordScore(query: String, term: String): Float {
+        private fun partlyTypedWordScore(query: String, term: String, keyboardLayout: KeyboardLayout): Float {
             val maxEdits = when {
                 query.length >= TwoTyposQueryLength -> 2
                 query.length >= OneTypoQueryLength -> 1
@@ -155,7 +157,7 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
             for (start in term.indices) {
                 if (!term[start].isLetterOrDigit()) continue
                 if (start > 0 && term[start - 1].isLetterOrDigit()) continue
-                val substitutionCost = prefixSubstitutionCost(query, term, start, maxOf(1, maxEdits))
+                val substitutionCost = prefixSubstitutionCost(query, term, start, maxOf(1, maxEdits), keyboardLayout)
                 if (substitutionCost != null) {
                     best = maxOf(best, prefixTypoScore(substitutionCost / 2f, query.length))
                 }
@@ -170,7 +172,7 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
         }
 
         /** Substitutions only: one unit for neighboring keys, two otherwise, or no valid path. */
-        private fun prefixSubstitutionCost(query: String, term: String, start: Int, maxErrors: Int): Int? {
+        private fun prefixSubstitutionCost(query: String, term: String, start: Int, maxErrors: Int, keyboardLayout: KeyboardLayout): Int? {
             if (term.length - start < query.length) return null
             var errors = 0
             var cost = 0
@@ -181,7 +183,7 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
                 if (!expected.isLetterOrDigit()) return null
                 if (typed == expected) continue
                 if (++errors > maxErrors) return null
-                if (QwertyKeyboard.areNeighbors(typed, expected)) {
+                if (keyboardLayout.areNeighbors(typed, expected)) {
                     cost++
                 } else {
                     if (query.length < OneTypoQueryLength) return null

@@ -7,14 +7,18 @@ import de.mm20.launcher2.locations.providers.LocationProvider
 import de.mm20.launcher2.openstreetmaps.R
 import de.mm20.launcher2.preferences.search.LocationSearchSettings
 import de.mm20.launcher2.search.Location
+import de.mm20.launcher2.search.KeyboardLayout
 import de.mm20.launcher2.search.ResultScore
 import de.mm20.launcher2.search.UpdateResult
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 internal class OsmLocationProvider(
     private val context: Context,
-    private val settings: LocationSearchSettings
+    private val settings: LocationSearchSettings,
+    private val keyboardLayouts: Flow<KeyboardLayout> = flowOf(KeyboardLayout.Qwerty),
 ) : LocationProvider<Long> {
 
     private val userAgent = "${context.packageName}/${
@@ -66,6 +70,8 @@ internal class OsmLocationProvider(
             return emptyList()
         }
 
+        val keyboardLayout = keyboardLayouts.first()
+
         val baseUrl = settings.overpassUrl.first()?.takeIf { it.isNotBlank() }
             ?: LocationSearchSettings.DefaultOverpassUrl
 
@@ -74,7 +80,7 @@ internal class OsmLocationProvider(
                 baseUrl,
                 OverpassFuzzyRadiusQuery(
                     query = query,
-                    tagGroups = delocalizeToQueryableTags(query),
+                    tagGroups = delocalizeToQueryableTags(query, keyboardLayout),
                     radius = searchRadiusMeters,
                     latitude = userLocation.latitude,
                     longitude = userLocation.longitude
@@ -219,11 +225,12 @@ internal class OsmLocationProvider(
         R.string.poi_category_hackerspace to listOf("leisure=hackerspace")
     ).mapKeys { context.getString(it.key) }
 
-    private fun delocalizeToQueryableTags(localizedQuery: String): List<String> =
+    private fun delocalizeToQueryableTags(localizedQuery: String, keyboardLayout: KeyboardLayout): List<String> =
         poiCategories.flatMap { (string, tags) ->
             val score = ResultScore.from(
                 localizedQuery,
-                primaryFields = listOf(string)
+                primaryFields = listOf(string),
+                keyboardLayout = keyboardLayout,
             )
             if (score.score > 0.8f) tags else persistentListOf()
         }

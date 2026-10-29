@@ -50,9 +50,12 @@ Releases of this fork install over each other.
 - Better matching: words in any order ("maps google"), typos in any word of a name ("fotos" for
   Google Photos), extra spaces from the keyboard are ignored, and custom labels, tags and folder
   names are matched like names
-- Nearby QWERTY key mistakes are recognized while typing: both "swtt" and "swtti" can find
+- Nearby key mistakes are recognized while typing: with QWERTY, both "swtt" and "swtti" can find
   Settings. Nearby key corrections score higher than distant substitutions; literal matches
   and your learned choices keep their priority
+- Choose QWERTY, QWERTZ, AZERTY, Dvorak or Colemak in Settings > Search > "Keyboard layout for
+  typos". The choice is saved and takes effect without restarting. Disabled turns off keyboard
+  proximity corrections while keeping ordinary typo matching
 - Better ranking: names that contain what you typed come before typo guesses, and for one or two
   letters, names starting with them come first. Contacts, events and files are ranked by how well
   they match, regardless of upper or lower case and accents
