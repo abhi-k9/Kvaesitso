@@ -69,7 +69,8 @@ class ResultScoreTest {
 
     @Test
     fun partlyTypedWordsNeedEnoughCharactersForATypo() {
-        Assert.assertFalse(matches("swtt", "settings"))
+        // Four-character corrections need a neighboring key, not an arbitrary substitution.
+        Assert.assertFalse(matches("sptt", "settings"))
         Assert.assertFalse(matches("calxulatpr", "calendar"))
         Assert.assertFalse(matches("swxti", "settings"))
     }

@@ -21,7 +21,8 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
          *
          * A field matches if it contains the query's characters in order (an fzf-style
          * subsequence match, e.g. "ytm" in "yt music"), or failing that, if it is close enough to
-         * the query to be a typo of it (Jaro-Winkler similarity, e.g. "settimgs" for "settings").
+         * the query to be a typo of it (e.g. "settimgs" for "settings"). Word prefixes also
+         * account for neighboring QWERTY keys: "swtt" can find "settings" while still typing.
          *
          * Every match lands in one of three non-overlapping bands, so that the kind of evidence
          * decides the order before the similarity within a band does:
@@ -139,33 +140,72 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
         }
 
         /**
-         * A typo score if [query] is only a few edits away from the beginning of a word of [term]
-         * (one edit from [OneTypoQueryLength] characters on, two from [TwoTyposQueryLength]), or 0.
+         * A typo score for a word prefix. Four characters allow one neighboring-key substitution;
+         * general edits still need five characters, and two errors still need nine. Keyboard
+         * proximity changes confidence, not the maximum number of mistakes we accept.
          */
         private fun partlyTypedWordScore(query: String, term: String): Float {
             val maxEdits = when {
                 query.length >= TwoTyposQueryLength -> 2
                 query.length >= OneTypoQueryLength -> 1
-                else -> return 0f
+                else -> 0
             }
-            var fewest = maxEdits + 1
+            if (query.length < MinKeyboardTypoQueryLength) return 0f
+            var best = 0f
             for (start in term.indices) {
                 if (!term[start].isLetterOrDigit()) continue
                 if (start > 0 && term[start - 1].isLetterOrDigit()) continue
-                fewest = minOf(fewest, prefixEditDistance(query, term, start, maxEdits))
-                if (fewest <= 1) break
+                val substitutionCost = prefixSubstitutionCost(query, term, start, maxOf(1, maxEdits))
+                if (substitutionCost != null) {
+                    best = maxOf(best, prefixTypoScore(substitutionCost / 2f, query.length))
+                }
+                // A valid substitution path costing at most one ordinary edit cannot be
+                // improved by insertions, deletions or transpositions. Avoid the DP in that case.
+                if (maxEdits > 0 && (substitutionCost == null || substitutionCost > 2)) {
+                    val edits = prefixEditDistance(query, term, start, maxEdits)
+                    if (edits <= maxEdits) best = maxOf(best, prefixTypoScore(edits.toFloat(), query.length))
+                }
             }
-            if (fewest > maxEdits) return 0f
-            return lerp(TypoBand, WeakLiteralBand, 1f - fewest.toFloat() / (maxEdits + 1))
+            return best
+        }
+
+        /** Substitutions only: one unit for neighboring keys, two otherwise, or no valid path. */
+        private fun prefixSubstitutionCost(query: String, term: String, start: Int, maxErrors: Int): Int? {
+            if (term.length - start < query.length) return null
+            var errors = 0
+            var cost = 0
+            for (i in query.indices) {
+                val typed = query[i]
+                val expected = term[start + i]
+                // Never complete a prefix across a word boundary.
+                if (!expected.isLetterOrDigit()) return null
+                if (typed == expected) continue
+                if (++errors > maxErrors) return null
+                if (QwertyKeyboard.areNeighbors(typed, expected)) {
+                    cost++
+                } else {
+                    if (query.length < OneTypoQueryLength) return null
+                    cost += 2
+                }
+            }
+            return cost
+        }
+
+        private fun prefixTypoScore(cost: Float, typedLength: Int): Float {
+            // More correct characters provide more evidence; near-key substitutions count as
+            // half an edit. Every correction remains below the literal-match band.
+            return lerp(TypoBand, WeakLiteralBand, 1f - cost / typedLength)
         }
 
         /**
          * The fewest edits (inserting, removing or replacing a character, or swapping two
-         * neighbouring characters) that turn [query] into the beginning of [term] from [start] on,
+         * neighbouring characters) that turn [query] into a word prefix of [term] from [start] on,
          * or more than [maxEdits] if that takes more than [maxEdits] edits.
          */
         internal fun prefixEditDistance(query: String, term: String, start: Int, maxEdits: Int): Int {
-            val m = minOf(term.length - start, query.length + maxEdits)
+            val limit = minOf(term.length - start, query.length + maxEdits)
+            var m = 0
+            while (m < limit && term[start + m].isLetterOrDigit()) m++
             // Rows of the edit distance matrix: for the first i - 2, i - 1 and i characters of
             // the query, against the first j characters of the term from start on
             var older = IntArray(m + 1)
@@ -285,6 +325,9 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
          * are more words to compare with, so it takes a little more evidence.
          */
         private const val MinWordTypoQueryLength = 4
+
+        /** Three exact letters plus one plausible keyboard slip provide enough evidence. */
+        private const val MinKeyboardTypoQueryLength = 4
 
         /**
          * From this query length on, one typo is tolerated in a word that is only partly typed
