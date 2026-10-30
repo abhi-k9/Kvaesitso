@@ -101,6 +101,8 @@ import de.mm20.launcher2.weather.DailyForecast
 import de.mm20.launcher2.weather.Forecast
 import de.mm20.launcher2.widgets.WeatherWidget
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
 import kotlin.math.roundToInt
 
 @Composable
@@ -207,24 +209,16 @@ fun WeatherWidget(widget: WeatherWidget) {
                 Column(
                     modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
                 ) {
-                    AnimatedContent(
-                        currentDayForecasts to forecast,
-                        contentKey = { it.first },
-                        transitionSpec = {
-                            fadeIn() togetherWith fadeOut()
-                        }
-                    ) { (fcs, fc) ->
-                        WeatherTimeSelector(
-                            forecasts = fcs,
-                            selectedForecast = fc,
-                            measurementSystem = measurementSystem,
-                            timeFormat = timeFormat,
-                            onTimeSelected = {
-                                viewModel.selectForecast(it)
-                            },
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                    }
+                    WeatherTimeSelector(
+                        forecasts = currentDayForecasts,
+                        selectedForecast = forecast,
+                        measurementSystem = measurementSystem,
+                        timeFormat = timeFormat,
+                        onTimeSelected = {
+                            viewModel.selectForecast(it)
+                        },
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
                     selectedDayForecast?.let {
                         WeatherDaySelector(
                             days = dailyForecasts,
@@ -587,9 +581,51 @@ fun WeatherTimeSelector(
     timeFormat: TimeFormat,
     onTimeSelected: (Int) -> Unit
 ) {
+    AnimatedContent(
+        forecasts to selectedForecast,
+        // Keep the row's scroll position when only weather measurements refresh.
+        contentKey = { (hours, selectedHour) ->
+            Instant.ofEpochMilli(hours.firstOrNull()?.timestamp ?: selectedHour.timestamp)
+                .atZone(ZoneId.systemDefault()).toLocalDate()
+        },
+        transitionSpec = { fadeIn() togetherWith fadeOut() },
+    ) { (hours, selectedHour) ->
+        WeatherTimeForecastRow(
+            modifier = modifier,
+            forecasts = hours,
+            selectedForecast = selectedHour,
+            measurementSystem = measurementSystem,
+            timeFormat = timeFormat,
+            onTimeSelected = onTimeSelected,
+        )
+    }
+}
+
+@Composable
+private fun WeatherTimeForecastRow(
+    modifier: Modifier,
+    forecasts: List<Forecast>,
+    selectedForecast: Forecast,
+    measurementSystem: MeasurementSystem,
+    timeFormat: TimeFormat,
+    onTimeSelected: (Int) -> Unit,
+) {
     val context = LocalContext.current
 
-    val listState = rememberLazyListState()
+    val selectedIndex = forecasts.indexOfFirst { it.timestamp == selectedForecast.timestamp }
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = selectedIndex.coerceAtLeast(0))
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Follow the selected hour when opening the widget or returning to the launcher.
+    // Key by time rather than forecast contents so refreshing temperatures does not
+    // interrupt someone scrolling through the forecast.
+    LaunchedEffect(selectedIndex, selectedForecast.timestamp, lifecycleOwner) {
+        if (selectedIndex >= 0) {
+            lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                listState.scrollToItem(selectedIndex)
+            }
+        }
+    }
 
     val colors = WeatherIconDefaults.colors(MaterialTheme.colorScheme.surfaceBright)
     val selectedColors = WeatherIconDefaults.themedColors(
