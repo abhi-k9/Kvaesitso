@@ -47,6 +47,7 @@ internal class AndroidContactProvider(
             }
             cursor.close()
             addFilterMatches(query, contactMap)
+            addOrganizationMatches(query, contactMap)
             val results = mutableListOf<Contact>()
             for ((id, rawIds) in contactMap) {
                 getWithRawIds(id, rawIds)?.let { results.add(it) }
@@ -55,6 +56,26 @@ internal class AndroidContactProvider(
             results
         }
         return results
+    }
+
+    private fun addOrganizationMatches(query: String, contactMap: MutableMap<Long, MutableSet<Long>>) {
+        // A contact's displayed personal name can hide its company from the raw-contact name
+        // fields. Search organization rows as well, including company-only contacts.
+        val contactIds = mutableSetOf<Long>()
+        context.contentResolver.query(
+            ContactsContract.Data.CONTENT_URI,
+            arrayOf(ContactsContract.Data.CONTACT_ID),
+            "${ContactsContract.Data.MIMETYPE} = ? AND ${ContactsContract.CommonDataKinds.Organization.COMPANY} LIKE ?",
+            arrayOf(ContactsContract.CommonDataKinds.Organization.CONTENT_ITEM_TYPE, "%$query%"),
+            null,
+        )?.use {
+            while (it.moveToNext()) {
+                contactIds.add(it.getLong(0))
+            }
+        }
+        // Linked contacts may keep the company, personal name and actions in different raw
+        // contacts. Include every raw contact of the aggregate, even if one already matched.
+        addRawContacts(contactIds.toList(), contactMap)
     }
 
     /**
@@ -76,11 +97,18 @@ internal class AndroidContactProvider(
                     if (id !in contactMap) contactIds.add(id)
                 }
             }
-            if (contactIds.isEmpty()) return
+            addRawContacts(contactIds.take(100), contactMap)
+        } catch (e: Exception) {
+            Log.w("AndroidContactProvider", "Contact filter query failed", e)
+        }
+    }
+
+    private fun addRawContacts(contactIds: List<Long>, contactMap: MutableMap<Long, MutableSet<Long>>) {
+        for (ids in contactIds.chunked(100)) {
             context.contentResolver.query(
                 ContactsContract.RawContacts.CONTENT_URI,
                 arrayOf(ContactsContract.RawContacts.CONTACT_ID, ContactsContract.RawContacts._ID),
-                "${ContactsContract.RawContacts.CONTACT_ID} IN (${contactIds.take(100).joinToString()})",
+                "${ContactsContract.RawContacts.CONTACT_ID} IN (${ids.joinToString()})",
                 null,
                 null
             )?.use {
@@ -88,8 +116,6 @@ internal class AndroidContactProvider(
                     contactMap.getOrPut(it.getLong(0)) { mutableSetOf() }.add(it.getLong(1))
                 }
             }
-        } catch (e: Exception) {
-            Log.w("AndroidContactProvider", "Contact filter query failed", e)
         }
     }
 
@@ -135,6 +161,7 @@ internal class AndroidContactProvider(
             var firstName: String? = null
             var lastName: String? = null
             var displayName: String? = null
+            var companyName: String? = null
             val phoneNumbers = mutableListOf<PhoneNumber>()
             val emailAddresses = mutableListOf<EmailAddress>()
             val postalAddresses = mutableListOf<PostalAddress>()
@@ -155,6 +182,8 @@ internal class AndroidContactProvider(
                 dataCursor.getColumnIndex(ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME)
             val familyNameColumn =
                 dataCursor.getColumnIndex(ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME)
+            val companyColumn =
+                dataCursor.getColumnIndex(ContactsContract.CommonDataKinds.Organization.COMPANY)
             // Android 17 removed the account columns from the data view (for apps targeting it),
             // they're read from the raw contacts instead
             val accountTypes = getAccountTypes(rawIds)
@@ -208,6 +237,13 @@ internal class AndroidContactProvider(
                         displayName = dataCursor.getStringOrNull(displayNameColumn)
                     }
 
+                    ContactsContract.CommonDataKinds.Organization.CONTENT_ITEM_TYPE -> {
+                        if (companyName == null) {
+                            companyName = dataCursor.getStringOrNull(companyColumn)
+                                ?.takeIf { it.isNotBlank() }
+                        }
+                    }
+
                     else -> {
                         customActions += CustomContactAction(
                             label = dataCursor.getStringOrNull(data3Column) ?: continue,
@@ -241,9 +277,10 @@ internal class AndroidContactProvider(
 
             return@withContext AndroidContact(
                 id = id,
-                name = displayName
+                name = displayName?.takeIf { it.isNotBlank() }
                     ?: listOfNotNull(firstName, lastName).joinToString(" ")
                         .takeIf { it.isNotBlank() }
+                    ?: companyName
                     ?: return@withContext null,
                 phoneNumbers = phoneNumbers.sortedByDescending {
                     it.number.count { !PhoneNumberUtils.isReallyDialable(it) }
