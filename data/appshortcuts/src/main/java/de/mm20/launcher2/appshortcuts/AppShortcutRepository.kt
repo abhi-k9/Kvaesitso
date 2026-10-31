@@ -137,13 +137,12 @@ internal class AppShortcutRepositoryImpl(
 
         val normalizedQuery = stringNormalizer.normalize(query)
         return rawShortcuts.combine(keyboardLayouts) { shortcuts, keyboardLayout ->
+            val scorer = ResultScore.prepare(normalizedQuery, keyboardLayout)
             val filtered = shortcuts.mapIndexedNotNull { index, normalized ->
                 if (index % 8 == 0) currentCoroutineContext().ensureActive()
 
-                val score = ResultScore.from(
-                    query = normalizedQuery,
+                val score = scorer.score(
                     primaryFields = normalized.normalizedLabels,
-                    keyboardLayout = keyboardLayout,
                 )
                 if (score.score < 0.8f) return@mapIndexedNotNull null
                 LauncherShortcut(

@@ -225,13 +225,13 @@ internal class OsmLocationProvider(
         R.string.poi_category_hackerspace to listOf("leisure=hackerspace")
     ).mapKeys { context.getString(it.key) }
 
-    private fun delocalizeToQueryableTags(localizedQuery: String, keyboardLayout: KeyboardLayout): List<String> =
-        poiCategories.flatMap { (string, tags) ->
-            val score = ResultScore.from(
-                localizedQuery,
+    private fun delocalizeToQueryableTags(localizedQuery: String, keyboardLayout: KeyboardLayout): List<String> {
+        val scorer = ResultScore.prepare(localizedQuery, keyboardLayout)
+        return poiCategories.flatMap { (string, tags) ->
+            val score = scorer.score(
                 primaryFields = listOf(string),
-                keyboardLayout = keyboardLayout,
             )
             if (score.score > 0.8f) tags else persistentListOf()
         }
+    }
 }

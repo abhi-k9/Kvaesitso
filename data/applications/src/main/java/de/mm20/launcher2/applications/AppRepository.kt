@@ -338,15 +338,14 @@ internal class AppRepositoryImpl(
         return installedApps.combine(keyboardLayouts) { apps, keyboardLayout ->
             withContext(Dispatchers.Default) {
                 val normalizerId = stringNormalizer.id
+                val scorer = ResultScore.prepare(normalizedQuery, keyboardLayout)
                 val appResults = mutableListOf<LauncherApp>()
                 if (query.isEmpty()) {
                     appResults.addAll(apps)
                 } else {
                     appResults.addAll(apps.mapNotNull { app ->
                         val cachedLabel = app.cachedNormalizerResult
-                        val labelScore = ResultScore.from(
-                            query = normalizedQuery,
-                            keyboardLayout = keyboardLayout,
+                        val labelScore = scorer.score(
                             primaryFields = listOf(
                                 if (cachedLabel?.first == normalizerId) {
                                     cachedLabel.second

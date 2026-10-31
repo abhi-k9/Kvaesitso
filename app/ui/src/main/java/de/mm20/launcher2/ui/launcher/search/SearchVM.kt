@@ -6,7 +6,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.mm20.launcher2.data.customattrs.TagFoldersRepository
@@ -309,26 +308,27 @@ class SearchVM : ViewModel(), KoinComponent {
                     }
                     .collectLatest { (resultsAndFolders, extras) ->
                         val (results, hiddenKeys, foldersAndInAppList) = resultsAndFolders
+                        val hiddenKeySet = hiddenKeys.toHashSet()
                         val (newAppsDays, appListItems) = extras
                         val (folders, inAppList) = foldersAndInAppList
                         val hiddenItems = mutableListOf<SavableSearchable>()
 
                         val (hiddenApps, apps) = results.standardProfileApps.partition {
-                            hiddenKeys.contains(
+                            hiddenKeySet.contains(
                                 it.key
                             )
                         }
                         hiddenItems += hiddenApps
 
                         val (hiddenWorkApps, workApps) = results.workProfileApps.partition {
-                            hiddenKeys.contains(
+                            hiddenKeySet.contains(
                                 it.key
                             )
                         }
                         hiddenItems += hiddenWorkApps
 
                         val (hiddenPrivateApps, privateApps) = results.privateSpaceApps.partition {
-                            hiddenKeys.contains(
+                            hiddenKeySet.contains(
                                 it.key
                             )
                         }
@@ -367,13 +367,12 @@ class SearchVM : ViewModel(), KoinComponent {
                     ) { show, folders ->
                         if (!show) return@combine emptyList<Tag>()
                         val normalizedQuery = stringNormalizer.normalize(query)
+                        val scorer = ResultScore.prepare(normalizedQuery, keyboardLayout)
                         // Like tags: a folder shows many items, so only strong matches count
                         folders
                             .filter {
-                                ResultScore.from(
-                                    normalizedQuery,
+                                scorer.score(
                                     primaryFields = listOf(stringNormalizer.normalize(it)),
-                                    keyboardLayout = keyboardLayout,
                                 ).isStrongMatch
                             }
                             .sortedWith(String.CASE_INSENSITIVE_ORDER)
@@ -393,6 +392,7 @@ class SearchVM : ViewModel(), KoinComponent {
                     }
                     .collectLatest { (results, hiddenKeys, folders) ->
                         previousResults = results
+                        val hiddenKeySet = hiddenKeys.toHashSet()
 
                         hiddenResults.clear()
                         workAppResults.clear()
@@ -401,30 +401,30 @@ class SearchVM : ViewModel(), KoinComponent {
 
                         appResults.updateItems(
                             results.apps
-                            ?.filterNot { hiddenKeys.contains(it.key) }
+                            ?.filterNot { hiddenKeySet.contains(it.key) }
                             ?.applyRanking(query)
                         )
                         appShortcutResults.updateItems(
                             results.shortcuts
-                            ?.filterNot { hiddenKeys.contains(it.key) }
+                            ?.filterNot { hiddenKeySet.contains(it.key) }
                             ?.applyRanking(query)
                         )
                         fileResults.updateItems(
                             results.files
-                            ?.filterNot { hiddenKeys.contains(it.key) }
+                            ?.filterNot { hiddenKeySet.contains(it.key) }
                             ?.applyRanking(query)
                         )
 
                         contactResults.updateItems(
-                            results.contacts?.filterNot { hiddenKeys.contains(it.key) }
+                            results.contacts?.filterNot { hiddenKeySet.contains(it.key) }
                                 ?.applyRanking(query)
                         )
                         calendarResults.updateItems(
-                            results.calendars?.filterNot { hiddenKeys.contains(it.key) }
+                            results.calendars?.filterNot { hiddenKeySet.contains(it.key) }
                                 ?.applyRanking(query)
                         )
                         locationResults.updateItems(
-                            results.locations?.filterNot { hiddenKeys.contains(it.key) }
+                            results.locations?.filterNot { hiddenKeySet.contains(it.key) }
                                 ?.let { locations ->
                                     devicePoseProvider.lastCachedLocation?.let {
                                         locations.asSequence()
@@ -560,12 +560,11 @@ class SearchVM : ViewModel(), KoinComponent {
         // Not every repository scores its results: score those here, once per result, with the
         // same normalization (case, accents, transliteration) as the scored ones.
         val normalizedQuery = stringNormalizer.normalize(query)
+        val scorer = ResultScore.prepare(normalizedQuery, keyboardLayout)
         val scores = map { item ->
             if (item.score.isUnspecified) {
-                ResultScore.from(
-                    query = normalizedQuery,
+                scorer.score(
                     primaryFields = listOf(stringNormalizer.normalize(item.labelOverride ?: item.label)),
-                    keyboardLayout = keyboardLayout,
                 ).score
             } else {
                 item.score.score
@@ -581,18 +580,6 @@ class SearchVM : ViewModel(), KoinComponent {
             .distinctBy { it.key }
     }
 
-    /**
-     * Merges a list of new items into the current SnapshotStateList.
-     * It removes items that are in the current list but not in the new list.
-     * Then, it updates existing items or adds new items from the new list.
-     *
-     * @param T The type of items in the list.
-     * @param newItems The list of new items to merge with. If null, an empty list is used.
-     */
-    private fun <T> SnapshotStateList<T>.updateItems(newItems: List<T>?) {
-        clear()
-        addAll(newItems ?: emptyList())
-    }
 }
 
 

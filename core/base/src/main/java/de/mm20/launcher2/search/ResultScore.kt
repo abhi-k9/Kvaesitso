@@ -14,6 +14,33 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
         return score.compareTo(other.score)
     }
 
+    /**
+     * An immutable query scorer that can be reused for all candidates in one search. Query
+     * whitespace, words and their maximum fuzzy scores are calculated once, rather than once
+     * per candidate. The selected keyboard layout belongs to this scorer, not a global cache.
+     */
+    class PreparedQuery internal constructor(query: String, internal val keyboardLayout: KeyboardLayout) {
+        internal val text = collapseSpaces(query)
+        internal val maxScore = FzfMatcher.maxScoreFor(text)
+        internal val words: List<String>? = if (' ' in text) text.split(' ') else null
+        internal val wordMaxScores: IntArray? = words?.let { w ->
+            IntArray(w.size) { FzfMatcher.maxScoreFor(w[it]) }
+        }
+
+        fun score(
+            primaryFields: Iterable<String> = emptyList(),
+            secondaryFields: Iterable<String> = emptyList(),
+        ): ResultScore {
+            // An empty query is a prefix of everything.
+            if (text.isEmpty()) return ResultScore(1f)
+            val bestPrimary = primaryFields.maxOfOrNull { scoreTerm(this, it) } ?: 0f
+            val bestSecondary = secondaryFields.maxOfOrNull {
+                scoreTerm(this, it) * SecondaryFieldFactor
+            } ?: 0f
+            return ResultScore(maxOf(bestPrimary, bestSecondary))
+        }
+    }
+
     companion object {
         /**
          * Scores [query] against the best of [primaryFields] and [secondaryFields]. Queries and
@@ -49,30 +76,16 @@ value class ResultScore(val score: Float) : Comparable<ResultScore> {
             primaryFields: Iterable<String> = emptyList(),
             secondaryFields: Iterable<String> = emptyList(),
             keyboardLayout: KeyboardLayout = KeyboardLayout.Qwerty,
-        ): ResultScore {
-            val cleanQuery = collapseSpaces(query)
-            // An empty query is a prefix of everything.
-            if (cleanQuery.isEmpty()) return ResultScore(1f)
-
-            val parsed = ParsedQuery(cleanQuery, keyboardLayout)
-            val bestPrimary = primaryFields.maxOfOrNull { scoreTerm(parsed, it) } ?: 0f
-            val bestSecondary = secondaryFields.maxOfOrNull {
-                scoreTerm(parsed, it) * SecondaryFieldFactor
-            } ?: 0f
-            return ResultScore(maxOf(bestPrimary, bestSecondary))
-        }
+        ): ResultScore = prepare(query, keyboardLayout).score(primaryFields, secondaryFields)
 
         /**
-         * A query and its words, with their highest possible fzf scores, which only need to be
-         * computed once for all the fields that are scored against them.
+         * Prepare the normalized query once before scoring a batch of labels or tags. Create a
+         * new scorer when the query or keyboard layout changes; no candidate labels are retained.
          */
-        private class ParsedQuery(val text: String, val keyboardLayout: KeyboardLayout) {
-            val maxScore = FzfMatcher.maxScoreFor(text)
-            val words: List<String>? = if (' ' in text) text.split(' ') else null
-            val wordMaxScores: IntArray? = words?.let { w -> IntArray(w.size) { FzfMatcher.maxScoreFor(w[it]) } }
-        }
+        fun prepare(query: String, keyboardLayout: KeyboardLayout = KeyboardLayout.Qwerty): PreparedQuery =
+            PreparedQuery(query, keyboardLayout)
 
-        private fun scoreTerm(query: ParsedQuery, term: String): Float {
+        private fun scoreTerm(query: PreparedQuery, term: String): Float {
             val whole = scoreField(query.text, term, query.maxScore, query.keyboardLayout)
             val words = query.words ?: return whole
             val wordMaxScores = query.wordMaxScores ?: return whole
