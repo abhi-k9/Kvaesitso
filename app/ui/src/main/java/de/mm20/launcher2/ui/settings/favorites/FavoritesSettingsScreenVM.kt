@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.mm20.launcher2.preferences.WeightFactor
 import de.mm20.launcher2.preferences.search.FavoritesSettings
+import de.mm20.launcher2.preferences.search.FavoritesCardSettingsData
 import de.mm20.launcher2.preferences.search.RankingSettings
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
@@ -15,6 +16,18 @@ import org.koin.core.component.inject
 class FavoritesSettingsScreenVM: ViewModel(), KoinComponent {
     private val favoritesSettings: FavoritesSettings by inject()
     private val rankingSettings: RankingSettings by inject()
+
+    val card = favoritesSettings.card
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), FavoritesCardSettingsData())
+
+    fun setCardColumns(value: Int) = favoritesSettings.setCardColumns(value)
+    fun setCardIconSize(value: Int) = favoritesSettings.setCardIconSize(value)
+    fun setCardLabels(value: Boolean) = favoritesSettings.setCardLabels(value)
+    fun setCardGroupLabels(value: Boolean) = favoritesSettings.setCardGroupLabels(value)
+    fun setCardPinnedCount(value: Int) = favoritesSettings.setCardPinnedCount(value)
+    fun setCardRecentCount(value: Int) = favoritesSettings.setCardRecentCount(value)
+    fun setCardFrequentCount(value: Int) = favoritesSettings.setCardFrequentCount(value)
+    fun resetCardLayout() = favoritesSettings.resetCardLayout()
 
     val frequentlyUsed = favoritesSettings.frequentlyUsed
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)

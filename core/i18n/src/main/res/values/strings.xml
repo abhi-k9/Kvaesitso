@@ -1294,6 +1294,17 @@
     <string name="suggestions_exclude_app">Don’t suggest this app</string>
     <string name="suggestions_allow_app">Allow in suggestions</string>
     <string name="suggestions_excluded_title">Excluded suggestions</string>
-    <string name="suggestions_excluded_summary">These apps stay available in search and the app list, and can still be pinned. They won’t appear in frequently used suggestions.</string>
+    <string name="suggestions_excluded_summary">These apps stay available in search and the app list, and can still be pinned. They won’t appear in recent or frequently used suggestions.</string>
+    <string name="favorites_card_layout">App drawer card layout</string>
+    <string name="favorites_card_layout_summary">Only this card changes. Increase columns and reduce icon size to fit more items; icons shrink to fit narrow columns.</string>
+    <string name="favorites_card_reset_layout">Match the app grid layout</string>
+    <string name="favorites_card_group_labels">Show group headings</string>
+    <string name="favorites_card_contents">App drawer card contents</string>
+    <string name="favorites_card_counts_summary">Choose how many items to show in each group. Zero hides a group. Apps appear once: pinned, then recent, then frequent. Recent apps are tracked when opened from this launcher.</string>
+    <string name="favorites_card_pinned">Pinned</string>
+    <string name="favorites_card_recent">Recently used</string>
+    <string name="favorites_card_frequent">Frequently used</string>
+    <string name="favorites_card_all">All</string>
+    <string name="favorites_card_row_limit">Row limit</string>
     <string name="suggestions_excluded_empty">No apps excluded from suggestions</string>
 </resources>

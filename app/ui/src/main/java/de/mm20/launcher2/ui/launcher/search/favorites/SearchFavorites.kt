@@ -14,6 +14,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.search.Tag
+import de.mm20.launcher2.preferences.search.FavoritesCardSettingsData
+import de.mm20.launcher2.services.favorites.FavoritesCardItems
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.common.FavoritesTagSelector
 import de.mm20.launcher2.ui.component.Banner
@@ -31,9 +33,12 @@ fun LazyListScope.SearchFavorites(
     onSelectTag: (String?) -> Unit,
     editButton: Boolean,
     reverse: Boolean,
+    cardItems: FavoritesCardItems,
+    cardSettings: FavoritesCardSettingsData,
     // False if the tags are shown in a bar of their own, apart from the list
     showTags: Boolean = true,
 ) {
+    val shownItems = if (selectedTag == null) cardItems.all else favorites
     item(
         key = "favorites",
     ) {
@@ -53,8 +58,8 @@ fun LazyListScope.SearchFavorites(
                     .padding(vertical = 4.dp),
                 verticalArrangement = if (reverse) Arrangement.BottomReversed else Arrangement.Top
             ) {
-                if (favorites.isNotEmpty()) {
-                    SearchResultGrid(favorites, transitionKey = selectedTag, reverse = reverse)
+                if (shownItems.isNotEmpty()) {
+                    FavoritesCardGrid(shownItems, cardItems, cardSettings, selectedTag, reverse)
                 } else {
                     Banner(
                         modifier = Modifier.padding(16.dp),

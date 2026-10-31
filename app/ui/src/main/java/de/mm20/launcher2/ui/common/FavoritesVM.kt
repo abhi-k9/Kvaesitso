@@ -27,9 +27,9 @@ import org.koin.core.component.inject
 
 abstract class FavoritesVM : ViewModel(), KoinComponent {
 
-    private val favoritesService: FavoritesService by inject()
+    protected val favoritesService: FavoritesService by inject()
     internal val widgetRepository: WidgetRepository by inject()
-    private val customAttributesRepository: CustomAttributesRepository by inject()
+    protected val customAttributesRepository: CustomAttributesRepository by inject()
     internal val settings: FavoritesSettings by inject()
 
     val selectedTag = MutableStateFlow<String?>(null)

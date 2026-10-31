@@ -6,6 +6,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
@@ -29,6 +33,8 @@ fun FavoritesSettingsScreen() {
     val viewModel: FavoritesSettingsScreenVM = viewModel()
     val backStack = LocalBackStack.current
     var showEditSheet by remember { mutableStateOf(false) }
+    val card by viewModel.card.collectAsState()
+    val frequentEnabled by viewModel.frequentlyUsed.collectAsState()
     PreferenceScreen(
         title = stringResource(R.string.preference_search_favorites)
     ) {
@@ -41,6 +47,58 @@ fun FavoritesSettingsScreen() {
                     onClick = {
                         showEditSheet = true
                     }
+                )
+            }
+        }
+        item {
+            PreferenceCategory(stringResource(R.string.favorites_card_layout)) {
+                SliderPreference(
+                    title = stringResource(R.string.preference_grid_icon_size),
+                    value = card.iconSize, min = 24, max = 96, step = 4,
+                    onValueChanged = viewModel::setCardIconSize,
+                )
+                SliderPreference(
+                    title = stringResource(R.string.preference_grid_column_count),
+                    value = card.columns, min = 1, max = 10,
+                    onValueChanged = viewModel::setCardColumns,
+                )
+                SwitchPreference(
+                    title = stringResource(R.string.preference_grid_labels),
+                    value = card.showLabels,
+                    onValueChanged = viewModel::setCardLabels,
+                )
+                SwitchPreference(
+                    title = stringResource(R.string.favorites_card_group_labels),
+                    value = card.showGroupLabels,
+                    onValueChanged = viewModel::setCardGroupLabels,
+                )
+                Preference(
+                    title = stringResource(R.string.favorites_card_reset_layout),
+                    summary = stringResource(R.string.favorites_card_layout_summary),
+                    onClick = viewModel::resetCardLayout,
+                )
+            }
+        }
+        item {
+            PreferenceCategory(stringResource(R.string.favorites_card_contents)) {
+                Text(stringResource(R.string.favorites_card_counts_summary), Modifier.padding(16.dp))
+                SliderPreference(
+                    title = stringResource(R.string.favorites_card_pinned),
+                    value = card.pinnedCount, min = -1, max = 60,
+                    onValueChanged = viewModel::setCardPinnedCount,
+                    label = { Text(if (it < 0) stringResource(R.string.favorites_card_all) else it.toString()) },
+                )
+                SliderPreference(
+                    title = stringResource(R.string.favorites_card_recent),
+                    value = card.recentCount, min = 0, max = 60,
+                    onValueChanged = viewModel::setCardRecentCount,
+                )
+                SliderPreference(
+                    title = stringResource(R.string.favorites_card_frequent),
+                    value = card.frequentCount, min = -1, max = 60,
+                    enabled = frequentEnabled != false,
+                    onValueChanged = viewModel::setCardFrequentCount,
+                    label = { Text(if (it < 0) stringResource(R.string.favorites_card_row_limit) else it.toString()) },
                 )
             }
         }

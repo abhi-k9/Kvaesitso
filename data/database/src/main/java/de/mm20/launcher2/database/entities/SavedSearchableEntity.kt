@@ -14,6 +14,7 @@ data class SavedSearchableEntity(
         @ColumnInfo(name="hidden", defaultValue = "0") val visibility: Int,
         @ColumnInfo(defaultValue = "0.0") val weight: Double,
         @ColumnInfo(defaultValue = "0") val excludeFromFrequentlyUsed: Boolean = false,
+        @ColumnInfo(defaultValue = "0") val lastLaunchedAt: Long = 0L,
 )
 
 data class SavedSearchableUpdatePinEntity(

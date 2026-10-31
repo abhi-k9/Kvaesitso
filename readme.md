@@ -63,10 +63,14 @@ Releases of this fork install over each other.
 - Tags can be picked from a list in the customize sheet, and are sorted alphabetically
 - Tag pickers support search and an Untagged filter without losing checked items. Long-press an
   app and choose "Tag multiple apps" to apply an existing or new tag to a selection
-- "Don't suggest this app" removes an app from frequently used suggestions. Manage the list in
+- "Don't suggest this app" removes an app from recent and frequently used suggestions. Manage the list in
   Settings > Search > Favorites > Excluded suggestions; search, the app list and pins still work
 - "Search on enter" starts the first search action, such as a web search
 - Up to 8 rows of frequently used apps
+- The app-drawer favorites card has its own icon size, columns, labels and group headings.
+  Choose separate pinned, recently used and frequently used counts in Settings > Search >
+  Favorites. Apps appear once, with pins first, then recent and frequent apps. Recent history
+  records launches from this launcher; existing frequency counts are retained
 - "New apps first" shows recently installed apps at the top of the app list
 - "Fixed tags bar" keeps the favorites' tags at the bottom of the screen while the list scrolls
 - Fonts can be imported (.ttf or .otf) and used in the typography settings

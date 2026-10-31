@@ -191,8 +191,18 @@ interface SearchableDao {
     @Query("SELECT * FROM Searchable WHERE `key` = :key")
     suspend fun getByKeyOnce(key: String): SavedSearchableEntity?
 
+    /** Unpinned app candidates; visibility/exclusions apply before ordering. */
+    @Query(
+        "SELECT * FROM Searchable WHERE type = 'apps' AND pinPosition = 0 " +
+                "AND launchCount > 0 AND hidden BETWEEN 0 AND 1 AND excludeFromFrequentlyUsed = 0 " +
+                "AND (NOT :recentFirst OR lastLaunchedAt > 0) " +
+                "ORDER BY CASE WHEN :recentFirst THEN lastLaunchedAt ELSE launchCount END DESC, " +
+                "weight DESC, lastLaunchedAt DESC, `key` ASC"
+    )
+    fun getAppSuggestions(recentFirst: Boolean): Flow<List<SavedSearchableEntity>>
+
     @Transaction
-    suspend fun touch(item: SavedSearchableEntity, alpha: Double) {
+    suspend fun touch(item: SavedSearchableEntity, alpha: Double, launchedAt: Long = System.currentTimeMillis()) {
         // Insert first, so that the launch count and weight of new items are updated, too
         if (insert(item) == -1L) {
             update(
@@ -204,12 +214,16 @@ interface SearchableDao {
             )
         }
         incrementLaunchCount(item.key)
+        recordLastLaunch(item.key, launchedAt)
         increaseWeightWhere(item.key, alpha)
         reduceWeightExcept(item.key, alpha)
     }
 
     @Query("UPDATE Searchable SET launchCount = launchCount + 1 WHERE `key` = :key")
     fun incrementLaunchCount(key: String)
+
+    @Query("UPDATE Searchable SET lastLaunchedAt = MAX(lastLaunchedAt, :launchedAt) WHERE `key` = :key")
+    suspend fun recordLastLaunch(key: String, launchedAt: Long)
 
     @Query("UPDATE Searchable SET `weight` = `weight` * (1.0 - :alpha) WHERE `key` != :key AND weight > 0.001")
     fun reduceWeightExcept(key: String, alpha: Double)
@@ -268,7 +282,8 @@ interface SearchableDao {
         "UPDATE Searchable SET " +
                 "launchCount = launchCount + (SELECT launchCount FROM Searchable WHERE `key` = :oldKey), " +
                 "pinPosition = MAX(pinPosition, (SELECT pinPosition FROM Searchable WHERE `key` = :oldKey)), " +
-                "excludeFromFrequentlyUsed = MAX(excludeFromFrequentlyUsed, (SELECT excludeFromFrequentlyUsed FROM Searchable WHERE `key` = :oldKey)) " +
+                "excludeFromFrequentlyUsed = MAX(excludeFromFrequentlyUsed, (SELECT excludeFromFrequentlyUsed FROM Searchable WHERE `key` = :oldKey)), " +
+                "lastLaunchedAt = MAX(lastLaunchedAt, (SELECT lastLaunchedAt FROM Searchable WHERE `key` = :oldKey)) " +
                 "WHERE `key` = :newKey"
     )
     suspend fun mergeInto(oldKey: String, newKey: String)

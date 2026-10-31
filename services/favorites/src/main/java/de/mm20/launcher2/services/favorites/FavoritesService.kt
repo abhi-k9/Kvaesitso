@@ -1,16 +1,43 @@
 package de.mm20.launcher2.services.favorites
 
 import de.mm20.launcher2.search.SavableSearchable
+import de.mm20.launcher2.search.Tag
 import de.mm20.launcher2.searchable.LearnedSearchRepository
 import de.mm20.launcher2.searchable.PinnedLevel
 import de.mm20.launcher2.searchable.SavableSearchableRepository
 import de.mm20.launcher2.searchable.VisibilityLevel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 class FavoritesService(
     private val searchableRepository: SavableSearchableRepository,
     private val learnedSearchRepository: LearnedSearchRepository,
 ) {
+    fun getCardFavorites(
+        pinnedCount: Int,
+        recentCount: Int,
+        frequentCount: Int,
+        excludeTypes: List<String>,
+        folderTags: Set<String>,
+    ): Flow<FavoritesCardItems> {
+        val pinned: Flow<List<SavableSearchable>> = if (pinnedCount == 0) flowOf(emptyList()) else getFavorites(
+            excludeTypes = excludeTypes.takeIf { it.isNotEmpty() },
+            minPinnedLevel = PinnedLevel.AutomaticallySorted,
+            limit = 9999,
+        ).map { items -> items.filter { it !is Tag || it.tag in folderTags } }
+        val recent = searchableRepository.getAppSuggestions(recentFirst = true, limit = recentCount)
+        // Overfetch by the recent quota so removing duplicates doesn't starve frequent slots.
+        val frequent = searchableRepository.getAppSuggestions(
+            recentFirst = false,
+            limit = if (frequentCount <= 0) 0 else frequentCount + recentCount,
+        )
+        return combine(pinned, recent, frequent) { pins, recents, frequents ->
+            selectFavoritesCardItems(pins, recents, frequents, pinnedCount, recentCount, frequentCount)
+        }
+    }
+
     fun getFavorites(
         includeTypes: List<String>? = null,
         excludeTypes: List<String>? = null,

@@ -50,6 +50,7 @@ import de.mm20.launcher2.database.migrations.Migration_31_32
 import de.mm20.launcher2.database.migrations.Migration_32_33
 import de.mm20.launcher2.database.migrations.Migration_33_34
 import de.mm20.launcher2.database.migrations.Migration_34_35
+import de.mm20.launcher2.database.migrations.Migration_35_36
 import de.mm20.launcher2.database.migrations.Migration_6_7
 import de.mm20.launcher2.database.migrations.Migration_7_8
 import de.mm20.launcher2.database.migrations.Migration_8_9
@@ -73,7 +74,7 @@ import java.util.UUID
         ShapesEntity::class,
         TransparenciesEntity::class,
         TypographyEntity::class,
-    ], version = 35, exportSchema = true
+    ], version = 36, exportSchema = true
 )
 @ColumnTypeConverters(ComponentNameConverter::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -165,6 +166,7 @@ abstract class AppDatabase : RoomDatabase() {
                         }
                     })
                     .addMigrations(
+                        Migration_35_36(),
                         Migration_6_7(),
                         Migration_7_8(),
                         Migration_8_9(),

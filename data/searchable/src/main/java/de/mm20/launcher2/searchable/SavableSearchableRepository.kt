@@ -12,6 +12,7 @@ import de.mm20.launcher2.ktx.jsonObjectOf
 import de.mm20.launcher2.preferences.WeightFactor
 import de.mm20.launcher2.preferences.search.RankingSettings
 import de.mm20.launcher2.search.SavableSearchable
+import de.mm20.launcher2.search.Application
 import de.mm20.launcher2.search.SearchableDeserializer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -112,6 +113,9 @@ interface SavableSearchableRepository : Backupable {
         limit: Int = 9999,
         filterExcludedSuggestions: Boolean = false,
     ): Flow<List<String>>
+
+    /** Visible, unpinned apps ordered by actual launch time or total launch count. */
+    fun getAppSuggestions(recentFirst: Boolean, limit: Int): Flow<List<SavableSearchable>>
 
 
     fun getExcludedFromFrequentlyUsed(): Flow<List<SavableSearchable>>
@@ -218,6 +222,7 @@ internal class SavableSearchableRepositoryImpl(
                         launchCount = launchCount ?: entity?.launchCount ?: 0,
                         weight = weight ?: entity?.weight ?: 0.0,
                         excludeFromFrequentlyUsed = entity?.excludeFromFrequentlyUsed ?: false,
+                        lastLaunchedAt = entity?.lastLaunchedAt ?: 0L,
                         serializedSearchable = serialized,
                     )
                 )
@@ -247,6 +252,7 @@ internal class SavableSearchableRepositoryImpl(
                         launchCount = launchCount ?: entity?.launchCount ?: 0,
                         weight = weight ?: entity?.weight ?: 0.0,
                         excludeFromFrequentlyUsed = entity?.excludeFromFrequentlyUsed ?: false,
+                        lastLaunchedAt = entity?.lastLaunchedAt ?: 0L,
                         serializedSearchable = serialized,
                     )
                 )
@@ -256,6 +262,8 @@ internal class SavableSearchableRepositoryImpl(
 
 
     override fun touch(searchable: SavableSearchable) {
+        // Capture the action time, not the later time at which this asynchronous write runs.
+        val launchedAt = System.currentTimeMillis()
         scope.launch {
             val weightFactor =
                 when (settings.weightFactor.firstOrNull()) {
@@ -267,7 +275,7 @@ internal class SavableSearchableRepositoryImpl(
                 SavedSearchable(searchable.key, searchable, 0, 0, VisibilityLevel.Default, 0.0)
             item.toDatabaseEntity()?.let {
                 database.searchableDao()
-                    .touch(it, weightFactor)
+                    .touch(it, weightFactor, launchedAt)
             }
         }
     }
@@ -327,6 +335,22 @@ internal class SavableSearchableRepositoryImpl(
         // loaded again after every app launch, but only sent on if they changed.
         return entities.map {
             it.mapNotNull { fromDatabaseEntity(it).searchable }
+        }.distinctUntilChanged().flowOn(Dispatchers.IO)
+    }
+
+    override fun getAppSuggestions(recentFirst: Boolean, limit: Int): Flow<List<SavableSearchable>> {
+        if (limit <= 0) return flowOf(emptyList())
+        return database.searchableDao().getAppSuggestions(recentFirst).map { candidates ->
+            buildList {
+                // Stop resolving as soon as the quota is filled. Temporarily unavailable or
+                // private-profile apps don't consume slots, and their records are retained.
+                for (candidate in candidates) {
+                    val item = fromDatabaseEntity(candidate).searchable as? Application ?: continue
+                    if (item.isPrivate) continue
+                    add(item)
+                    if (size >= limit) break
+                }
+            }
         }.distinctUntilChanged().flowOn(Dispatchers.IO)
     }
 
@@ -579,6 +603,7 @@ internal class SavableSearchableRepositoryImpl(
                         "searchable" to fav.serializedSearchable,
                         "weight" to fav.weight,
                         "excludeFromFrequentlyUsed" to fav.excludeFromFrequentlyUsed,
+                        "lastLaunchedAt" to fav.lastLaunchedAt,
                     )
                 )
             }
@@ -613,6 +638,7 @@ internal class SavableSearchableRepositoryImpl(
                         visibility = json.optInt("visibility", 0),
                         pinPosition = json.getInt("pinPosition"),
                         excludeFromFrequentlyUsed = json.optBoolean("excludeFromFrequentlyUsed", false),
+                        lastLaunchedAt = json.optLong("lastLaunchedAt", 0L).coerceAtLeast(0L),
                         weight = json.optDouble("weight").takeIf { !it.isNaN() } ?: 0.0
                     )
                     favorites.add(entity)

@@ -69,6 +69,15 @@ data class LauncherSettingsData internal constructor(
     val favoritesEnabled: Boolean = true,
     val favoritesFrequentlyUsed: Boolean = true,
     val favoritesFrequentlyUsedRows: Int = 1,
+    // Zero/null layout values inherit the main app grid until the card is customized.
+    val favoritesCardColumns: Int = 0,
+    val favoritesCardIconSize: Int = 0,
+    val favoritesCardLabels: Boolean? = null,
+    val favoritesCardGroupLabels: Boolean = true,
+    // -1 keeps all pins, or uses the existing frequently-used row limit, respectively.
+    val favoritesCardPinnedCount: Int = -1,
+    val favoritesCardRecentCount: Int = 4,
+    val favoritesCardFrequentCount: Int = -1,
     val favoritesEditButton: Boolean = true,
     val favoritesCompactTags: Boolean = false,
     /**

@@ -91,6 +91,8 @@ fun SearchColumn(
 
     val favoritesVM: SearchFavoritesVM = viewModel()
     val favorites by favoritesVM.favorites.collectAsState(emptyList())
+    val favoritesCardItems by favoritesVM.cardItems.collectAsState(de.mm20.launcher2.services.favorites.FavoritesCardItems())
+    val favoritesCardSettings by favoritesVM.cardSettings.collectAsState()
 
     val hideFavs by viewModel.hideFavorites
     val favoritesEnabled by viewModel.favoritesEnabled.collectAsState(false)
@@ -276,6 +278,8 @@ fun SearchColumn(
                     if (!hideFavs && favoritesEnabled) {
                         SearchFavorites(
                             favorites = favorites,
+                            cardItems = favoritesCardItems,
+                            cardSettings = favoritesCardSettings,
                             selectedTag = selectedTag,
                             pinnedTags = pinnedTags,
                             tagsExpanded = favoritesTagsExpanded,

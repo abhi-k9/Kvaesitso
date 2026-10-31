@@ -9,6 +9,7 @@ import de.mm20.launcher2.database.entities.SavedSearchableEntity
 import de.mm20.launcher2.database.entities.SavedSearchableUpdateContentEntity
 import de.mm20.launcher2.database.entities.SavedSearchableUpdatePinEntity
 import de.mm20.launcher2.database.migrations.Migration_34_35
+import de.mm20.launcher2.database.migrations.Migration_35_36
 import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.search.SearchableSerializer
 import io.mockk.every
@@ -125,20 +126,23 @@ class SuggestedAppsTest {
         }
         repository.setExcludedFromFrequentlyUsed(searchable, true)
         withTimeout(5_000) { dao.isExcludedFromFrequentlyUsed("app").first { it } }
+        dao.recordLastLaunch("app", 1234L)
         repository.upsert(searchable, pinned = true)
         val pinned = withTimeout(5_000) { dao.getByKey("app").first { it?.pinPosition == 1 }!! }
         assertTrue(pinned.excludeFromFrequentlyUsed)
+        assertEquals(1234L, pinned.lastLaunchedAt)
 
         repository.update(searchable, visibility = VisibilityLevel.SearchOnly, pinned = false)
         val updated = withTimeout(5_000) { dao.getByKey("app").first { it?.visibility == 1 }!! }
         assertTrue(updated.excludeFromFrequentlyUsed)
         assertEquals(0, updated.pinPosition)
+        assertEquals(1234L, updated.lastLaunchedAt)
     }
 
     @Test
     fun savingABatchCompletesBeforeReturningAndPreservesExistingSettings() = runBlocking {
         val original = app("existing", pinned = 3, excluded = true)
-            .copy(visibility = 1, launchCount = 19, weight = 0.9)
+            .copy(visibility = 1, launchCount = 19, weight = 0.9, lastLaunchedAt = 1234L)
         dao.upsert(original)
         val repository = SavableSearchableRepositoryImpl(database, mockk())
         val serializer = object : SearchableSerializer {
@@ -165,20 +169,21 @@ class SuggestedAppsTest {
 
     @Test
     fun renamedAndMergedAppKeysRetainTheExclusion() = runBlocking {
-        dao.upsert(app("old", excluded = true))
-        dao.upsert(app("new", pinned = 1))
+        dao.upsert(app("old", excluded = true).copy(lastLaunchedAt = 500L))
+        dao.upsert(app("new", pinned = 1).copy(lastLaunchedAt = 300L))
         dao.merge("old", SavedSearchableUpdateContentEntity("new", "apps", "merged"))
 
         val merged = dao.getByKey("new").first()!!
         assertTrue(merged.excludeFromFrequentlyUsed)
         assertEquals(16, merged.launchCount)
         assertEquals(1, merged.pinPosition)
+        assertEquals(500L, merged.lastLaunchedAt)
         assertEquals(listOf("new"), dao.getExcludedFromFrequentlyUsed().first().map { it.key })
     }
 
     @Test
     fun backupsRetainExclusionsAndOldBackupsDefaultToAllowed() = runBlocking {
-        val original = app("excluded", excluded = true)
+        val original = app("excluded", excluded = true).copy(lastLaunchedAt = 1234L)
         dao.upsert(original)
         val repository = SavableSearchableRepositoryImpl(database, mockk())
         val directory = File(context.cacheDir, "suggested-apps-backup").apply { mkdirs() }
@@ -191,22 +196,29 @@ class SuggestedAppsTest {
             val file = File(directory, "favorites.0000")
             val entries = JSONArray(file.readText())
             entries.getJSONObject(0).remove("excludeFromFrequentlyUsed")
+            entries.getJSONObject(0).remove("lastLaunchedAt")
             file.writeText(entries.toString())
             repository.restore(directory)
             assertFalse(dao.getByKey("excluded").first()!!.excludeFromFrequentlyUsed)
+            assertEquals(0L, dao.getByKey("excluded").first()!!.lastLaunchedAt)
         } finally {
             directory.deleteRecursively()
         }
     }
 
     @Test
-    fun migrationFromVersion34KeepsExistingSettingsAndAddsAllowedDefault() = runBlocking {
+    fun migrationFromVersion34KeepsExistingSettingsAndAddsAllowedDefault() = verifyMigration(34)
+
+    @Test
+    fun migrationFromVersion35PreservesExclusionsAndStartsWithUnknownRecency() = verifyMigration(35, excluded = true)
+
+    private fun verifyMigration(fromVersion: Int, excluded: Boolean = false) = runBlocking {
         database.close()
-        val file = File(context.cacheDir, "suggestions-migration.db")
+        val file = File(context.cacheDir, "suggestions-migration-$fromVersion.db")
         file.delete()
         try {
             AndroidSQLiteDriver().open(file.absolutePath).use { connection ->
-                val schema = File(System.getProperty("kvaesitso.migration.schemas"), "de.mm20.launcher2.database.AppDatabase/34.json")
+                val schema = File(System.getProperty("kvaesitso.migration.schemas"), "de.mm20.launcher2.database.AppDatabase/$fromVersion.json")
                     .bufferedReader().use { JSONObject(it.readText()).getJSONObject("database") }
                 val entities = schema.getJSONArray("entities")
                 for (i in 0 until entities.length()) {
@@ -221,21 +233,57 @@ class SuggestedAppsTest {
                 val setup = schema.getJSONArray("setupQueries")
                 for (i in 0 until setup.length()) connection.execSQL(setup.getString(i))
                 connection.execSQL("INSERT INTO Searchable (`key`, `type`, searchable, launchCount, pinPosition, hidden, weight) VALUES ('old', 'apps', 'old-content', 12, 3, 1, 0.6)")
-                connection.execSQL("PRAGMA user_version = 34")
+                if (excluded) connection.execSQL("UPDATE Searchable SET excludeFromFrequentlyUsed = 1")
+                connection.execSQL("PRAGMA user_version = $fromVersion")
             }
             database = Room.databaseBuilder(context, AppDatabase::class.java, file.absolutePath)
                 .setDriver(AndroidSQLiteDriver())
-                .addMigrations(Migration_34_35())
+                .addMigrations(Migration_34_35(), Migration_35_36())
                 .build()
             val migrated = dao.getByKey("old").first()!!
             assertEquals(12, migrated.launchCount)
             assertEquals(3, migrated.pinPosition)
             assertEquals(1, migrated.visibility)
             assertEquals(0.6, migrated.weight, 0.0)
-            assertFalse(migrated.excludeFromFrequentlyUsed)
+            assertEquals(excluded, migrated.excludeFromFrequentlyUsed)
+            assertEquals(0L, migrated.lastLaunchedAt)
         } finally {
             file.delete()
         }
+    }
+
+    @Test
+    fun recentlyUsedAndFrequentlyUsedHaveIndependentOrders() = runBlocking {
+        dao.upsert(app("frequent").copy(launchCount = 100, lastLaunchedAt = 100L))
+        dao.upsert(app("recent").copy(launchCount = 1, lastLaunchedAt = 300L))
+        dao.upsert(app("middle").copy(launchCount = 5, lastLaunchedAt = 200L))
+        assertEquals(listOf("recent", "middle", "frequent"), dao.getAppSuggestions(true).first().map { it.key })
+        assertEquals(listOf("frequent", "middle", "recent"), dao.getAppSuggestions(false).first().map { it.key })
+    }
+
+    @Test
+    fun automaticGroupsExcludePinsHiddenItemsAndExcludedSuggestions() = runBlocking {
+        dao.upsert(app("pin", pinned = 3).copy(lastLaunchedAt = 600L))
+        dao.upsert(app("hidden").copy(visibility = 2, lastLaunchedAt = 500L))
+        dao.upsert(app("excluded", excluded = true).copy(lastLaunchedAt = 400L))
+        dao.upsert(app("calendar").copy(type = "calendar", lastLaunchedAt = 300L))
+        dao.upsert(app("visible").copy(lastLaunchedAt = 200L))
+        dao.upsert(app("search-only").copy(visibility = 1, lastLaunchedAt = 100L))
+        assertEquals(listOf("visible", "search-only"), dao.getAppSuggestions(true).first().map { it.key })
+        assertEquals(setOf("visible", "search-only"), dao.getAppSuggestions(false).first().map { it.key }.toSet())
+    }
+
+    @Test
+    fun olderLaunchHistoryStillCountsForFrequencyWithoutInventingRecency() = runBlocking {
+        dao.upsert(app("old-history"))
+        assertEquals(listOf("old-history"), dao.getAppSuggestions(false).first().map { it.key })
+        assertTrue(dao.getAppSuggestions(true).first().isEmpty())
+        dao.touch(app("old-history"), 0.03, launchedAt = 200L)
+        dao.touch(app("old-history"), 0.03, launchedAt = 100L)
+        val saved = dao.getByKeyOnce("old-history")!!
+        assertEquals(200L, saved.lastLaunchedAt)
+        assertEquals(10, saved.launchCount)
+        assertEquals(listOf("old-history"), dao.getAppSuggestions(true).first().map { it.key })
     }
 
 }

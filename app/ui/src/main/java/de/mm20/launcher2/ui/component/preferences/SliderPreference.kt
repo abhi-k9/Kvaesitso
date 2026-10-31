@@ -39,6 +39,7 @@ fun SliderPreference(
         trackRange = min..max,
         steps = step?.let { ((max - min) / it).toInt() - 1 } ?: 0,
     )
+    LaunchedEffect(value) { sliderState.value = value.coerceIn(min, max) }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -80,6 +81,7 @@ fun SliderPreference(
             ) {
                 Slider(
                     modifier = Modifier.weight(1f),
+                    enabled = enabled,
                     state = sliderState,
                     onValueChange = {
                         sliderState.value = it
