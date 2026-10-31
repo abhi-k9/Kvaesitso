@@ -61,6 +61,10 @@ Releases of this fork install over each other.
   they match, regardless of upper or lower case and accents
 - Apps can be found by their package name, files by their full name or extension (e.g. ".pdf")
 - Tags can be picked from a list in the customize sheet, and are sorted alphabetically
+- Tag pickers support search and an Untagged filter without losing checked items. Long-press an
+  app and choose "Tag multiple apps" to apply an existing or new tag to a selection
+- "Don't suggest this app" removes an app from frequently used suggestions. Manage the list in
+  Settings > Search > Favorites > Excluded suggestions; search, the app list and pins still work
 - "Search on enter" starts the first search action, such as a web search
 - Up to 8 rows of frequently used apps
 - "New apps first" shows recently installed apps at the top of the app list
@@ -82,8 +86,11 @@ Releases of this fork install over each other.
 
 - MET Norway weather, with free forecasts for the whole world. It's the default provider
 - Spacer widget, and "Clear when playback stops" for the music widget
-- Widgets can take a half, a third or a quarter of the width, and are shown side by side (in edit
-  mode)
+- Widgets can take a half, a third or a quarter of the width. Choose their width in edit mode;
+  they appear side by side after editing
+- Widget stacks share one adjustable-height frame. In edit mode, choose "Stack with next widget",
+  then use the stack settings to add, reorder or separate widgets. Swipe or use the arrows to
+  switch pages; built-in and app-provided widgets can be mixed
 - Current weather on the home clock, and the date of the exchange rates in the unit converter
   settings (tap to update them)
 
@@ -109,6 +116,8 @@ them, then turn them on in Settings > Plugins.
 - Safer backup restore and other hardening of input from other apps and files
 - Less work after app launches, while typing and while the home page is covered, so the launcher
   stutters less and uses less battery
+- Query scoring prepares each query once per batch, unchanged result groups retain their Compose
+  state, and the widget picker resolves package labels once per provider snapshot
 
 ## Report issues
 
