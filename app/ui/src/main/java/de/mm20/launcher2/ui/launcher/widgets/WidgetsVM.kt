@@ -9,8 +9,11 @@ import de.mm20.launcher2.preferences.ui.UiSettings
 import de.mm20.launcher2.preferences.ui.WidgetWidth
 import de.mm20.launcher2.widgets.Widget
 import de.mm20.launcher2.widgets.WidgetRepository
+import de.mm20.launcher2.widgets.WidgetPlacement
+import de.mm20.launcher2.widgets.WidgetStack
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.UUID
@@ -47,8 +50,23 @@ class WidgetsVM(
         widgetRepository.set(widgets, parentId)
     }
 
-    fun removeWidget(widget: Widget) {
-        widgetRepository.delete(widget)
+    suspend fun removeWidget(widget: Widget): List<WidgetPlacement> =
+        widgetRepository.removeWithChildren(widget.id)
+
+    suspend fun restoreWidgets(placements: List<WidgetPlacement>) = widgetRepository.restore(placements)
+
+    fun stackWithNext(index: Int) {
+        val current = widgets.value.getOrNull(index) ?: return
+        val next = widgets.value.getOrNull(index + 1) ?: return
+        if (next is WidgetStack) return
+        viewModelScope.launch {
+            if (current is WidgetStack) widgetRepository.addToStack(current.id, next.id)
+            else widgetRepository.createStack(parentId, listOf(current.id, next.id))
+        }
+    }
+
+    fun unstack(widget: WidgetStack) {
+        viewModelScope.launch { widgetRepository.unstack(widget.id) }
     }
 
     fun updateWidget(widget: Widget) {

@@ -33,6 +33,7 @@ import de.mm20.launcher2.widgets.NotesWidget
 import de.mm20.launcher2.widgets.SpacerWidget
 import de.mm20.launcher2.widgets.WeatherWidget
 import de.mm20.launcher2.widgets.Widget
+import de.mm20.launcher2.widgets.WidgetStack
 
 @Composable
 fun AppWidget(
@@ -73,6 +74,7 @@ fun AppWidget(
             onDismiss = { replaceWidget = false },
             onWidgetSelected = {
                 val updatedWidget = when (it) {
+                    is WidgetStack -> return@WidgetPickerSheet
                     is AppWidget -> widget.copy(
                         config = widget.config.copy(
                             widgetId = it.config.widgetId

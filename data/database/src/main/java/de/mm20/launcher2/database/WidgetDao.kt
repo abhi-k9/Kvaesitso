@@ -18,6 +18,15 @@ interface WidgetDao {
     @Query("SELECT * FROM Widget WHERE parentId = :parentId ORDER BY position ASC LIMIT :limit OFFSET :offset")
     fun queryByParent(parentId: UUID,limit: Int, offset: Int): Flow<List<WidgetEntity>>
 
+    @Query("SELECT * FROM Widget WHERE id = :id")
+    suspend fun get(id: UUID): WidgetEntity?
+
+    @Query("SELECT * FROM Widget WHERE parentId = :parentId OR (:parentId IS NULL AND parentId IS NULL) ORDER BY position ASC")
+    suspend fun getChildren(parentId: UUID?): List<WidgetEntity>
+
+    @Query("SELECT * FROM Widget ORDER BY position ASC")
+    suspend fun getAll(): List<WidgetEntity>
+
     @Insert
     suspend fun insert(widget: WidgetEntity)
 

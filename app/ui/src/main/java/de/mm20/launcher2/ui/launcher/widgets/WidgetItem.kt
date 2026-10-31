@@ -1,6 +1,5 @@
 package de.mm20.launcher2.ui.launcher.widgets
 
-import android.appwidget.AppWidgetManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -54,6 +53,7 @@ import de.mm20.launcher2.widgets.NotesWidget
 import de.mm20.launcher2.widgets.SpacerWidget
 import de.mm20.launcher2.widgets.WeatherWidget
 import de.mm20.launcher2.widgets.Widget
+import de.mm20.launcher2.widgets.WidgetStack
 
 @Composable
 fun WidgetItem(
@@ -65,6 +65,8 @@ fun WidgetItem(
     onWidgetRemove: () -> Unit = {},
     width: WidgetWidth = WidgetWidth.Full,
     onWidthChange: ((WidgetWidth) -> Unit)? = null,
+    onStackWithNext: (() -> Unit)? = null,
+    onUnstack: (() -> Unit)? = null,
     draggableState: DraggableState = rememberDraggableState {},
     onDragStopped: () -> Unit = {}
 ) {
@@ -76,7 +78,7 @@ fun WidgetItem(
     val elevation by animateDpAsState(if (isDragged) 8.dp else 0.dp)
 
     val backgroundOpacity by animateFloatAsState(
-        if ((widget is AppWidget && !widget.config.background || widget is SpacerWidget) && !editMode) 0f
+        if ((widget is AppWidget && !widget.config.background || widget is SpacerWidget || widget is WidgetStack) && !editMode) 0f
         else MaterialTheme.transparency.surface,
         label = "widgetCardBackgroundOpacity",
     )
@@ -162,6 +164,25 @@ fun WidgetItem(
                             }
                         }
                     }
+                    if (onStackWithNext != null) {
+                        Box {
+                            var showStackAction by remember { mutableStateOf(false) }
+                            IconButton(onClick = { showStackAction = true }) {
+                                Icon(
+                                    painterResource(R.drawable.widgets_24px),
+                                    contentDescription = stringResource(
+                                        if (widget is WidgetStack) R.string.stack_add_next else R.string.stack_with_next
+                                    ),
+                                )
+                            }
+                            DropdownMenu(expanded = showStackAction, onDismissRequest = { showStackAction = false }) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(if (widget is WidgetStack) R.string.stack_add_next else R.string.stack_with_next)) },
+                                    onClick = { showStackAction = false; onStackWithNext() },
+                                )
+                            }
+                        }
+                    }
                     IconButton(onClick = {
                         configure = true
                     }) {
@@ -179,53 +200,43 @@ fun WidgetItem(
                 }
             }
             AnimatedVisibility(!editMode) {
-                when (widget) {
-                    is WeatherWidget -> {
-                        WeatherWidget(widget)
-                    }
-
-                    is MusicWidget -> {
-                        MusicWidget(widget)
-                    }
-
-                    is CalendarWidget -> {
-                        CalendarWidget(widget)
-                    }
-
-                    is AppsWidget -> {
-                        AppsWidget(widget)
-                    }
-
-                    is NotesWidget -> {
-                        NotesWidget(
-                            widget,
-                            onWidgetAdd = onWidgetAdd,
-                        )
-                    }
-
-                    is AppWidget -> {
-                        AppWidget(
-                            widget,
-                            onWidgetUpdate = onWidgetUpdate,
-                            onWidgetRemove = onWidgetRemove,
-                        )
-                    }
-
-                    is SpacerWidget -> {
-                        Spacer(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(widget.config.height.dp)
-                        )
-                    }
-                }
+                WidgetContent(widget, onWidgetAdd, onWidgetUpdate, onWidgetRemove)
             }
         }
     }
-    ConfigureWidgetSheet(
-        expanded = configure,
-        widget = widget,
-        onWidgetUpdated = onWidgetUpdate,
-        onDismiss = { configure = false },
-    )
+    if (widget is WidgetStack) {
+        EditWidgetStackSheet(
+            expanded = configure,
+            widget = widget,
+            onWidgetUpdated = onWidgetUpdate,
+            onUnstack = { onUnstack?.invoke(); configure = false },
+            onDismiss = { configure = false },
+        )
+    } else {
+        ConfigureWidgetSheet(
+            expanded = configure,
+            widget = widget,
+            onWidgetUpdated = onWidgetUpdate,
+            onDismiss = { configure = false },
+        )
+    }
+}
+
+@Composable
+internal fun WidgetContent(
+    widget: Widget,
+    onWidgetAdd: (Widget, Int) -> Unit = { _, _ -> },
+    onWidgetUpdate: (Widget) -> Unit = {},
+    onWidgetRemove: () -> Unit = {},
+) {
+    when (widget) {
+        is WidgetStack -> WidgetStackContent(widget)
+        is WeatherWidget -> WeatherWidget(widget)
+        is MusicWidget -> MusicWidget(widget)
+        is CalendarWidget -> CalendarWidget(widget)
+        is AppsWidget -> AppsWidget(widget)
+        is NotesWidget -> NotesWidget(widget, onWidgetAdd = onWidgetAdd)
+        is AppWidget -> AppWidget(widget, onWidgetUpdate = onWidgetUpdate, onWidgetRemove = onWidgetRemove)
+        is SpacerWidget -> Spacer(Modifier.fillMaxWidth().height(widget.config.height.dp))
+    }
 }

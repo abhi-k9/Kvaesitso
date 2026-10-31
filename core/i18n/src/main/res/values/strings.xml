@@ -1271,4 +1271,18 @@
     <string name="keyboard_layout_azerty" translatable="false">AZERTY</string>
     <string name="keyboard_layout_dvorak" translatable="false">Dvorak</string>
     <string name="keyboard_layout_colemak" translatable="false">Colemak</string>
+    <string name="stack_label">Widget stack</string>
+    <string name="stack_with_next">Stack with next widget</string>
+    <string name="stack_add_next">Add next widget to stack</string>
+    <string name="stack_edit">Edit widget stack</string>
+    <string name="stack_unstack">Separate widgets</string>
+    <string name="stack_height">Stack height</string>
+    <string name="stack_empty">Add widgets to this stack</string>
+    <string name="stack_previous">Previous widget</string>
+    <string name="stack_next">Next widget</string>
+    <string name="stack_page">%1$d of %2$d</string>
+    <string name="stack_move_up">Move widget up</string>
+    <string name="stack_move_down">Move widget down</string>
+    <string name="stack_remove_from_stack">Remove widget from stack</string>
+    <string name="stack_swipe_hint">Swipe to switch widgets, or use the arrows below.</string>
 </resources>

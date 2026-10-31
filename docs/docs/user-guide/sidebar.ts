@@ -85,6 +85,10 @@ export const UserGuideSidebar: DefaultTheme.SidebarItem[] = [
     text: 'Widgets',
     items: [
       {
+        text: 'Widget Stacks',
+        link: '/docs/user-guide/widgets/widget-stacks',
+      },
+      {
         text: 'Calendar Widget',
         link: '/docs/user-guide/widgets/calendar-widget',
       },

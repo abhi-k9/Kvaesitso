@@ -122,6 +122,7 @@ import de.mm20.launcher2.widgets.NotesWidget
 import de.mm20.launcher2.widgets.SpacerWidget
 import de.mm20.launcher2.widgets.WeatherWidget
 import de.mm20.launcher2.widgets.Widget
+import de.mm20.launcher2.widgets.WidgetStack
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.map
 import org.koin.compose.koinInject
@@ -156,6 +157,7 @@ fun ConfigureWidgetSheet(
                 is MusicWidget -> ConfigureMusicWidget(widget, onWidgetUpdated)
                 is NotesWidget -> ConfigureNotesWidget(widget, onWidgetUpdated)
                 is SpacerWidget -> ConfigureSpacerWidget(widget, onWidgetUpdated)
+                is WidgetStack -> Unit // Stacks have their own ordered-child editor.
             }
         }
 
@@ -708,6 +710,7 @@ fun ColumnScope.ConfigureAppWidget(
             onDismiss = { replaceWidget = false },
             onWidgetSelected = {
                 val updatedWidget = when (it) {
+                    is WidgetStack -> return@WidgetPickerSheet
                     is AppWidget -> widget.copy(
                         config = widget.config.copy(
                             widgetId = it.config.widgetId

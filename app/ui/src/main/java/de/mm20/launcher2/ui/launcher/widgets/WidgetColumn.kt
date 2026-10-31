@@ -47,9 +47,8 @@ import de.mm20.launcher2.ui.base.LocalAppWidgetHost
 import de.mm20.launcher2.ui.ktx.animateTo
 import de.mm20.launcher2.ui.launcher.sheets.WidgetPickerSheet
 import de.mm20.launcher2.ui.locals.LocalSnackbarHostState
-import de.mm20.launcher2.widgets.AppWidget
+import de.mm20.launcher2.widgets.WidgetStack
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 @Composable
 fun WidgetColumn(
@@ -102,19 +101,19 @@ fun WidgetColumn(
                         },
                         onWidgetRemove = {
                             lifecycleOwner.lifecycleScope.launch {
-                                viewModel.removeWidget(widget)
-                                val result = snackbarHostState.showSnackbar(
-                                    message = context.getString(R.string.widget_removed),
-                                    actionLabel = context.getString(R.string.action_undo),
-                                    duration = SnackbarDuration.Short,
+                                val removed = viewModel.removeWidget(widget)
+                                finishWidgetRemoval(
+                                    removed = removed,
+                                    requestUndo = {
+                                        snackbarHostState.showSnackbar(
+                                            message = context.getString(R.string.widget_removed),
+                                            actionLabel = context.getString(R.string.action_undo),
+                                            duration = SnackbarDuration.Short,
+                                        ) == SnackbarResult.ActionPerformed
+                                    },
+                                    restore = viewModel::restoreWidgets,
+                                    discard = { releaseWidgetIds(widgetHost, it) },
                                 )
-                                if (result == SnackbarResult.ActionPerformed) {
-                                    viewModel.addWidget(widget, i)
-                                } else {
-                                    if (widget is AppWidget) {
-                                        widgetHost.deleteAppWidgetId(widget.config.widgetId)
-                                    }
-                                }
                             }
                         },
                         onWidgetUpdate = {
@@ -122,6 +121,12 @@ fun WidgetColumn(
                         },
                         width = widths[widget.id.toString()] ?: WidgetWidth.Full,
                         onWidthChange = { viewModel.setWidth(widget, it) },
+                        onStackWithNext = if (widgets.getOrNull(i + 1)?.let { it !is WidgetStack } == true) {
+                            { viewModel.stackWithNext(i) }
+                        } else null,
+                        onUnstack = if (widget is WidgetStack) {
+                            { viewModel.unstack(widget) }
+                        } else null,
                         modifier = modifier
                             .onPlaced {
                                 swapThresholds[i][0] = it.positionInParent().y
@@ -132,22 +137,22 @@ fun WidgetColumn(
                                 IntOffset(0, offsetY.value.toInt())
                             },
                         draggableState = rememberDraggableState {
-                            scope.launch {
-                                val newOffset = offsetY.value + it
-                                offsetY.value = newOffset
-                                if (i > 0 && newOffset < (swapThresholds[i - 1][0] - swapThresholds[i - 1][1])) {
-                                    if (dragOffsetAfterSwap == null) {
-                                        dragOffsetAfterSwap =
-                                            swapThresholds[i - 1][1] - swapThresholds[i - 1][0] + newOffset
-                                        viewModel.moveUp(i)
-                                    }
+                            // This callback already runs on the UI thread and does not suspend.
+                            // Avoid scheduling a coroutine for every pointer movement.
+                            val newOffset = offsetY.value + it
+                            offsetY.value = newOffset
+                            if (i > 0 && newOffset < (swapThresholds[i - 1][0] - swapThresholds[i - 1][1])) {
+                                if (dragOffsetAfterSwap == null) {
+                                    dragOffsetAfterSwap =
+                                        swapThresholds[i - 1][1] - swapThresholds[i - 1][0] + newOffset
+                                    viewModel.moveUp(i)
                                 }
-                                if (i < widgets.lastIndex && newOffset > (swapThresholds[i + 1][1] - swapThresholds[i + 1][0])) {
-                                    if (dragOffsetAfterSwap == null) {
-                                        dragOffsetAfterSwap =
-                                            swapThresholds[i + 1][0] - swapThresholds[i + 1][1] + newOffset
-                                        viewModel.moveDown(i)
-                                    }
+                            }
+                            if (i < widgets.lastIndex && newOffset > (swapThresholds[i + 1][1] - swapThresholds[i + 1][0])) {
+                                if (dragOffsetAfterSwap == null) {
+                                    dragOffsetAfterSwap =
+                                        swapThresholds[i + 1][0] - swapThresholds[i + 1][1] + newOffset
+                                    viewModel.moveDown(i)
                                 }
                             }
                         },
