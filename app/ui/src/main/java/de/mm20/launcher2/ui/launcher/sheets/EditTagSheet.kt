@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -33,8 +34,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FlexibleBottomAppBar
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -45,6 +48,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,15 +63,18 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.mm20.launcher2.data.customattrs.CustomTextIcon
 import de.mm20.launcher2.icons.LauncherIcon
 import de.mm20.launcher2.search.Tag
+import de.mm20.launcher2.search.SavableSearchable
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.common.IconPicker
 import de.mm20.launcher2.ui.component.BottomSheet
@@ -76,6 +83,7 @@ import de.mm20.launcher2.ui.component.SmallMessage
 import de.mm20.launcher2.ui.component.emojipicker.EmojiPicker
 import de.mm20.launcher2.ui.ktx.toPixels
 import de.mm20.launcher2.ui.locals.LocalGridSettings
+import kotlinx.coroutines.flow.Flow
 
 @Composable
 fun EditTagSheet(
@@ -91,6 +99,7 @@ fun EditTagSheet(
     ) { (tag, _) ->
         var confirmDismiss by remember { mutableStateOf(false) }
         val viewModel: EditTagSheetVM = viewModel()
+        DisposableEffect(viewModel) { onDispose { viewModel.stopLoading() } }
         val isCreatingNewTag = tag == null
 
         val density = LocalDensity.current
@@ -269,50 +278,119 @@ fun CreateNewTagPage(viewModel: EditTagSheetVM) {
 
 @Composable
 fun PickItems(viewModel: EditTagSheetVM) {
-    val columns = LocalGridSettings.current.columnCount - 1
-
     if (viewModel.wasOnLastPage) {
         BackHandler {
             viewModel.closeIconPicker()
         }
     }
 
-    LazyVerticalGrid(
-        modifier = Modifier.fillMaxWidth(),
-        columns = GridCells.Fixed(columns),
-        contentPadding = PaddingValues(16.dp)
-    ) {
-        items(viewModel.taggableApps) {
-            val iconSize = 32.dp.toPixels()
-            val icon by remember(it.item.key) {
-                viewModel.getIcon(it.item, iconSize.toInt())
-            }.collectAsState(null)
-            ListItem(item = it, icon = icon, onTagChanged = { tagged ->
-                if (tagged) viewModel.tagItem(it.item)
-                else viewModel.untagItem(it.item)
-            })
-        }
+    TagItemPicker(
+        apps = viewModel.visibleApps,
+        other = viewModel.visibleOther,
+        query = viewModel.itemQuery,
+        onQueryChange = { viewModel.itemQuery = it },
+        onlyUntagged = viewModel.onlyUntagged,
+        onOnlyUntaggedChange = { viewModel.onlyUntagged = it },
+        selectedCount = viewModel.taggedItems.size,
+        getIcon = viewModel::getIcon,
+        onSelectionChange = { item, selected ->
+            if (selected) viewModel.tagItem(item) else viewModel.untagItem(item)
+        },
+    )
+}
 
-        if (viewModel.taggableOther.isNotEmpty()) {
-            item(span = { GridItemSpan(columns) }) {
-                Box(
-                    modifier = Modifier
-                        .padding(vertical = 8.dp)
-                        .background(MaterialTheme.colorScheme.outlineVariant)
-                        .fillMaxWidth()
-                        .height(1.dp)
-                )
+@Composable
+internal fun TagItemPicker(
+    apps: List<TaggableItem>,
+    other: List<TaggableItem> = emptyList(),
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onlyUntagged: Boolean,
+    onOnlyUntaggedChange: (Boolean) -> Unit,
+    selectedCount: Int,
+    getIcon: (SavableSearchable, Int) -> Flow<LauncherIcon?>,
+    onSelectionChange: (SavableSearchable, Boolean) -> Unit,
+    enabled: Boolean = true,
+) {
+    val columns = (LocalGridSettings.current.columnCount - 1).coerceAtLeast(1)
+    val focusManager = LocalFocusManager.current
+
+    Column {
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            value = query,
+            onValueChange = onQueryChange,
+            enabled = enabled,
+            label = { Text(stringResource(R.string.tagging_search_items)) },
+            singleLine = true,
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+            leadingIcon = { Icon(painterResource(R.drawable.search_24px), null) },
+            trailingIcon = if (query.isNotEmpty()) {
+                {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(painterResource(R.drawable.close_24px), stringResource(R.string.action_clear))
+                    }
+                }
+            } else null,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            FilterChip(
+                selected = onlyUntagged,
+                enabled = enabled,
+                onClick = { onOnlyUntaggedChange(!onlyUntagged) },
+                label = { Text(stringResource(R.string.tagging_untagged)) },
+            )
+            Text(
+                pluralStringResource(R.plurals.tag_selected_items, selectedCount, selectedCount),
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
+        if (apps.isEmpty() && other.isEmpty()) {
+            Text(
+                stringResource(R.string.tagging_no_matches),
+                modifier = Modifier.padding(16.dp),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        LazyVerticalGrid(
+            modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
+            columns = GridCells.Fixed(columns),
+            contentPadding = PaddingValues(16.dp)
+        ) {
+            items(apps, key = { it.item.key }) {
+                val iconSize = 32.dp.toPixels()
+                val icon by remember(it.item.key, iconSize) {
+                    getIcon(it.item, iconSize.toInt())
+                }.collectAsState(null)
+                ListItem(item = it, icon = icon, enabled = enabled, onTagChanged = { tagged ->
+                    onSelectionChange(it.item, tagged)
+                })
             }
 
-            items(viewModel.taggableOther) {
-                val iconSize = 32.dp.toPixels()
-                val icon by remember(it.item.key) {
-                    viewModel.getIcon(it.item, iconSize.toInt())
-                }.collectAsState(null)
-                ListItem(item = it, icon = icon, onTagChanged = { tagged ->
-                    if (tagged) viewModel.tagItem(it.item)
-                    else viewModel.untagItem(it.item)
-                })
+            if (other.isNotEmpty()) {
+                item(span = { GridItemSpan(columns) }) {
+                    Box(
+                        modifier = Modifier
+                            .padding(vertical = 8.dp)
+                            .background(MaterialTheme.colorScheme.outlineVariant)
+                            .fillMaxWidth()
+                            .height(1.dp)
+                    )
+                }
+
+                items(other, key = { it.item.key }) {
+                    val iconSize = 32.dp.toPixels()
+                    val icon by remember(it.item.key, iconSize) {
+                        getIcon(it.item, iconSize.toInt())
+                    }.collectAsState(null)
+                    ListItem(item = it, icon = icon, enabled = enabled, onTagChanged = { tagged ->
+                        onSelectionChange(it.item, tagged)
+                    })
+                }
             }
         }
     }
@@ -322,10 +400,13 @@ fun PickItems(viewModel: EditTagSheetVM) {
 fun ListItem(
     item: TaggableItem,
     icon: LauncherIcon?,
+    enabled: Boolean = true,
     onTagChanged: (Boolean) -> Unit
 ) {
     Column(
-        modifier = Modifier.padding(8.dp),
+        modifier = Modifier
+            .toggleable(value = item.isTagged, enabled = enabled, role = Role.Checkbox, onValueChange = onTagChanged)
+            .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box {
@@ -333,10 +414,7 @@ fun ListItem(
                 icon = { icon },
                 size = 48.dp,
                 modifier = Modifier
-                    .padding(4.dp)
-                    .clickable {
-                        onTagChanged(!item.isTagged)
-                    },
+                    .padding(4.dp),
             )
             if (item.isTagged) {
                 Surface(

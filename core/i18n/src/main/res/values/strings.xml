@@ -848,6 +848,12 @@
     <string name="tag_exists_message">A tag with this name already exists. If you continue, the two tags will be merged</string>
     <string name="tag_no_items_message">No items are assigned to this tag. If you continue, the tag will be deleted</string>
     <string name="tag_select_items">Select items</string>
+    <string name="tagging_search_items">Search apps and items</string>
+    <string name="tagging_untagged">Untagged</string>
+    <string name="tagging_no_matches">No matching items</string>
+    <string name="tagging_bulk_action">Tag multiple apps</string>
+    <string name="tagging_apply_tag">Apply tag</string>
+    <string name="tagging_save_failed">Couldn’t save the tag. Try again.</string>
     <string name="tag_name">Tag name</string>
     <string name="tag_icon_customicon">Icon</string>
     <string name="tag_icon_emoji">Emoji</string>
@@ -1285,4 +1291,9 @@
     <string name="stack_move_down">Move widget down</string>
     <string name="stack_remove_from_stack">Remove widget from stack</string>
     <string name="stack_swipe_hint">Swipe to switch widgets, or use the arrows below.</string>
+    <string name="suggestions_exclude_app">Don’t suggest this app</string>
+    <string name="suggestions_allow_app">Allow in suggestions</string>
+    <string name="suggestions_excluded_title">Excluded suggestions</string>
+    <string name="suggestions_excluded_summary">These apps stay available in search and the app list, and can still be pinned. They won’t appear in frequently used suggestions.</string>
+    <string name="suggestions_excluded_empty">No apps excluded from suggestions</string>
 </resources>

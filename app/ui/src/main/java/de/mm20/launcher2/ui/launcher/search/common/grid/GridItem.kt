@@ -240,9 +240,10 @@ fun ItemPopup(origin: IntRect, searchable: Searchable, onDismissRequest: () -> U
     val sheetManager = LocalBottomSheetManager.current
     val customizedItem = sheetManager.customizeSearchableSheetShown.value
     val folderDialogItem = sheetManager.addToFolderDialogShown.value
-    LaunchedEffect(customizedItem, folderDialogItem) {
+    val bulkTagItem = sheetManager.bulkTagAppsSheetShown.value
+    LaunchedEffect(customizedItem, folderDialogItem, bulkTagItem) {
         val key = (searchable as? SavableSearchable)?.key ?: return@LaunchedEffect
-        if (customizedItem?.key == key || folderDialogItem?.key == key) {
+        if (customizedItem?.key == key || folderDialogItem?.key == key || bulkTagItem?.key == key) {
             show.targetState = false
         }
     }

@@ -8,6 +8,16 @@ Favorites consist of:
 - Automatically sorted pinned items (sorted by how frequently you use them)
 - Frequently used items (if there is room)
 
+## Control suggested apps
+
+Long-press an app and choose **Don't suggest this app** to keep it out of frequently
+used suggestions. It stays available in search and the app list, and you can still
+pin it. The preference continues to apply after future launches.
+
+Restore an app with **Allow in suggestions**, or manage the list at
+**Settings > Search > Favorites > Excluded suggestions**. Pinned items remain visible
+even when they are excluded from suggestions.
+
 ## Pin apps to favorites
 
 You can pin any app and any search result to favorites by long pressing it and selecting the <span class="material-symbols-rounded">star_border</span> icon. Remove items by pressing the same icon again.

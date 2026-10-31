@@ -427,6 +427,27 @@ fun AppItem(
                     }
 
                     if (!app.isPrivate) {
+                        val excluded by viewModel.isExcludedFromFrequentlyUsed.collectAsStateWithLifecycle(false)
+                        toolbarActions.add(
+                            DefaultToolbarAction(
+                                label = stringResource(
+                                    if (excluded) R.string.suggestions_allow_app
+                                    else R.string.suggestions_exclude_app
+                                ),
+                                icon = if (excluded) R.drawable.show_chart_24px else R.drawable.visibility_off_24px,
+                                action = { viewModel.setExcludedFromFrequentlyUsed(!excluded) },
+                            )
+                        )
+                        toolbarActions.add(
+                            DefaultToolbarAction(
+                                label = stringResource(R.string.tagging_bulk_action),
+                                icon = R.drawable.tag_24px,
+                                action = { sheetManager.showBulkTagAppsSheet(app) },
+                            )
+                        )
+                    }
+
+                    if (!app.isPrivate) {
                         toolbarActions.add(
                             DefaultToolbarAction(
                                 label = stringResource(R.string.menu_add_to_folder),

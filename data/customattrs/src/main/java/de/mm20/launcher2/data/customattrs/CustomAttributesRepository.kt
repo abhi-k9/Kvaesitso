@@ -45,6 +45,8 @@ interface CustomAttributesRepository: Backupable {
 
     fun setTags(searchable: SavableSearchable, tags: List<String>)
     fun getTags(searchable: SavableSearchable): Flow<List<String>>
+    fun getTaggedKeys(): Flow<Set<String>>
+    fun addTagToItems(items: List<SavableSearchable>, tag: String): Job
 
     fun getAllTags(startsWith: String? = null): Flow<List<String>>
     fun getItemsForTag(tag: String): Flow<List<SavableSearchable>>
@@ -159,6 +161,20 @@ internal class CustomAttributesRepositoryImpl(
         }
     }
 
+    override fun getTaggedKeys(): Flow<Set<String>> = appDatabase.customAttrsDao()
+        .getKeysWithAttribute(CustomAttributeType.Tag.value)
+        .map { it.toSet() }
+        .distinctUntilChanged()
+
+    override fun addTagToItems(items: List<SavableSearchable>, tag: String): Job = scope.launch {
+        val name = tag.trim()
+        if (name.isEmpty()) return@launch
+        val uniqueItems = items.distinctBy { it.key }
+        if (uniqueItems.isEmpty()) return@launch
+        searchableRepository.insertAll(uniqueItems)
+        appDatabase.customAttrsDao().addTagToItems(uniqueItems.map { it.key }, name)
+    }
+
     override fun getAllTags(startsWith: String?): Flow<List<String>> {
         val dao = appDatabase.customAttrsDao()
         val tags = if (startsWith != null) {
@@ -241,11 +257,10 @@ internal class CustomAttributesRepositoryImpl(
         val normalizedQuery = stringNormalizer.normalize(query)
         return labelsAndTags
             .combine(keyboardLayouts) { attributes, keyboardLayout ->
+                val scorer = ResultScore.prepare(normalizedQuery, keyboardLayout)
                 attributes.filter {
-                    val score = ResultScore.from(
-                        normalizedQuery,
+                    val score = scorer.score(
                         primaryFields = listOf(normalize(it.value)),
-                        keyboardLayout = keyboardLayout,
                     )
                     // A tag matches many items at once, so only a strong match counts there:
                     // "ga" in "navigation" would show every navigation app.

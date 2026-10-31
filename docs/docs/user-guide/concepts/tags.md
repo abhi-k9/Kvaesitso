@@ -38,3 +38,13 @@ OR
      - Tap on one of the two tags you want to merge
      - Change the name of that tag to the name of the other tag
      - The contents of the two tags will be merged
+
+## Find and tag several apps
+
+The item picker supports search by name, custom name or package name. Turn on
+**Untagged** to show only items that have no tags. Checked items stay selected when
+you change the search or filter.
+
+You can also long-press an app and choose **Tag multiple apps**. Select the apps,
+choose an existing tag or enter a new name, then press **Apply tag**. This adds the
+tag to the selection while keeping their other tags and the tag's existing members.

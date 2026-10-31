@@ -56,4 +56,25 @@ dependencies {
     implementation(project(":data:wikipedia"))
     implementation(project(":core:crashreporter"))
 
+    testImplementation(libs.bundles.tests)
+    testImplementation(libs.robolectric)
+
+}
+
+// Keep Robolectric independent of network access during the test run.
+val robolectricAndroidAll by configurations.creating
+dependencies {
+    robolectricAndroidAll(libs.robolectric.android.all)
+}
+val robolectricDependencyDir = layout.buildDirectory.dir("robolectric")
+val copyRobolectricAndroidAll by tasks.registering(Sync::class) {
+    from(robolectricAndroidAll)
+    into(robolectricDependencyDir)
+}
+val migrationSchemaDirectory = layout.projectDirectory.dir("../database/schemas").asFile.absolutePath
+tasks.withType<Test>().configureEach {
+    dependsOn(copyRobolectricAndroidAll)
+    systemProperty("robolectric.offline", "true")
+    systemProperty("robolectric.dependency.dir", robolectricDependencyDir.get().asFile.absolutePath)
+    systemProperty("kvaesitso.migration.schemas", migrationSchemaDirectory)
 }

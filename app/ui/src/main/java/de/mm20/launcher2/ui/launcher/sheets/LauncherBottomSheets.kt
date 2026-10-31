@@ -17,6 +17,10 @@ fun LauncherBottomSheets() {
         tag = bottomSheetManager.editTagSheetShown.value,
         onDismiss = { bottomSheetManager.dismissEditTagSheet() }
     )
+    BulkTagAppsSheet(
+        initialApp = bottomSheetManager.bulkTagAppsSheetShown.value,
+        onDismiss = { bottomSheetManager.dismissBulkTagAppsSheet() },
+    )
     FailedGestureSheet(
         bottomSheetManager.failedGestureSheetShown.value,
         onDismiss = { bottomSheetManager.dismissFailedGestureSheet() }

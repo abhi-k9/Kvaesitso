@@ -18,6 +18,9 @@ interface SearchableDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(searchable: SavedSearchableEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(searchables: List<SavedSearchableEntity>)
+
     @Upsert(entity = SavedSearchableEntity::class)
     suspend fun upsert(searchable: SavedSearchableEntity)
 
@@ -35,7 +38,7 @@ interface SearchableDao {
                 "WHERE (" +
                 "(:manuallySorted AND pinPosition > 1) OR " +
                 "(:automaticallySorted AND pinPosition = 1) OR " +
-                "(:frequentlyUsed AND pinPosition = 0 AND launchCount > 0) OR " +
+                "(:frequentlyUsed AND pinPosition = 0 AND launchCount > 0 AND (NOT :filterExcludedSuggestions OR excludeFromFrequentlyUsed = 0)) OR " +
                 "(:unused AND pinPosition = 0 AND launchCount = 0)" +
                 ") AND (hidden <= :minVisibility AND hidden >= :maxVisibility) " +
                 "ORDER BY pinPosition DESC, weight DESC, launchCount DESC LIMIT :limit"
@@ -48,6 +51,7 @@ interface SearchableDao {
         minVisibility: Int = 2,
         maxVisibility: Int = 0,
         limit: Int,
+        filterExcludedSuggestions: Boolean = false,
     ): Flow<List<SavedSearchableEntity>>
 
     @Query(
@@ -56,7 +60,7 @@ interface SearchableDao {
                 "(" +
                 "(:manuallySorted AND pinPosition > 1) OR " +
                 "(:automaticallySorted AND pinPosition = 1) OR " +
-                "(:frequentlyUsed AND pinPosition = 0 AND launchCount > 0) OR" +
+                "(:frequentlyUsed AND pinPosition = 0 AND launchCount > 0 AND (NOT :filterExcludedSuggestions OR excludeFromFrequentlyUsed = 0)) OR" +
                 "(:unused AND pinPosition = 0 AND launchCount = 0)" +
                 ") AND (hidden <= :minVisibility AND hidden >= :maxVisibility) " +
                 "ORDER BY pinPosition DESC, weight DESC, launchCount DESC LIMIT :limit"
@@ -70,6 +74,7 @@ interface SearchableDao {
         minVisibility: Int = 2,
         maxVisibility: Int = 0,
         limit: Int,
+        filterExcludedSuggestions: Boolean = false,
     ): Flow<List<SavedSearchableEntity>>
 
     @Query(
@@ -78,7 +83,7 @@ interface SearchableDao {
                 "(" +
                 "(:manuallySorted AND pinPosition > 1) OR " +
                 "(:automaticallySorted AND pinPosition = 1) OR " +
-                "(:frequentlyUsed AND pinPosition = 0 AND launchCount > 0) OR " +
+                "(:frequentlyUsed AND pinPosition = 0 AND launchCount > 0 AND (NOT :filterExcludedSuggestions OR excludeFromFrequentlyUsed = 0)) OR " +
                 "(:unused AND pinPosition = 0 AND launchCount = 0)" +
                 ") AND (hidden <= :minVisibility AND hidden >= :maxVisibility) " +
                 "ORDER BY pinPosition DESC, weight DESC, launchCount DESC LIMIT :limit"
@@ -92,6 +97,7 @@ interface SearchableDao {
         minVisibility: Int = 2,
         maxVisibility: Int = 0,
         limit: Int,
+        filterExcludedSuggestions: Boolean = false,
     ): Flow<List<SavedSearchableEntity>>
 
     @Query(
@@ -99,7 +105,7 @@ interface SearchableDao {
                 "WHERE (" +
                 "(:manuallySorted AND pinPosition > 1) OR " +
                 "(:automaticallySorted AND pinPosition = 1) OR " +
-                "(:frequentlyUsed AND pinPosition = 0 AND launchCount > 0) OR " +
+                "(:frequentlyUsed AND pinPosition = 0 AND launchCount > 0 AND (NOT :filterExcludedSuggestions OR excludeFromFrequentlyUsed = 0)) OR " +
                 "(:unused AND pinPosition = 0 AND launchCount = 0)" +
                 ") AND (hidden <= :minVisibility AND hidden >= :maxVisibility) " +
                 "ORDER BY pinPosition DESC, weight DESC, launchCount DESC LIMIT :limit"
@@ -112,6 +118,7 @@ interface SearchableDao {
         minVisibility: Int = 2,
         maxVisibility: Int = 0,
         limit: Int,
+        filterExcludedSuggestions: Boolean = false,
     ): Flow<List<String>>
 
     @Query(
@@ -120,7 +127,7 @@ interface SearchableDao {
                 "(" +
                 "(:manuallySorted AND pinPosition > 1) OR " +
                 "(:automaticallySorted AND pinPosition = 1) OR" +
-                "(:frequentlyUsed AND pinPosition = 0 AND launchCount > 0) OR " +
+                "(:frequentlyUsed AND pinPosition = 0 AND launchCount > 0 AND (NOT :filterExcludedSuggestions OR excludeFromFrequentlyUsed = 0)) OR " +
                 "(:unused AND pinPosition = 0 AND launchCount = 0)" +
                 ") AND (hidden <= :minVisibility AND hidden >= :maxVisibility) " +
                 "ORDER BY pinPosition DESC, weight DESC, launchCount DESC LIMIT :limit"
@@ -134,6 +141,7 @@ interface SearchableDao {
         minVisibility: Int = 2,
         maxVisibility: Int = 0,
         limit: Int,
+        filterExcludedSuggestions: Boolean = false,
     ): Flow<List<String>>
 
     @Query(
@@ -142,7 +150,7 @@ interface SearchableDao {
                 "(" +
                 "(:manuallySorted AND pinPosition > 1) OR " +
                 "(:automaticallySorted AND pinPosition = 1) OR " +
-                "(:frequentlyUsed AND pinPosition = 0 AND launchCount > 0) OR " +
+                "(:frequentlyUsed AND pinPosition = 0 AND launchCount > 0 AND (NOT :filterExcludedSuggestions OR excludeFromFrequentlyUsed = 0)) OR " +
                 "(:unused AND pinPosition = 0 AND launchCount = 0)" +
                 ") AND (hidden <= :minVisibility AND hidden >= :maxVisibility) " +
                 "ORDER BY pinPosition DESC, weight DESC, launchCount DESC LIMIT :limit"
@@ -156,13 +164,32 @@ interface SearchableDao {
         minVisibility: Int = 2,
         maxVisibility: Int = 0,
         limit: Int,
+        filterExcludedSuggestions: Boolean = false,
     ): Flow<List<String>>
+
+    @Query("SELECT * FROM Searchable WHERE excludeFromFrequentlyUsed = 1 ORDER BY `key`")
+    fun getExcludedFromFrequentlyUsed(): Flow<List<SavedSearchableEntity>>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM Searchable WHERE `key` = :key AND excludeFromFrequentlyUsed = 1)")
+    fun isExcludedFromFrequentlyUsed(key: String): Flow<Boolean>
+
+    @Transaction
+    suspend fun setExcludedFromFrequentlyUsed(item: SavedSearchableEntity, excluded: Boolean) {
+        insert(item)
+        updateExcludedFromFrequentlyUsed(item.key, excluded)
+    }
+
+    @Query("UPDATE Searchable SET excludeFromFrequentlyUsed = :excluded WHERE `key` = :key")
+    suspend fun updateExcludedFromFrequentlyUsed(key: String, excluded: Boolean)
 
     @Query("SELECT * FROM Searchable WHERE `key` IN (:keys)")
     fun getByKeys(keys: List<String>): Flow<List<SavedSearchableEntity>>
 
     @Query("SELECT * FROM Searchable WHERE `key` = :key")
     fun getByKey(key: String): Flow<SavedSearchableEntity?>
+
+    @Query("SELECT * FROM Searchable WHERE `key` = :key")
+    suspend fun getByKeyOnce(key: String): SavedSearchableEntity?
 
     @Transaction
     suspend fun touch(item: SavedSearchableEntity, alpha: Double) {
@@ -240,7 +267,8 @@ interface SearchableDao {
     @Query(
         "UPDATE Searchable SET " +
                 "launchCount = launchCount + (SELECT launchCount FROM Searchable WHERE `key` = :oldKey), " +
-                "pinPosition = MAX(pinPosition, (SELECT pinPosition FROM Searchable WHERE `key` = :oldKey)) " +
+                "pinPosition = MAX(pinPosition, (SELECT pinPosition FROM Searchable WHERE `key` = :oldKey)), " +
+                "excludeFromFrequentlyUsed = MAX(excludeFromFrequentlyUsed, (SELECT excludeFromFrequentlyUsed FROM Searchable WHERE `key` = :oldKey)) " +
                 "WHERE `key` = :newKey"
     )
     suspend fun mergeInto(oldKey: String, newKey: String)

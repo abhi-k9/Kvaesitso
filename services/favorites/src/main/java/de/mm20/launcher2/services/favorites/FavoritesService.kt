@@ -25,7 +25,15 @@ class FavoritesService(
             maxPinnedLevel = maxPinnedLevel,
             limit = limit,
             minVisibility = VisibilityLevel.SearchOnly,
+            filterExcludedSuggestions = true,
         )
+    }
+
+    fun isExcludedFromFrequentlyUsed(searchable: SavableSearchable): Flow<Boolean> =
+        searchableRepository.isExcludedFromFrequentlyUsed(searchable)
+
+    fun setExcludedFromFrequentlyUsed(searchable: SavableSearchable, excluded: Boolean) {
+        searchableRepository.setExcludedFromFrequentlyUsed(searchable, excluded)
     }
 
     fun isPinned(searchable: SavableSearchable): Flow<Boolean> {

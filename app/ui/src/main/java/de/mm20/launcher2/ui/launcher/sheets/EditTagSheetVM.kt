@@ -9,6 +9,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.mm20.launcher2.applications.AppRepository
 import de.mm20.launcher2.data.customattrs.CustomIcon
+import de.mm20.launcher2.data.customattrs.CustomAttributesRepository
+import de.mm20.launcher2.data.customattrs.utils.withCustomLabels
 import de.mm20.launcher2.data.customattrs.TagFoldersRepository
 import de.mm20.launcher2.icons.IconService
 import de.mm20.launcher2.icons.LauncherIcon
@@ -22,8 +24,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -34,6 +38,7 @@ class EditTagSheetVM : ViewModel(), KoinComponent {
     private val iconService: IconService by inject()
     private val appRepository: AppRepository by inject()
     private val tagFoldersRepository: TagFoldersRepository by inject()
+    private val customAttributes: CustomAttributesRepository by inject()
 
     private var oldTagName by mutableStateOf<String?>(null)
     private var allTags by mutableStateOf(emptySet<String>())
@@ -51,6 +56,10 @@ class EditTagSheetVM : ViewModel(), KoinComponent {
     var taggedItems by mutableStateOf(emptyList<SavableSearchable>())
     var taggableApps by mutableStateOf(emptyList<TaggableItem>())
     var taggableOther by mutableStateOf(emptyList<TaggableItem>())
+    var itemQuery by mutableStateOf("")
+    var onlyUntagged by mutableStateOf(false)
+    val visibleApps by derivedStateOf { filterTaggableItems(taggableApps, itemQuery, onlyUntagged) }
+    val visibleOther by derivedStateOf { filterTaggableItems(taggableOther, itemQuery, onlyUntagged) }
 
     val tagNameExists by derivedStateOf {
         tagName != oldTagName && allTags.contains(tagName)
@@ -64,11 +73,13 @@ class EditTagSheetVM : ViewModel(), KoinComponent {
         this.page = if (tag == null) EditTagSheetPage.CreateTag else EditTagSheetPage.CustomizeTag
         this.wasOnLastPage = this.page == EditTagSheetPage.CustomizeTag
         this.taggedItems = emptyList()
+        this.itemQuery = ""
+        this.onlyUntagged = false
         this.isFolder = false
         // The sheet reuses this view model, so a tag that is still loading must not overwrite
         // this one
         loadJob?.cancel()
-        loadJob = viewModelScope.launch(Dispatchers.Default) {
+        loadJob = viewModelScope.launch {
             allTags = tagService.getAllTags().first().toSet()
             isFolder = tag != null && tagFoldersRepository.isFolder(tag).first()
             val items = if (tag != null) tagService.getTaggedItems(tag).first() else emptyList()
@@ -78,15 +89,26 @@ class EditTagSheetVM : ViewModel(), KoinComponent {
                 else null
             }
 
-            val apps = appRepository.findMany().first { it.isNotEmpty() }.sorted()
             taggedItems = items
-            taggableApps = apps.map { app -> TaggableItem(app, items.any { app.key == it.key }) }
-            taggableOther = items.mapNotNull { item ->
-                if (apps.any { item.key == it.key }) null
-                else TaggableItem(item, true)
-            }.sortedBy { it.item }
-            loading = false
+            appRepository.findMany().withCustomLabels(customAttributes)
+                .combine(customAttributes.getTaggedKeys()) { apps, taggedKeys ->
+                    withContext(Dispatchers.Default) { apps.sorted() } to taggedKeys
+                }.collect { (apps, taggedKeys) ->
+                val selectedKeys = taggedItems.mapTo(mutableSetOf()) { it.key }
+                val appKeys = apps.mapTo(mutableSetOf()) { it.key }
+                taggableApps = apps.map { app ->
+                    TaggableItem(app, app.key in selectedKeys, app.key in taggedKeys)
+                }
+                taggableOther = items.filterNot { it.key in appKeys }.map { item ->
+                    TaggableItem(item, item.key in selectedKeys, item.key in taggedKeys)
+                }.sortedBy { it.item }
+                loading = false
+            }
         }
+    }
+
+    fun stopLoading() {
+        loadJob?.cancel()
     }
 
     fun save() {
@@ -145,19 +167,19 @@ class EditTagSheetVM : ViewModel(), KoinComponent {
     }
 
     fun tagItem(item: SavableSearchable) {
-        taggedItems = taggedItems + item
-        taggableApps =
-            taggableApps.map { app -> app.copy(isTagged = taggedItems.any { it.key == app.item.key }) }
-        taggableOther =
-            taggableOther.map { oth -> oth.copy(isTagged = taggedItems.any { it.key == oth.item.key }) }
+        if (taggedItems.none { it.key == item.key }) taggedItems = taggedItems + item
+        updateSelection()
     }
 
     fun untagItem(item: SavableSearchable) {
         taggedItems = taggedItems.filter { it.key != item.key }
-        taggableApps =
-            taggableApps.map { app -> app.copy(isTagged = taggedItems.any { it.key == app.item.key }) }
-        taggableOther =
-            taggableOther.map { oth -> oth.copy(isTagged = taggedItems.any { it.key == oth.item.key }) }
+        updateSelection()
+    }
+
+    private fun updateSelection() {
+        val selectedKeys = taggedItems.mapTo(mutableSetOf()) { it.key }
+        taggableApps = taggableApps.map { it.copy(isTagged = it.item.key in selectedKeys) }
+        taggableOther = taggableOther.map { it.copy(isTagged = it.item.key in selectedKeys) }
     }
 }
 
@@ -169,4 +191,11 @@ enum class EditTagSheetPage {
 }
 
 @Stable
-data class TaggableItem(val item: SavableSearchable, val isTagged: Boolean)
+data class TaggableItem(
+    val item: SavableSearchable,
+    val isTagged: Boolean,
+    val hasAnyTags: Boolean = isTagged,
+    val searchText: String = normalizeTagPickerText(
+        listOfNotNull(item.labelOverride, item.label, item.key).joinToString(" "),
+    ),
+)

@@ -17,6 +17,7 @@ import de.mm20.launcher2.ui.component.preferences.PreferenceCategory
 import de.mm20.launcher2.ui.component.preferences.PreferenceScreen
 import de.mm20.launcher2.ui.component.preferences.SliderPreference
 import de.mm20.launcher2.ui.component.preferences.SwitchPreference
+import de.mm20.launcher2.ui.locals.LocalBackStack
 import de.mm20.launcher2.ui.launcher.sheets.EditFavoritesSheet
 import kotlinx.serialization.Serializable
 
@@ -26,6 +27,7 @@ data object FavoritesSettingsRoute : NavKey
 @Composable
 fun FavoritesSettingsScreen() {
     val viewModel: FavoritesSettingsScreenVM = viewModel()
+    val backStack = LocalBackStack.current
     var showEditSheet by remember { mutableStateOf(false) }
     PreferenceScreen(
         title = stringResource(R.string.preference_search_favorites)
@@ -65,6 +67,12 @@ fun FavoritesSettingsScreen() {
                         viewModel.setFrequentlyUsedRows(it)
                     },
                     icon = R.drawable.table_rows_24px,
+                )
+                Preference(
+                    title = stringResource(R.string.suggestions_excluded_title),
+                    summary = stringResource(R.string.suggestions_excluded_summary),
+                    icon = R.drawable.visibility_off_24px,
+                    onClick = { backStack.add(ExcludedSuggestionsSettingsRoute) },
                 )
                 val searchResultWeightFactor by viewModel.searchResultWeightFactor.collectAsState()
                 ListPreference(

@@ -42,6 +42,9 @@ interface SavableSearchableRepository : Backupable {
         searchable: SavableSearchable,
     )
 
+    /** Save a batch before returning, keeping all settings of entries that already exist. */
+    suspend fun insertAll(searchables: List<SavableSearchable>)
+
     fun upsert(
         searchable: SavableSearchable,
         visibility: VisibilityLevel? = null,
@@ -96,6 +99,7 @@ interface SavableSearchableRepository : Backupable {
         minVisibility: VisibilityLevel = VisibilityLevel.Hidden,
         maxVisibility: VisibilityLevel = VisibilityLevel.Default,
         limit: Int = 9999,
+        filterExcludedSuggestions: Boolean = false,
     ): Flow<List<SavableSearchable>>
 
     fun getKeys(
@@ -106,8 +110,13 @@ interface SavableSearchableRepository : Backupable {
         minVisibility: VisibilityLevel = VisibilityLevel.Hidden,
         maxVisibility: VisibilityLevel = VisibilityLevel.Default,
         limit: Int = 9999,
+        filterExcludedSuggestions: Boolean = false,
     ): Flow<List<String>>
 
+
+    fun getExcludedFromFrequentlyUsed(): Flow<List<SavableSearchable>>
+    fun isExcludedFromFrequentlyUsed(searchable: SavableSearchable): Flow<Boolean>
+    fun setExcludedFromFrequentlyUsed(searchable: SavableSearchable, excluded: Boolean)
 
     fun isPinned(searchable: SavableSearchable): Flow<Boolean>
     fun getVisibility(searchable: SavableSearchable): Flow<VisibilityLevel>
@@ -170,6 +179,23 @@ internal class SavableSearchableRepositoryImpl(
         }
     }
 
+    override suspend fun insertAll(searchables: List<SavableSearchable>) =
+        withContext(Dispatchers.Default) {
+            val entities = searchables.distinctBy { it.key }.mapNotNull { searchable ->
+                val serialized = searchable.serialize() ?: return@mapNotNull null
+                SavedSearchableEntity(
+                    key = searchable.key,
+                    type = searchable.domain,
+                    serializedSearchable = serialized,
+                    visibility = VisibilityLevel.Default.value,
+                    launchCount = 0,
+                    weight = 0.0,
+                    pinPosition = 0,
+                )
+            }
+            if (entities.isNotEmpty()) database.searchableDao().insertAll(entities)
+        }
+
 
     override fun upsert(
         searchable: SavableSearchable,
@@ -180,20 +206,25 @@ internal class SavableSearchableRepositoryImpl(
     ) {
         val dao = database.searchableDao()
         scope.launch {
-            val entity = dao.getByKey(searchable.key).firstOrNull()
-            dao.upsert(
-                SavedSearchableEntity(
-                    key = searchable.key,
-                    type = searchable.domain,
-                    visibility = visibility?.value ?: entity?.visibility ?: 0,
-                    pinPosition = pinned?.let { if (it) 1 else 0 } ?: entity?.pinPosition ?: 0,
-                    launchCount = launchCount ?: entity?.launchCount ?: 0,
-                    weight = weight ?: entity?.weight ?: 0.0,
-                    serializedSearchable = searchable.serialize() ?: return@launch,
+            val serialized = searchable.serialize() ?: return@launch
+            database.withWriteTransaction {
+                val entity = dao.getByKeyOnce(searchable.key)
+                dao.upsert(
+                    SavedSearchableEntity(
+                        key = searchable.key,
+                        type = searchable.domain,
+                        visibility = visibility?.value ?: entity?.visibility ?: 0,
+                        pinPosition = pinned?.let { if (it) 1 else 0 } ?: entity?.pinPosition ?: 0,
+                        launchCount = launchCount ?: entity?.launchCount ?: 0,
+                        weight = weight ?: entity?.weight ?: 0.0,
+                        excludeFromFrequentlyUsed = entity?.excludeFromFrequentlyUsed ?: false,
+                        serializedSearchable = serialized,
+                    )
                 )
-            )
+            }
         }
     }
+
 
     override fun update(
         searchable: SavableSearchable,
@@ -204,20 +235,25 @@ internal class SavableSearchableRepositoryImpl(
     ) {
         val dao = database.searchableDao()
         scope.launch {
-            val entity = dao.getByKey(searchable.key).firstOrNull()
-            dao.upsert(
-                SavedSearchableEntity(
-                    key = searchable.key,
-                    type = searchable.domain,
-                    visibility = visibility?.value ?: entity?.visibility ?: 0,
-                    pinPosition = pinned?.let { if (it) 1 else 0 } ?: entity?.pinPosition ?: 0,
-                    launchCount = launchCount ?: entity?.launchCount ?: 0,
-                    weight = weight ?: entity?.weight ?: 0.0,
-                    serializedSearchable = searchable.serialize() ?: return@launch,
+            val serialized = searchable.serialize() ?: return@launch
+            database.withWriteTransaction {
+                val entity = dao.getByKeyOnce(searchable.key)
+                dao.upsert(
+                    SavedSearchableEntity(
+                        key = searchable.key,
+                        type = searchable.domain,
+                        visibility = visibility?.value ?: entity?.visibility ?: 0,
+                        pinPosition = pinned?.let { if (it) 1 else 0 } ?: entity?.pinPosition ?: 0,
+                        launchCount = launchCount ?: entity?.launchCount ?: 0,
+                        weight = weight ?: entity?.weight ?: 0.0,
+                        excludeFromFrequentlyUsed = entity?.excludeFromFrequentlyUsed ?: false,
+                        serializedSearchable = serialized,
+                    )
                 )
-            )
+            }
         }
     }
+
 
     override fun touch(searchable: SavableSearchable) {
         scope.launch {
@@ -243,7 +279,8 @@ internal class SavableSearchableRepositoryImpl(
         maxPinnedLevel: PinnedLevel,
         minVisibility: VisibilityLevel,
         maxVisibility: VisibilityLevel,
-        limit: Int
+        limit: Int,
+        filterExcludedSuggestions: Boolean,
     ): Flow<List<SavableSearchable>> {
         val dao = database.searchableDao()
         val entities = when {
@@ -254,7 +291,8 @@ internal class SavableSearchableRepositoryImpl(
                 unused = PinnedLevel.NotPinned in minPinnedLevel..maxPinnedLevel,
                 minVisibility = minVisibility.value,
                 maxVisibility = maxVisibility.value,
-                limit = limit
+                limit = limit,
+                filterExcludedSuggestions = filterExcludedSuggestions,
             )
 
             includeTypes == null -> dao.getExcludeTypes(
@@ -265,7 +303,8 @@ internal class SavableSearchableRepositoryImpl(
                 unused = PinnedLevel.NotPinned in minPinnedLevel..maxPinnedLevel,
                 minVisibility = minVisibility.value,
                 maxVisibility = maxVisibility.value,
-                limit = limit
+                limit = limit,
+                filterExcludedSuggestions = filterExcludedSuggestions,
             )
 
             excludeTypes == null -> dao.getIncludeTypes(
@@ -276,7 +315,8 @@ internal class SavableSearchableRepositoryImpl(
                 unused = PinnedLevel.NotPinned in minPinnedLevel..maxPinnedLevel,
                 minVisibility = minVisibility.value,
                 maxVisibility = maxVisibility.value,
-                limit = limit
+                limit = limit,
+                filterExcludedSuggestions = filterExcludedSuggestions,
             )
 
             else -> throw IllegalArgumentException("Cannot specify both includeTypes and excludeTypes")
@@ -297,7 +337,8 @@ internal class SavableSearchableRepositoryImpl(
         maxPinnedLevel: PinnedLevel,
         minVisibility: VisibilityLevel,
         maxVisibility: VisibilityLevel,
-        limit: Int
+        limit: Int,
+        filterExcludedSuggestions: Boolean,
     ): Flow<List<String>> {
         val dao = database.searchableDao()
         // The table changes after every app launch (launch counts and weights), but the keys
@@ -310,7 +351,8 @@ internal class SavableSearchableRepositoryImpl(
                 unused = PinnedLevel.NotPinned in minPinnedLevel..maxPinnedLevel,
                 minVisibility = minVisibility.value,
                 maxVisibility = maxVisibility.value,
-                limit = limit
+                limit = limit,
+                filterExcludedSuggestions = filterExcludedSuggestions,
             )
 
             includeTypes == null -> dao.getKeysExcludeTypes(
@@ -321,7 +363,8 @@ internal class SavableSearchableRepositoryImpl(
                 unused = PinnedLevel.NotPinned in minPinnedLevel..maxPinnedLevel,
                 minVisibility = minVisibility.value,
                 maxVisibility = maxVisibility.value,
-                limit = limit
+                limit = limit,
+                filterExcludedSuggestions = filterExcludedSuggestions,
             )
 
             excludeTypes == null -> dao.getKeysIncludeTypes(
@@ -332,11 +375,31 @@ internal class SavableSearchableRepositoryImpl(
                 unused = PinnedLevel.NotPinned in minPinnedLevel..maxPinnedLevel,
                 minVisibility = minVisibility.value,
                 maxVisibility = maxVisibility.value,
-                limit = limit
+                limit = limit,
+                filterExcludedSuggestions = filterExcludedSuggestions,
             )
 
             else -> throw IllegalArgumentException("Cannot specify both includeTypes and excludeTypes")
         }.distinctUntilChanged()
+    }
+
+    override fun getExcludedFromFrequentlyUsed(): Flow<List<SavableSearchable>> =
+        database.searchableDao().getExcludedFromFrequentlyUsed()
+            .map { entities -> entities.mapNotNull { fromDatabaseEntity(it).searchable } }
+            .distinctUntilChanged()
+            .flowOn(Dispatchers.IO)
+
+    override fun isExcludedFromFrequentlyUsed(searchable: SavableSearchable): Flow<Boolean> =
+        database.searchableDao().isExcludedFromFrequentlyUsed(searchable.key).distinctUntilChanged()
+
+    override fun setExcludedFromFrequentlyUsed(searchable: SavableSearchable, excluded: Boolean) {
+        scope.launch {
+            val serialized = searchable.serialize() ?: return@launch
+            database.searchableDao().setExcludedFromFrequentlyUsed(
+                SavedSearchableEntity(searchable.key, searchable.domain, serialized, 0, 0, 0, 0.0),
+                excluded,
+            )
+        }
     }
 
     override fun isPinned(searchable: SavableSearchable): Flow<Boolean> {
@@ -515,6 +578,7 @@ internal class SavableSearchableRepositoryImpl(
                         "pinPosition" to fav.pinPosition,
                         "searchable" to fav.serializedSearchable,
                         "weight" to fav.weight,
+                        "excludeFromFrequentlyUsed" to fav.excludeFromFrequentlyUsed,
                     )
                 )
             }
@@ -548,6 +612,7 @@ internal class SavableSearchableRepositoryImpl(
                         launchCount = json.getInt("launchCount"),
                         visibility = json.optInt("visibility", 0),
                         pinPosition = json.getInt("pinPosition"),
+                        excludeFromFrequentlyUsed = json.optBoolean("excludeFromFrequentlyUsed", false),
                         weight = json.optDouble("weight").takeIf { !it.isNaN() } ?: 0.0
                     )
                     favorites.add(entity)

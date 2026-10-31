@@ -54,4 +54,21 @@ dependencies {
     implementation(project(":data:searchable"))
 
     testImplementation(libs.bundles.tests)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.sqlite)
+}
+
+val robolectricAndroidAll by configurations.creating
+dependencies {
+    robolectricAndroidAll(libs.robolectric.android.all)
+}
+val robolectricDependencyDir = layout.buildDirectory.dir("robolectric")
+val copyRobolectricAndroidAll by tasks.registering(Sync::class) {
+    from(robolectricAndroidAll)
+    into(robolectricDependencyDir)
+}
+tasks.withType<Test>().configureEach {
+    dependsOn(copyRobolectricAndroidAll)
+    systemProperty("robolectric.offline", "true")
+    systemProperty("robolectric.dependency.dir", robolectricDependencyDir.get().asFile.absolutePath)
 }

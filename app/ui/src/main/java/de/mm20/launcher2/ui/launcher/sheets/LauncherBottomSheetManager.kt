@@ -10,6 +10,7 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryOwner
 import de.mm20.launcher2.preferences.GestureAction
 import de.mm20.launcher2.search.SavableSearchable
+import de.mm20.launcher2.search.Application
 import de.mm20.launcher2.ui.launcher.scaffold.Gesture
 
 class LauncherBottomSheetManager(registryOwner: SavedStateRegistryOwner) :
@@ -24,6 +25,7 @@ class LauncherBottomSheetManager(registryOwner: SavedStateRegistryOwner) :
      * The item that is being put in folders
      */
     val addToFolderDialogShown = mutableStateOf<SavableSearchable?>(null)
+    val bulkTagAppsSheetShown = mutableStateOf<Application?>(null)
 
     init {
         registryOwner.lifecycle.addObserver(LifecycleEventObserver { _, event ->
@@ -63,6 +65,14 @@ class LauncherBottomSheetManager(registryOwner: SavedStateRegistryOwner) :
 
     fun dismissAddToFolderDialog() {
         addToFolderDialogShown.value = null
+    }
+
+    fun showBulkTagAppsSheet(app: Application) {
+        bulkTagAppsSheetShown.value = app
+    }
+
+    fun dismissBulkTagAppsSheet() {
+        bulkTagAppsSheetShown.value = null
     }
 
     fun showEditFavoritesSheet() {

@@ -60,6 +60,12 @@ interface CustomAttrsDao {
         insertTag(key, tag)
     }
 
+    /** Adds one tag to a selection without replacing its other tags or existing tag members. */
+    @Transaction
+    suspend fun addTagToItems(keys: List<String>, tag: String) {
+        for (key in keys.distinct()) addTag(key, tag)
+    }
+
     @Query("DELETE FROM CustomAttributes WHERE type = 'tag' AND `key` = :key AND value = :tag")
     suspend fun removeTag(key: String, tag: String)
 

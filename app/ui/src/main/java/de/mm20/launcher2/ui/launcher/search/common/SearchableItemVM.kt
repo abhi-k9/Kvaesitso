@@ -73,6 +73,14 @@ class SearchableItemVM : ListItemViewModel(), KoinComponent {
         if (it == null) emptyFlow() else favoritesService.isPinned(it)
     }
 
+    val isExcludedFromFrequentlyUsed = searchable.flatMapLatest {
+        if (it == null) flowOf(false) else favoritesService.isExcludedFromFrequentlyUsed(it)
+    }
+
+    fun setExcludedFromFrequentlyUsed(excluded: Boolean) {
+        searchable.value?.let { favoritesService.setExcludedFromFrequentlyUsed(it, excluded) }
+    }
+
     fun pin() {
         searchable.value?.let { favoritesService.pinItem(it) }
     }
