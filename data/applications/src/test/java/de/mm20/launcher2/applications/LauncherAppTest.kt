@@ -13,6 +13,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class LauncherAppTest {
@@ -49,6 +50,13 @@ class LauncherAppTest {
     private fun loadedIcon() = runBlocking {
         val icon = app.loadIcon(context, 48, themed = false) as StaticLauncherIcon
         (icon.foregroundLayer as StaticIconLayer).icon
+    }
+
+    @Test
+    fun appDomainAndSerializerKeepTheExistingSavedRecordContract() {
+        // This is the on-disk value used by existing installations, not a synthetic test type.
+        assertEquals("app", app.domain)
+        assertEquals("app", app.getSerializer().typePrefix)
     }
 
     // fork.16: after an update, the activity info the app was loaded with points to the deleted

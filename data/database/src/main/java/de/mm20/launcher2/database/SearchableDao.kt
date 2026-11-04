@@ -11,6 +11,7 @@ import androidx.room3.Upsert
 import de.mm20.launcher2.database.entities.SavedSearchableEntity
 import de.mm20.launcher2.database.entities.SavedSearchableUpdateContentEntity
 import de.mm20.launcher2.database.entities.SavedSearchableUpdatePinEntity
+import de.mm20.launcher2.search.Application
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -193,7 +194,7 @@ interface SearchableDao {
 
     /** Unpinned app candidates; visibility/exclusions apply before ordering. */
     @Query(
-        "SELECT * FROM Searchable WHERE type = 'apps' AND pinPosition = 0 " +
+        "SELECT * FROM Searchable WHERE type = '${Application.Domain}' AND pinPosition = 0 " +
                 "AND launchCount > 0 AND hidden BETWEEN 0 AND 1 AND excludeFromFrequentlyUsed = 0 " +
                 "AND (NOT :recentFirst OR lastLaunchedAt > 0) " +
                 "ORDER BY CASE WHEN :recentFirst THEN lastLaunchedAt ELSE launchCount END DESC, " +

@@ -7,11 +7,17 @@ import de.mm20.launcher2.database.AppDatabase
 import de.mm20.launcher2.database.entities.SavedSearchableEntity
 import de.mm20.launcher2.search.Application
 import de.mm20.launcher2.search.SearchableDeserializer
+import de.mm20.launcher2.search.SearchableSerializer
+import de.mm20.launcher2.search.SavableSearchable
+import de.mm20.launcher2.preferences.WeightFactor
+import de.mm20.launcher2.preferences.search.RankingSettings
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -37,8 +43,11 @@ class AppSuggestionRepositoryTest {
     fun setUp() {
         database = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), AppDatabase::class.java)
             .setDriver(AndroidSQLiteDriver()).build()
-        startKoin { modules(module { single<SearchableDeserializer>(named("apps")) { deserializer } }) }
-        repository = SavableSearchableRepositoryImpl(database, mockk())
+        startKoin { modules(module { single<SearchableDeserializer>(named("app")) { deserializer } }) }
+        val ranking = mockk<RankingSettings> {
+            every { weightFactor } returns flowOf(WeightFactor.Default)
+        }
+        repository = SavableSearchableRepositoryImpl(database, ranking)
     }
 
     @After
@@ -50,10 +59,15 @@ class AppSuggestionRepositoryTest {
     private fun app(id: String, isPrivateApp: Boolean = false) = mockk<Application> {
         every { key } returns id
         every { isPrivate } returns isPrivateApp
+        every { domain } returns "app"
+        every { getSerializer() } returns object : SearchableSerializer {
+            override val typePrefix = "app"
+            override fun serialize(searchable: SavableSearchable) = searchable.key
+        }
     }
 
     private suspend fun save(id: String, time: Long, count: Int = 1) {
-        database.searchableDao().upsert(SavedSearchableEntity(id, "apps", id, count, 0, 0, 0.5, lastLaunchedAt = time))
+        database.searchableDao().upsert(SavedSearchableEntity(id, "app", id, count, 0, 0, 0.5, lastLaunchedAt = time))
     }
 
     @Test
@@ -82,5 +96,26 @@ class AppSuggestionRepositoryTest {
         coEvery { deserializer.deserialize("frequent") } returns app("frequent")
         assertEquals("frequent", repository.getAppSuggestions(false, 1).first().single().key)
         assertEquals("recent", repository.getAppSuggestions(true, 1).first().single().key)
+    }
+
+    @Test
+    fun recordedLaunchAppearsInBothCandidateListsUsingThePersistedAppDomain() = runBlocking {
+        val appKey = "app://example:Main"
+        val launched = app(appKey)
+        coEvery { deserializer.deserialize(appKey) } returns launched
+
+        repository.touch(launched)
+
+        val recorded = withTimeout(5_000) {
+            database.searchableDao().getByKey(launched.key).first { it?.lastLaunchedAt?.let { time -> time > 0 } == true }!!
+        }
+        assertEquals("app", recorded.type)
+        assertEquals(1, recorded.launchCount)
+        assertEquals(0, recorded.pinPosition)
+        assertEquals(0, recorded.visibility)
+        assertEquals(launched.key, recorded.serializedSearchable)
+        assertEquals(listOf(recorded), database.searchableDao().getAppSuggestions(true).first())
+        assertEquals(listOf(launched), repository.getAppSuggestions(true, 4).first())
+        assertEquals(listOf(launched), repository.getAppSuggestions(false, 2).first())
     }
 }

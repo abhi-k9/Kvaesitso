@@ -39,3 +39,19 @@ Validation:
 - `git diff --check` passed.
 
 No physical-device testing was available.
+
+## Correction after fork.41
+
+Recent and frequent groups incorrectly queried the synthetic type `apps`, while
+real saved applications use the domain `app`. The original tests also used the
+synthetic type and therefore missed the empty groups on real installations.
+
+The query, app model and serializers now share `Application.Domain`, whose stable
+on-disk value remains `app`. Fixtures use that existing record format. Additional
+tests check the concrete app/serializer contract and record a launch through the
+repository before querying both automatic groups. Corrected fixtures reproduced
+the failure against the previous query.
+
+No migration or history reset is necessary: existing counts, timestamps, pins and
+exclusions are preserved. Validation passed with 359 tests reported (358 passed,
+one skipped), a successful debug APK build and a clean `git diff --check`.

@@ -13,6 +13,11 @@ import de.mm20.launcher2.icons.TintedIconLayer
 import de.mm20.launcher2.profiles.Profile
 
 interface Application: SavableSearchable {
+    companion object {
+        /** Stable domain used by serialized apps and their saved usage records. */
+        const val Domain = "app"
+    }
+
     override val preferDetailsOverLaunch: Boolean
         get() = false
 

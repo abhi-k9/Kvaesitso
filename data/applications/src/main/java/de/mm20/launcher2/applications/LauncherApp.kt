@@ -326,7 +326,7 @@ internal data class LauncherApp(
             }
         }
 
-        const val Domain = "app"
+        const val Domain = Application.Domain
     }
 
     override fun getSerializer(): SearchableSerializer {

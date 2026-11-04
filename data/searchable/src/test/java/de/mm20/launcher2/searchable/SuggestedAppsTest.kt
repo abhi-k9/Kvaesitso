@@ -51,7 +51,7 @@ class SuggestedAppsTest {
     }
 
     private fun app(key: String, pinned: Int = 0, excluded: Boolean = false) =
-        SavedSearchableEntity(key, "apps", "serialized-$key", 8, pinned, 0, 0.7, excluded)
+        SavedSearchableEntity(key, "app", "serialized-$key", 8, pinned, 0, 0.7, excluded)
 
     @Test
     fun excludesOnlyAutomaticSuggestionsAndKeepsPinnedAndSearchAccess() = runBlocking {
@@ -73,9 +73,9 @@ class SuggestedAppsTest {
         dao.upsert(app("visible"))
         dao.upsert(app("other").copy(type = "files"))
 
-        assertEquals(listOf("visible"), dao.getIncludeTypes(listOf("apps"), frequentlyUsed = true, limit = 20, filterExcludedSuggestions = true).first().map { it.key })
+        assertEquals(listOf("visible"), dao.getIncludeTypes(listOf("app"), frequentlyUsed = true, limit = 20, filterExcludedSuggestions = true).first().map { it.key })
         assertEquals(listOf("visible"), dao.getExcludeTypes(listOf("files"), frequentlyUsed = true, limit = 20, filterExcludedSuggestions = true).first().map { it.key })
-        assertEquals(listOf("visible"), dao.getKeysIncludeTypes(listOf("apps"), frequentlyUsed = true, limit = 20, filterExcludedSuggestions = true).first())
+        assertEquals(listOf("visible"), dao.getKeysIncludeTypes(listOf("app"), frequentlyUsed = true, limit = 20, filterExcludedSuggestions = true).first())
         assertEquals(listOf("visible"), dao.getKeysExcludeTypes(listOf("files"), frequentlyUsed = true, limit = 20, filterExcludedSuggestions = true).first())
         assertEquals(setOf("visible", "other"), dao.getKeys(frequentlyUsed = true, limit = 20, filterExcludedSuggestions = true).first().toSet())
     }
@@ -92,7 +92,7 @@ class SuggestedAppsTest {
     fun launchesAndPinEditsDoNotClearExclusionOrStopUsageLearning() = runBlocking {
         dao.upsert(app("excluded", excluded = true))
         dao.touch(app("excluded"), 0.03)
-        dao.upsert(listOf(SavedSearchableUpdatePinEntity("excluded", "apps", "new-content", 1)))
+        dao.upsert(listOf(SavedSearchableUpdatePinEntity("excluded", "app", "new-content", 1)))
 
         val saved = dao.getByKey("excluded").first()!!
         assertTrue(saved.excludeFromFrequentlyUsed)
@@ -116,12 +116,12 @@ class SuggestedAppsTest {
     fun repositoryPinAndVisibilityUpdatesPreserveIndependentExclusion() = runBlocking {
         val repository = SavableSearchableRepositoryImpl(database, mockk())
         val serializer = object : SearchableSerializer {
-            override val typePrefix = "apps"
+            override val typePrefix = "app"
             override fun serialize(searchable: SavableSearchable) = "serialized-app"
         }
         val searchable = mockk<SavableSearchable> {
             every { key } returns "app"
-            every { domain } returns "apps"
+            every { domain } returns "app"
             every { getSerializer() } returns serializer
         }
         repository.setExcludedFromFrequentlyUsed(searchable, true)
@@ -146,12 +146,12 @@ class SuggestedAppsTest {
         dao.upsert(original)
         val repository = SavableSearchableRepositoryImpl(database, mockk())
         val serializer = object : SearchableSerializer {
-            override val typePrefix = "apps"
+            override val typePrefix = "app"
             override fun serialize(searchable: SavableSearchable) = "serialized-${searchable.key}"
         }
         fun searchable(itemKey: String) = mockk<SavableSearchable> {
             every { key } returns itemKey
-            every { domain } returns "apps"
+            every { domain } returns "app"
             every { getSerializer() } returns serializer
         }
 
@@ -171,7 +171,7 @@ class SuggestedAppsTest {
     fun renamedAndMergedAppKeysRetainTheExclusion() = runBlocking {
         dao.upsert(app("old", excluded = true).copy(lastLaunchedAt = 500L))
         dao.upsert(app("new", pinned = 1).copy(lastLaunchedAt = 300L))
-        dao.merge("old", SavedSearchableUpdateContentEntity("new", "apps", "merged"))
+        dao.merge("old", SavedSearchableUpdateContentEntity("new", "app", "merged"))
 
         val merged = dao.getByKey("new").first()!!
         assertTrue(merged.excludeFromFrequentlyUsed)
@@ -232,7 +232,7 @@ class SuggestedAppsTest {
                 }
                 val setup = schema.getJSONArray("setupQueries")
                 for (i in 0 until setup.length()) connection.execSQL(setup.getString(i))
-                connection.execSQL("INSERT INTO Searchable (`key`, `type`, searchable, launchCount, pinPosition, hidden, weight) VALUES ('old', 'apps', 'old-content', 12, 3, 1, 0.6)")
+                connection.execSQL("INSERT INTO Searchable (`key`, `type`, searchable, launchCount, pinPosition, hidden, weight) VALUES ('old', 'app', 'old-content', 12, 3, 1, 0.6)")
                 if (excluded) connection.execSQL("UPDATE Searchable SET excludeFromFrequentlyUsed = 1")
                 connection.execSQL("PRAGMA user_version = $fromVersion")
             }

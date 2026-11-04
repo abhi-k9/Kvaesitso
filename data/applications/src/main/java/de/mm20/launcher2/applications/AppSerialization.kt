@@ -11,6 +11,7 @@ import androidx.core.content.getSystemService
 import de.mm20.launcher2.ktx.getSerialNumber
 import de.mm20.launcher2.ktx.isAtLeastApiLevel
 import de.mm20.launcher2.search.SavableSearchable
+import de.mm20.launcher2.search.Application
 import de.mm20.launcher2.search.SearchableDeserializer
 import de.mm20.launcher2.search.SearchableKeyMigrator
 import de.mm20.launcher2.search.SearchableSerializer
@@ -30,7 +31,7 @@ internal class LockedPrivateProfileAppSerializer : SearchableSerializer {
     }
 
     override val typePrefix: String
-        get() = "app"
+        get() = Application.Domain
 }
 
 class LauncherAppSerializer : SearchableSerializer {
@@ -44,7 +45,7 @@ class LauncherAppSerializer : SearchableSerializer {
     }
 
     override val typePrefix: String
-        get() = "app"
+        get() = Application.Domain
 }
 
 class LauncherAppDeserializer(
