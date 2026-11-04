@@ -24,6 +24,7 @@ class FavoritesSettingsScreenVM: ViewModel(), KoinComponent {
     fun setCardIconSize(value: Int) = favoritesSettings.setCardIconSize(value)
     fun setCardLabels(value: Boolean) = favoritesSettings.setCardLabels(value)
     fun setCardGroupLabels(value: Boolean) = favoritesSettings.setCardGroupLabels(value)
+    fun setCardHorizontal(value: Boolean) = favoritesSettings.setCardHorizontal(value)
     fun setCardPinnedCount(value: Int) = favoritesSettings.setCardPinnedCount(value)
     fun setCardRecentCount(value: Int) = favoritesSettings.setCardRecentCount(value)
     fun setCardFrequentCount(value: Int) = favoritesSettings.setCardFrequentCount(value)

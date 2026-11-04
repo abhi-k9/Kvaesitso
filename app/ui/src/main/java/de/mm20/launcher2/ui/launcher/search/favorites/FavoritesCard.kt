@@ -33,7 +33,7 @@ internal fun favoritesCardGridSettings(settings: FavoritesCardSettingsData, widt
 }
 
 @Composable
-internal fun FavoritesCardGrid(
+internal fun FavoritesCard(
     items: List<SavableSearchable>,
     groups: FavoritesCardItems,
     settings: FavoritesCardSettingsData,
@@ -49,9 +49,13 @@ internal fun FavoritesCardGrid(
     val itemStore = remember { ListItemViewModelStore() }
     DisposableEffect(itemStore) { onDispose { itemStore.clear() } }
     BoxWithConstraints {
-        val grid = favoritesCardGridSettings(settings, maxWidth.value)
+        val grid = if (settings.horizontal) {
+            GridSettings(columnCount = settings.columns, iconSize = settings.iconSize, showLabels = settings.showLabels)
+        } else favoritesCardGridSettings(settings, maxWidth.value)
         CompositionLocalProvider(LocalGridSettings provides grid, LocalListItemViewModelStore provides itemStore) {
-            if (selectedTag != null || !settings.showGroupLabels) {
+            if (settings.horizontal) {
+                FavoritesCardRow(items, groups, settings, selectedTag)
+            } else if (selectedTag != null || !settings.showGroupLabels) {
                 renderGrid(items)
             } else {
                 Column(verticalArrangement = if (reverse) Arrangement.BottomReversed else Arrangement.Top) {

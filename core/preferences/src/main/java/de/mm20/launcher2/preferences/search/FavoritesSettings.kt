@@ -21,6 +21,7 @@ data class FavoritesCardSettingsData(
     val recentCount: Int = 4,
     val frequentCount: Int = -1,
     val frequentlyUsedRows: Int = 1,
+    val horizontal: Boolean = true,
 )
 
 class FavoritesSettings internal constructor(
@@ -39,6 +40,7 @@ class FavoritesSettings internal constructor(
             iconSize = (it.favoritesCardIconSize.takeIf { size -> size > 0 } ?: it.gridIconSize).coerceIn(24, 96),
             showLabels = it.favoritesCardLabels ?: it.gridLabels,
             showGroupLabels = it.favoritesCardGroupLabels,
+            horizontal = it.favoritesCardHorizontal,
             pinnedCount = it.favoritesCardPinnedCount.coerceIn(-1, 60),
             recentCount = it.favoritesCardRecentCount.coerceIn(0, 60),
             frequentCount = if (it.favoritesFrequentlyUsed) it.favoritesCardFrequentCount.coerceIn(-1, 60) else 0,
@@ -56,6 +58,7 @@ class FavoritesSettings internal constructor(
 
     fun setCardLabels(show: Boolean) = dataStore.update { it.copy(favoritesCardLabels = show) }
     fun setCardGroupLabels(show: Boolean) = dataStore.update { it.copy(favoritesCardGroupLabels = show) }
+    fun setCardHorizontal(horizontal: Boolean) = dataStore.update { it.copy(favoritesCardHorizontal = horizontal) }
     fun setCardPinnedCount(count: Int) = dataStore.update { it.copy(favoritesCardPinnedCount = count.coerceIn(-1, 60)) }
     fun setCardRecentCount(count: Int) = dataStore.update { it.copy(favoritesCardRecentCount = count.coerceIn(0, 60)) }
     fun setCardFrequentCount(count: Int) = dataStore.update { it.copy(favoritesCardFrequentCount = count.coerceIn(-1, 60)) }

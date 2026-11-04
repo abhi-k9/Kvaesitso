@@ -10,16 +10,26 @@ Favorites consist of:
 
 ## Customize the app drawer card
 
-Open **Settings > Search > Favorites**. The **App drawer card layout** controls
-icon size, column count, item labels and group headings independently of the main
-app grid, dock and favorites widgets. For a denser card, try smaller icons and
-more columns, or hide labels and headings. Icons shrink to fit narrow columns.
-**Match the app grid layout** resets the card's icon size, columns and item labels.
+The app-drawer card uses one sideways-scrollable strip, with pinned items first,
+then recent and frequently used apps. Swipe across the icons to reach more items.
+Small group headings mark the start of each group; the strip stays one row tall.
+Tap and long-press actions work as before, including pinned folders.
+
+Open **Settings > Search > Favorites**. Under **App drawer card layout**, adjust
+icon size, **Items in view**, item labels and group headings independently of the
+main app grid, dock and favorites widgets. For a denser strip, try smaller icons
+and more items in view, or hide labels and headings. Icons retain their chosen
+size and comfortable tap targets; a narrow screen shows fewer at once.
+
+Turn off **Scroll favorites sideways** to restore the stacked grid. The density
+control then becomes **Number of columns**, and icons shrink to fit narrow columns.
+**Match the app grid layout** resets icon size, columns/items in view and item
+labels without changing scrolling mode or group limits.
 
 Under **App drawer card contents**, set separate limits for **Pinned**,
 **Recently used** and **Frequently used**. Zero hides a group; **All** shows all
 pins. **Row limit** uses the existing frequently-used rows setting and the card's
-column count. Pins beyond the chosen limit stay pinned elsewhere.
+columns/items-in-view value. Pins beyond the chosen limit stay pinned elsewhere.
 
 Items appear once, in that order. Recent and frequent suggestions contain unpinned
 apps, so an app already shown in Recent does not repeat in Frequent. Recent sorts

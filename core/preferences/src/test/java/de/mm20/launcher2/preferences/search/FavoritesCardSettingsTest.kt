@@ -36,6 +36,7 @@ class FavoritesCardSettingsTest {
         assertEquals(4, card.recentCount)
         assertEquals(-1, card.frequentCount)
         assertEquals(2, card.frequentlyUsedRows)
+        assertTrue(card.horizontal)
     }
 
     @Test
@@ -44,9 +45,11 @@ class FavoritesCardSettingsTest {
         settings.setCardIconSize(32)
         settings.setCardLabels(false)
         settings.setCardGroupLabels(false)
+        settings.setCardHorizontal(false)
         assertEquals(7, settings.card.first().columns)
         assertEquals(32, settings.card.first().iconSize)
         assertFalse(settings.card.first().showLabels)
+        assertFalse(settings.card.first().horizontal)
         assertEquals(5, saved.value.gridColumnCount)
         assertEquals(48, saved.value.gridIconSize)
         assertTrue(saved.value.gridLabels)
@@ -61,6 +64,7 @@ class FavoritesCardSettingsTest {
         settings.setCardColumns(8)
         settings.setCardIconSize(28)
         settings.setCardLabels(false)
+        settings.setCardHorizontal(false)
         val before = settings.card.first()
         saved.value = json.decodeFromString(json.encodeToString(saved.value))
         assertEquals(before, settings.card.first())
@@ -71,11 +75,13 @@ class FavoritesCardSettingsTest {
         settings.setCardColumns(8)
         settings.setCardIconSize(24)
         settings.setCardRecentCount(9)
+        settings.setCardHorizontal(false)
         saved.value = saved.value.copy(gridColumnCount = 4, gridIconSize = 56)
         settings.resetCardLayout()
         assertEquals(4, settings.card.first().columns)
         assertEquals(56, settings.card.first().iconSize)
         assertEquals(9, settings.card.first().recentCount)
+        assertFalse(settings.card.first().horizontal)
     }
 
     @Test

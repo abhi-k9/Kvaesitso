@@ -52,13 +52,19 @@ fun FavoritesSettingsScreen() {
         }
         item {
             PreferenceCategory(stringResource(R.string.favorites_card_layout)) {
+                SwitchPreference(
+                    title = stringResource(R.string.favorites_card_horizontal),
+                    summary = stringResource(R.string.favorites_card_horizontal_summary),
+                    value = card.horizontal,
+                    onValueChanged = viewModel::setCardHorizontal,
+                )
                 SliderPreference(
                     title = stringResource(R.string.preference_grid_icon_size),
                     value = card.iconSize, min = 24, max = 96, step = 4,
                     onValueChanged = viewModel::setCardIconSize,
                 )
                 SliderPreference(
-                    title = stringResource(R.string.preference_grid_column_count),
+                    title = stringResource(if (card.horizontal) R.string.favorites_card_visible_items else R.string.preference_grid_column_count),
                     value = card.columns, min = 1, max = 10,
                     onValueChanged = viewModel::setCardColumns,
                 )

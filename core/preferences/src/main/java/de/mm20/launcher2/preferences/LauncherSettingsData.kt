@@ -74,6 +74,7 @@ data class LauncherSettingsData internal constructor(
     val favoritesCardIconSize: Int = 0,
     val favoritesCardLabels: Boolean? = null,
     val favoritesCardGroupLabels: Boolean = true,
+    val favoritesCardHorizontal: Boolean = true,
     // -1 keeps all pins, or uses the existing frequently-used row limit, respectively.
     val favoritesCardPinnedCount: Int = -1,
     val favoritesCardRecentCount: Int = 4,

@@ -1296,7 +1296,7 @@
     <string name="suggestions_excluded_title">Excluded suggestions</string>
     <string name="suggestions_excluded_summary">These apps stay available in search and the app list, and can still be pinned. They won’t appear in recent or frequently used suggestions.</string>
     <string name="favorites_card_layout">App drawer card layout</string>
-    <string name="favorites_card_layout_summary">Only this card changes. Increase columns and reduce icon size to fit more items; icons shrink to fit narrow columns.</string>
+    <string name="favorites_card_layout_summary">Only this card changes. Smaller icons and more visible items make the strip denser. Touch targets stay comfortable. In grid mode, icons shrink to fit narrow columns.</string>
     <string name="favorites_card_reset_layout">Match the app grid layout</string>
     <string name="favorites_card_group_labels">Show group headings</string>
     <string name="favorites_card_contents">App drawer card contents</string>
@@ -1306,5 +1306,10 @@
     <string name="favorites_card_frequent">Frequently used</string>
     <string name="favorites_card_all">All</string>
     <string name="favorites_card_row_limit">Row limit</string>
+    <string name="favorites_card_horizontal">Scroll favorites sideways</string>
+    <string name="favorites_card_horizontal_summary">Keep pinned, recent and frequent items in one compact strip. Turn off to use the grid.</string>
+    <string name="favorites_card_visible_items">Items in view</string>
+    <string name="favorites_card_recent_short">Recent</string>
+    <string name="favorites_card_frequent_short">Frequent</string>
     <string name="suggestions_excluded_empty">No apps excluded from suggestions</string>
 </resources>

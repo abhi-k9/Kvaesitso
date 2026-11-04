@@ -41,7 +41,7 @@ class FavoritesCardGridTest {
             MaterialTheme {
                 CompositionLocalProvider(LocalGridSettings provides GridSettings(columnCount = 5, iconSize = 48)) {
                     Column(Modifier.width(320.dp)) {
-                        FavoritesCardGrid(groups.all, groups, FavoritesCardSettingsData(columns = 6, iconSize = 32), null, false) { items ->
+                        FavoritesCard(groups.all, groups, FavoritesCardSettingsData(horizontal = false, columns = 6, iconSize = 32), null, false) { items ->
                             val grid = LocalGridSettings.current
                             Text("${items.single().label}: ${grid.columnCount}/${grid.iconSize}")
                         }
@@ -62,7 +62,7 @@ class FavoritesCardGridTest {
     fun hidingHeadingsCombinesGroupsIntoOneDenseGrid() {
         compose.setContent {
             MaterialTheme {
-                FavoritesCardGrid(groups.all, groups, FavoritesCardSettingsData(showGroupLabels = false), null, false) { items ->
+                FavoritesCard(groups.all, groups, FavoritesCardSettingsData(horizontal = false, showGroupLabels = false), null, false) { items ->
                     Text(items.joinToString { it.label })
                 }
             }
@@ -75,7 +75,7 @@ class FavoritesCardGridTest {
     fun tagSelectionShowsAllTagMembersInsteadOfApplyingFavoriteGroupLimits() {
         compose.setContent {
             MaterialTheme {
-                FavoritesCardGrid(listOf(Tag("member")), groups, FavoritesCardSettingsData(), "chosen tag", false) { items ->
+                FavoritesCard(listOf(Tag("member")), groups, FavoritesCardSettingsData(horizontal = false, ), "chosen tag", false) { items ->
                     Text(items.joinToString { it.label })
                 }
             }
@@ -86,7 +86,7 @@ class FavoritesCardGridTest {
 
     @Test
     fun narrowColumnsFitTheirIconsAndWidthChangesCanFitMoreColumns() {
-        val requested = FavoritesCardSettingsData(columns = 10, iconSize = 64)
+        val requested = FavoritesCardSettingsData(horizontal = false, columns = 10, iconSize = 64)
         val narrow = favoritesCardGridSettings(requested, 360f)
         val wide = favoritesCardGridSettings(requested, 800f)
         assertEquals(8, narrow.columnCount)
@@ -105,7 +105,7 @@ class FavoritesCardGridTest {
             MaterialTheme {
                 CompositionLocalProvider(LocalListItemViewModelStore provides outside) {
                     if (shown.value) {
-                        FavoritesCardGrid(groups.all, groups, FavoritesCardSettingsData(showGroupLabels = false), null, false) {
+                        FavoritesCard(groups.all, groups, FavoritesCardSettingsData(horizontal = false, showGroupLabels = false), null, false) {
                             inside = LocalListItemViewModelStore.current
                             Text("Card")
                         }

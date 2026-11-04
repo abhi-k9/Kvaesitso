@@ -55,3 +55,39 @@ the failure against the previous query.
 No migration or history reset is necessary: existing counts, timestamps, pins and
 exclusions are preserved. Validation passed with 359 tests reported (358 passed,
 one skipped), a successful debug APK build and a clean `git diff --check`.
+
+## Compact horizontal strip after fork.43
+
+The app-drawer Favorites card now defaults to a single horizontally scrollable
+row. Pins, recents and frequent apps retain their order and quotas, but no longer
+occupy three separate vertical sections. Small headings mark the first item of
+each group and scroll with it; headings can still be hidden. Selected tags show
+all their members without group headings or quotas.
+
+The strip uses stable item keys and lazy composition. A small peek at the next
+item signals overflow. It preserves the requested icon size, a minimum 48dp hit
+area, and the existing app/folder renderers and actions. Unlabelled icons keep
+their compact height even when fewer items are requested in view. Horizontal
+overscroll is consumed at the strip, while vertical swipes still scroll the app
+drawer. Switching tags starts the new tag at its first item.
+
+**Settings > Search > Favorites > Scroll favorites sideways** switches back to the
+stacked grid without losing density or quota settings. The density control is
+labelled **Items in view** in strip mode and retains the existing column setting
+in grid mode. Both new installations and older settings/backups default to the
+strip; an explicit grid choice survives backup/restore. Matching the app grid's
+density leaves scrolling mode and quotas unchanged. Dock and widget layouts are
+unaffected, and no database migration is needed.
+
+Validation:
+
+- All-module unit suite: 367 tests reported, 366 passed, one skipped, zero
+  failures/errors.
+- Eight new Compose regressions cover one-row grouping and order, access to the
+  last item, tag changes, hidden headings, RTL, large icons/type on narrow
+  screens, horizontal overscroll isolation, and vertical drawer scrolling.
+- Preference tests also cover old settings defaults, switching modes, backup
+  persistence, and preserving layout mode when resetting density.
+- `:app:app:assembleDefaultDebug` and `git diff --check`: passed.
+
+Physical-device thumb reach and feel have not been tested in this environment.

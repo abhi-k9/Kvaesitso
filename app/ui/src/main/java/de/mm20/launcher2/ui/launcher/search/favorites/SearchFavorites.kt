@@ -19,7 +19,6 @@ import de.mm20.launcher2.services.favorites.FavoritesCardItems
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.common.FavoritesTagSelector
 import de.mm20.launcher2.ui.component.Banner
-import de.mm20.launcher2.ui.launcher.search.common.grid.SearchResultGrid
 import de.mm20.launcher2.ui.layout.BottomReversed
 import de.mm20.launcher2.ui.theme.transparency.transparency
 
@@ -59,7 +58,7 @@ fun LazyListScope.SearchFavorites(
                 verticalArrangement = if (reverse) Arrangement.BottomReversed else Arrangement.Top
             ) {
                 if (shownItems.isNotEmpty()) {
-                    FavoritesCardGrid(shownItems, cardItems, cardSettings, selectedTag, reverse)
+                    FavoritesCard(shownItems, cardItems, cardSettings, selectedTag, reverse)
                 } else {
                     Banner(
                         modifier = Modifier.padding(16.dp),
