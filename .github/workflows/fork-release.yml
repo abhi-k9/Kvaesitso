@@ -1,5 +1,5 @@
 # Builds a release APK signed with this fork's own key and publishes it as a GitHub release.
-# The unit tests (smoke tests) always run, a release is only published if they pass.
+# Unit tests run by default; manual releases may reuse completed tests explicitly.
 # With "build only" it just checks that the code builds (e.g. after merging upstream changes),
 # without signing or publishing anything. "Lint" additionally runs Android lint and prints its
 # findings, with or without a release (lint never stops a release).
@@ -44,6 +44,14 @@ on:
         required: false
         type: boolean
         default: false
+      skip_tests:
+        description: 'Reuse tests already completed for this code'
+        type: boolean
+        default: false
+      version_code:
+        description: 'Optional higher version code for another release in the same hour'
+        type: string
+        required: false
 
 permissions:
   contents: write
@@ -99,13 +107,20 @@ jobs:
 
       # Before the build, so that a failing smoke test stops a release early
       - name: Run unit tests
+        if: ${{ !inputs.skip_tests }}
         run: .github/scripts/unit-tests.sh
 
       - name: Build APK
+        env:
+          REQUESTED_VERSION_CODE: ${{ inputs.version_code }}
         run: |
           # Date based like the upstream version codes (yyyymmddNN), with the hour as NN so that
           # several releases on the same day still have increasing version codes
-          VERSION_CODE_OVERRIDE="$(date -u +%Y%m%d%H)"
+          VERSION_CODE_OVERRIDE="${REQUESTED_VERSION_CODE:-$(date -u +%Y%m%d%H)}"
+          if ! [[ "$VERSION_CODE_OVERRIDE" =~ ^[1-9][0-9]{0,9}$ ]] || (( VERSION_CODE_OVERRIDE > 2147483647 )); then
+            echo "::error::Invalid Android version code"
+            exit 1
+          fi
           export VERSION_CODE_OVERRIDE
           echo "VERSION_CODE_OVERRIDE=$VERSION_CODE_OVERRIDE" >> "$GITHUB_ENV"
           ./gradlew assembleDefaultRelease :plugins:openmeteo:assembleRelease :plugins:calendarfeeds:assembleRelease
