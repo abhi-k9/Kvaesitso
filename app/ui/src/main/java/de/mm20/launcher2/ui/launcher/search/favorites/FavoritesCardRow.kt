@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -53,9 +55,9 @@ internal fun FavoritesCardRow(
     val headings = remember(groups, showHeadings) {
         buildMap {
             if (showHeadings) {
-                groups.pinned.firstOrNull()?.let { put(it.key, R.string.favorites_card_pinned) }
-                groups.recent.firstOrNull()?.let { put(it.key, R.string.favorites_card_recent_short) }
-                groups.frequent.firstOrNull()?.let { put(it.key, R.string.favorites_card_frequent_short) }
+                groups.pinned.firstOrNull()?.let { put(it.key, R.string.favorites_card_pinned to groups.pinned.size) }
+                groups.recent.firstOrNull()?.let { put(it.key, R.string.favorites_card_recent_short to groups.recent.size) }
+                groups.frequent.firstOrNull()?.let { put(it.key, R.string.favorites_card_frequent_short to groups.frequent.size) }
             }
         }
     }
@@ -67,6 +69,7 @@ internal fun FavoritesCardRow(
         // A glimpse of the next item makes overflow discoverable without another control.
         val slots = settings.columns.coerceIn(1, 10) + if (items.size > settings.columns) 0.35f else 0f
         val itemWidth = (availableWidth / slots).coerceAtLeast(minItemWidth)
+        val trailingSpace = (availableWidth - itemWidth * items.size).coerceAtLeast(0.dp)
         // Returning to another tag starts at its first member; ordinary suggestion updates
         // retain the visible item using the row's stable item keys.
         key(selectedTag) {
@@ -90,13 +93,22 @@ internal fun FavoritesCardRow(
                 items(items, key = { it.key }, contentType = { "favorite" }) { item ->
                     Column(Modifier.width(itemWidth), horizontalAlignment = Alignment.CenterHorizontally) {
                         if (showHeadings) {
-                            val titleRes = headings[item.key]
+                            val title = headings[item.key]
+                            // The caption belongs to the whole group, not just its first
+                            // icon. Let it draw across neighboring cells without changing
+                            // icon spacing, but stop before the next group's heading.
+                            val span = title?.second ?: 1
+                            val lastGroup = title != null && item.key == items.getOrNull(items.size - span)?.key
+                            val titleWidth = (itemWidth * span + if (lastGroup) trailingSpace else 0.dp)
+                                .coerceAtMost(availableWidth)
                             Text(
-                                text = titleRes?.let { stringResource(it) } ?: "",
+                                text = title?.let { stringResource(it.first) } ?: "",
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .wrapContentWidth(Alignment.Start, unbounded = true)
+                                    .widthIn(max = titleWidth)
                                     .padding(horizontal = 8.dp, vertical = 2.dp)
-                                    .then(if (titleRes != null) Modifier.semantics { heading() } else Modifier),
+                                    .then(if (title != null) Modifier.semantics { heading() } else Modifier),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,

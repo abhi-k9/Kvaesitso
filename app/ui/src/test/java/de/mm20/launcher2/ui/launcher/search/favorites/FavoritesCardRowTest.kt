@@ -27,6 +27,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeUp
@@ -37,18 +40,50 @@ import de.mm20.launcher2.preferences.search.FavoritesCardSettingsData
 import de.mm20.launcher2.search.Tag
 import de.mm20.launcher2.services.favorites.FavoritesCardItems
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, qualifiers = "en")
 class FavoritesCardRowTest {
     @get:Rule val compose = createComposeRule()
     private val groups = FavoritesCardItems(listOf(Tag("pin")), listOf(Tag("recent")), listOf(Tag("frequent")))
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun groupHeadingUsesTheSpaceAboveBothIcons() = assertGroupHeadingFits(LayoutDirection.Ltr)
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun groupHeadingUsesTheSpaceAboveBothIconsInRtl() = assertGroupHeadingFits(LayoutDirection.Rtl)
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun lastGroupHeadingUsesUnusedSpaceAfterASingleIcon() = assertGroupHeadingFits(LayoutDirection.Ltr, 1)
+
+    private fun assertGroupHeadingFits(direction: LayoutDirection, count: Int = 2) {
+        val twoFrequent = groups.copy(frequent = (0 until count).map { Tag("app-$it") })
+        compose.setContent {
+            MaterialTheme {
+                CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 1.5f), LocalLayoutDirection provides direction) {
+                    Column(Modifier.width(360.dp)) {
+                        FavoritesCardRow(twoFrequent.all, twoFrequent, FavoritesCardSettingsData(columns = 6, iconSize = 32), null) { item, modifier ->
+                            Box(modifier.height(56.dp)) { Text(item.label) }
+                        }
+                    }
+                }
+            }
+        }
+        val layouts = mutableListOf<TextLayoutResult>()
+        compose.onNodeWithText("Frequent").performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        assertFalse("Heading truncated despite free space beside it", layouts.single().isLineEllipsized(0))
+    }
 
     @Test
     fun groupsShareOneRowInPinnedRecentFrequentOrder() {

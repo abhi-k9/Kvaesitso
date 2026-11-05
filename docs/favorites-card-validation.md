@@ -91,3 +91,17 @@ Validation:
 - `:app:app:assembleDefaultDebug` and `git diff --check`: passed.
 
 Physical-device thumb reach and feel have not been tested in this environment.
+
+## Group heading width correction after fork.44
+
+Strip headings were constrained to the first icon's cell, so a caption such as
+Frequent could be ellipsized despite unused space above the rest of its group.
+Headings now measure across the group's cells, and the final group can also use
+empty trailing viewport space. Their maximum width stops at the next group or
+the viewport width. Icon spacing, scroll keys, group limits and row height are
+unchanged.
+
+Three regressions use native text measurement at 150% font scale, covering LTR,
+RTL and a single-icon final group. Both two-icon cases reproduced truncation
+before the fix. All 16 focused Favorites card tests pass; unrelated suites were
+not repeated. The debug APK build and `git diff --check` also pass.
